@@ -1,0 +1,61 @@
+<h1>Comptes</h1>
+
+<table class="accounts-table">
+  <thead>
+    <tr>
+      <th>Nom</th>
+      <th>Type</th>
+      <th>Solde initial</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (account of accounts(); track account.id) {
+      <tr>
+        <td>{{ account.name }}</td>
+        <td>{{ typeLabels[account.type] }}</td>
+        <td>{{ account.initialBalance | number: '1.2-2' }} €</td>
+        <td class="actions">
+          <button type="button" (click)="edit(account)">Modifier</button>
+          <button type="button" (click)="remove(account)">Supprimer</button>
+        </td>
+      </tr>
+    } @empty {
+      <tr>
+        <td colspan="4">Aucun compte pour l'instant.</td>
+      </tr>
+    }
+  </tbody>
+</table>
+
+<h2>{{ editingId() ? 'Modifier le compte' : 'Ajouter un compte' }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="account-form">
+  <label>
+    Nom
+    <input type="text" formControlName="name" />
+  </label>
+
+  <label>
+    Type
+    <select formControlName="type">
+      @for (type of accountTypes; track type) {
+        <option [value]="type">{{ typeLabels[type] }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Solde initial
+    <input type="number" step="0.01" formControlName="initialBalance" />
+  </label>
+
+  <div class="form-actions">
+    <button type="submit" [disabled]="form.invalid">
+      {{ editingId() ? 'Enregistrer' : 'Ajouter' }}
+    </button>
+    @if (editingId()) {
+      <button type="button" (click)="cancelEdit()">Annuler</button>
+    }
+  </div>
+</form>
