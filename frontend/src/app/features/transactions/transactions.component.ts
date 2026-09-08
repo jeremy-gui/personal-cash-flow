@@ -58,7 +58,6 @@ export class TransactionsComponent {
     accountId: this.fb.control<number | null>(null, Validators.required),
     categoryId: this.fb.control<number | null>(null),
     type: this.fb.nonNullable.control<TransactionType>('DEPENSE'),
-    status: this.fb.nonNullable.control<TransactionStatus>('POINTEE'),
   });
 
   constructor() {
@@ -117,7 +116,6 @@ export class TransactionsComponent {
       accountId: transaction.accountId,
       categoryId: transaction.categoryId,
       type: transaction.type,
-      status: transaction.status,
     });
   }
 
@@ -130,7 +128,6 @@ export class TransactionsComponent {
       accountId: null,
       categoryId: null,
       type: 'DEPENSE',
-      status: 'POINTEE',
     });
   }
 

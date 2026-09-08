@@ -164,14 +164,12 @@
     </select>
   </label>
 
-  <label>
-    Statut
-    <select formControlName="status">
-      @for (status of statuses; track status) {
-        <option [value]="status">{{ statusLabels[status] }}</option>
-      }
-    </select>
-  </label>
+  @if (!editingId()) {
+    <p class="form-hint">
+      Ajoutée ici, une transaction est toujours prévisionnelle. Elle devient pointée via un
+      import bancaire ou un rapprochement.
+    </p>
+  }
 
   <div class="form-actions">
     <button type="submit" [disabled]="form.invalid">

@@ -87,6 +87,17 @@ public class Transaction {
         this.createdAt = Instant.now();
     }
 
+    /** Manual entries are always PREVISIONNELLE; only a bank import or a reconciliation produces POINTEE. */
+    public static Transaction manual(
+            LocalDate date,
+            String label,
+            BigDecimal amount,
+            Account account,
+            Category category,
+            TransactionType type) {
+        return new Transaction(date, label, amount, account, category, type, TransactionStatus.PREVISIONNELLE);
+    }
+
     public static Transaction imported(
             LocalDate date,
             String label,
@@ -157,20 +168,19 @@ public class Transaction {
         return createdAt;
     }
 
+    /** Status is never editable here: it only changes via a bank import or a reconciliation. */
     public void update(
             LocalDate date,
             String label,
             BigDecimal amount,
             Account account,
             Category category,
-            TransactionType type,
-            TransactionStatus status) {
+            TransactionType type) {
         this.date = date;
         this.label = label;
         this.amount = amount;
         this.account = account;
         this.category = category;
         this.type = type;
-        this.status = status;
     }
 }

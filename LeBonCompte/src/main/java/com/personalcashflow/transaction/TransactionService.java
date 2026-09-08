@@ -57,14 +57,13 @@ public class TransactionService {
     public Transaction create(TransactionRequest request) {
         Account account = resolveAccount(request.accountId());
         Category category = resolveCategory(request.categoryId());
-        Transaction transaction = new Transaction(
+        Transaction transaction = Transaction.manual(
                 request.date(),
                 request.label(),
                 signedAmount(request),
                 account,
                 category,
-                request.type(),
-                request.status());
+                request.type());
         return transactionRepository.save(transaction);
     }
 
@@ -78,8 +77,7 @@ public class TransactionService {
                 signedAmount(request),
                 account,
                 category,
-                request.type(),
-                request.status());
+                request.type());
         return transaction;
     }
 

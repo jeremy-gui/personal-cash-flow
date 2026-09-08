@@ -46,11 +46,26 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.of(2026, 9, 5), "Carrefour", BigDecimal.valueOf(80), 1L, null,
-                TransactionType.DEPENSE, TransactionStatus.POINTEE);
+                TransactionType.DEPENSE);
 
         Transaction created = transactionService.create(request);
 
         assertThat(created.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(-80));
+    }
+
+    @Test
+    void create_shouldAlwaysStoreStatusPrevisionnelle() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TransactionRequest request = new TransactionRequest(
+                LocalDate.of(2026, 9, 5), "Carrefour", BigDecimal.valueOf(80), 1L, null,
+                TransactionType.DEPENSE);
+
+        Transaction created = transactionService.create(request);
+
+        assertThat(created.getStatus()).isEqualTo(TransactionStatus.PREVISIONNELLE);
     }
 
     @Test
@@ -61,7 +76,7 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.of(2026, 9, 8), "Salaire", BigDecimal.valueOf(2850), 1L, null,
-                TransactionType.REVENU, TransactionStatus.PREVISIONNELLE);
+                TransactionType.REVENU);
 
         Transaction created = transactionService.create(request);
 
@@ -74,7 +89,7 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.now(), "Test", BigDecimal.TEN, 99L, null,
-                TransactionType.DEPENSE, TransactionStatus.POINTEE);
+                TransactionType.DEPENSE);
 
         assertThatThrownBy(() -> transactionService.create(request))
                 .isInstanceOf(AccountNotFoundException.class);
@@ -88,7 +103,7 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.now(), "Test", BigDecimal.TEN, 1L, 99L,
-                TransactionType.DEPENSE, TransactionStatus.POINTEE);
+                TransactionType.DEPENSE);
 
         assertThatThrownBy(() -> transactionService.create(request))
                 .isInstanceOf(CategoryNotFoundException.class);

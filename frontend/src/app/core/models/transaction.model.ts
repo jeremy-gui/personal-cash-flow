@@ -26,7 +26,11 @@ export interface Transaction {
   source: TransactionSource;
 }
 
-/** amount is the positive magnitude entered by the user; the backend derives the sign from type. */
+/**
+ * amount is the positive magnitude entered by the user; the backend derives the sign from type.
+ * There is no status: manual entries are always PREVISIONNELLE. POINTEE only comes from a bank
+ * import or from reconciling a previsionnelle against one.
+ */
 export interface TransactionRequest {
   date: string;
   label: string;
@@ -34,7 +38,6 @@ export interface TransactionRequest {
   accountId: number;
   categoryId: number | null;
   type: TransactionType;
-  status: TransactionStatus;
 }
 
 export interface TransactionFilters {
