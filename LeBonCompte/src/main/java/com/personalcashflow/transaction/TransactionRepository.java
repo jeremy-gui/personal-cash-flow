@@ -2,6 +2,7 @@ package com.personalcashflow.transaction;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -20,4 +21,27 @@ public interface TransactionRepository
             """)
     BigDecimal sumDepenseByCategoryAndDateRange(
             @Param("categoryId") Long categoryId, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** Sum of amounts for a transaction type within a date range (negative for DEPENSE, positive for REVENU). */
+    @Query("""
+            SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t
+            WHERE t.type = :type
+              AND t.date >= :from
+              AND t.date <= :to
+            """)
+    BigDecimal sumByTypeAndDateRange(
+            @Param("type") TransactionType type, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** DEPENSE totals (negative, or zero) grouped by category within a date range. Uncategorized transactions are excluded. */
+    @Query("""
+            SELECT c.id AS categoryId, c.name AS categoryName, SUM(t.amount) AS total
+            FROM Transaction t JOIN t.category c
+            WHERE t.type = com.personalcashflow.transaction.TransactionType.DEPENSE
+              AND t.date >= :from
+              AND t.date <= :to
+            GROUP BY c.id, c.name
+            ORDER BY SUM(t.amount) ASC
+            """)
+    List<CategorySpendingProjection> sumDepenseGroupedByCategory(
+            @Param("from") LocalDate from, @Param("to") LocalDate to);
 }
