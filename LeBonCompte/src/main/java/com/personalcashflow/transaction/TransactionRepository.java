@@ -44,4 +44,6 @@ public interface TransactionRepository
             """)
     List<CategorySpendingProjection> sumDepenseGroupedByCategory(
             @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    boolean existsByAccountIdAndImportHash(Long accountId, String importHash);
 }

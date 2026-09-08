@@ -50,6 +50,18 @@ public class Transaction {
     @Column(nullable = false, length = 20)
     private TransactionStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private TransactionSource source;
+
+    /** Deterministic dedup key (date|label|amount) for imported rows; null for manual entries. */
+    @Column(name = "import_hash")
+    private String importHash;
+
+    /** The original CSV line, preserved as-is when the transaction came from an import. */
+    @Column(name = "raw_import_data")
+    private String rawImportData;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -71,7 +83,23 @@ public class Transaction {
         this.category = category;
         this.type = type;
         this.status = status;
+        this.source = TransactionSource.MANUAL;
         this.createdAt = Instant.now();
+    }
+
+    public static Transaction imported(
+            LocalDate date,
+            String label,
+            BigDecimal amount,
+            Account account,
+            TransactionType type,
+            String importHash,
+            String rawImportData) {
+        Transaction transaction = new Transaction(date, label, amount, account, null, type, TransactionStatus.POINTEE);
+        transaction.source = TransactionSource.IMPORT;
+        transaction.importHash = importHash;
+        transaction.rawImportData = rawImportData;
+        return transaction;
     }
 
     public Long getId() {
@@ -104,6 +132,18 @@ public class Transaction {
 
     public TransactionStatus getStatus() {
         return status;
+    }
+
+    public TransactionSource getSource() {
+        return source;
+    }
+
+    public String getImportHash() {
+        return importHash;
+    }
+
+    public String getRawImportData() {
+        return rawImportData;
     }
 
     public Instant getCreatedAt() {

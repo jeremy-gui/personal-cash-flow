@@ -1,0 +1,67 @@
+<h1>Import bancaire</h1>
+
+<div class="import-form">
+  <label>
+    Compte
+    <select (change)="onAccountChange($any($event.target).value)">
+      <option value="">Sélectionner…</option>
+      @for (account of accounts(); track account.id) {
+        <option [value]="account.id">{{ account.name }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Fichier CSV
+    <input type="file" accept=".csv,text/csv" (change)="onFileSelected($event)" />
+  </label>
+
+  <button
+    type="button"
+    [disabled]="selectedAccountId() === null || !selectedFile() || uploading()"
+    (click)="upload()"
+  >
+    {{ uploading() ? 'Import en cours…' : 'Importer' }}
+  </button>
+</div>
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
+
+@if (lastResult(); as result) {
+  <p class="result">
+    {{ result.filename }} : {{ result.rowCount }} ligne(s), {{ result.createdCount }} créée(s),
+    {{ result.skippedCount }} ignorée(s) (doublon ou ligne invalide).
+  </p>
+}
+
+<h2>Historique des imports</h2>
+<div class="table-scroll">
+  <table class="history-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Fichier</th>
+        <th>Lignes</th>
+        <th>Créées</th>
+        <th>Ignorées</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (entry of history(); track entry.id) {
+        <tr>
+          <td>{{ entry.importedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td>{{ entry.filename }}</td>
+          <td>{{ entry.rowCount }}</td>
+          <td>{{ entry.createdCount }}</td>
+          <td>{{ entry.skippedCount }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="5">Aucun import pour l'instant.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

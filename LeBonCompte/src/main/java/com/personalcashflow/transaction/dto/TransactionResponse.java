@@ -1,6 +1,7 @@
 package com.personalcashflow.transaction.dto;
 
 import com.personalcashflow.transaction.Transaction;
+import com.personalcashflow.transaction.TransactionSource;
 import com.personalcashflow.transaction.TransactionStatus;
 import com.personalcashflow.transaction.TransactionType;
 import java.math.BigDecimal;
@@ -16,7 +17,8 @@ public record TransactionResponse(
         Long categoryId,
         String categoryName,
         TransactionType type,
-        TransactionStatus status) {
+        TransactionStatus status,
+        TransactionSource source) {
 
     public static TransactionResponse from(Transaction transaction) {
         var category = transaction.getCategory();
@@ -30,6 +32,7 @@ public record TransactionResponse(
                 category != null ? category.getId() : null,
                 category != null ? category.getName() : null,
                 transaction.getType(),
-                transaction.getStatus());
+                transaction.getStatus(),
+                transaction.getSource());
     }
 }

@@ -1,5 +1,6 @@
 export type TransactionType = 'DEPENSE' | 'REVENU';
 export type TransactionStatus = 'PREVISIONNELLE' | 'POINTEE';
+export type TransactionSource = 'MANUAL' | 'IMPORT';
 
 export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   DEPENSE: 'Dépense',
@@ -22,6 +23,7 @@ export interface Transaction {
   categoryName: string | null;
   type: TransactionType;
   status: TransactionStatus;
+  source: TransactionSource;
 }
 
 /** amount is the positive magnitude entered by the user; the backend derives the sign from type. */
