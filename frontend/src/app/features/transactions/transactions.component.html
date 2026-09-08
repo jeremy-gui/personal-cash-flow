@@ -1,0 +1,162 @@
+<h1>Transactions</h1>
+
+<div class="filters">
+  <label>
+    Mois
+    <input
+      type="month"
+      [value]="month()"
+      (change)="onMonthChange($any($event.target).value)"
+    />
+  </label>
+
+  <label>
+    Compte
+    <select (change)="onFilterAccountChange($any($event.target).value)">
+      <option value="">Tous</option>
+      @for (account of accounts(); track account.id) {
+        <option [value]="account.id">{{ account.name }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Catégorie
+    <select (change)="onFilterCategoryChange($any($event.target).value)">
+      <option value="">Toutes</option>
+      @for (category of categoryTree(); track category.id) {
+        <option [value]="category.id">
+          {{ '  '.repeat(category.depth) }}{{ category.name }}
+        </option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Statut
+    <select (change)="onFilterStatusChange($any($event.target).value)">
+      <option value="">Tous</option>
+      @for (status of statuses; track status) {
+        <option [value]="status">{{ statusLabels[status] }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Type
+    <select (change)="onFilterTypeChange($any($event.target).value)">
+      <option value="">Tous</option>
+      @for (type of types; track type) {
+        <option [value]="type">{{ typeLabels[type] }}</option>
+      }
+    </select>
+  </label>
+</div>
+
+<div class="table-scroll">
+<table class="transactions-table">
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Libellé</th>
+      <th>Compte</th>
+      <th>Catégorie</th>
+      <th>Type</th>
+      <th>Statut</th>
+      <th>Montant</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (transaction of transactions(); track transaction.id) {
+      <tr>
+        <td>{{ transaction.date | date: 'dd/MM/yyyy' }}</td>
+        <td>{{ transaction.label }}</td>
+        <td>{{ transaction.accountName }}</td>
+        <td>{{ transaction.categoryName ?? '—' }}</td>
+        <td>{{ typeLabels[transaction.type] }}</td>
+        <td>{{ statusLabels[transaction.status] }}</td>
+        <td [class.negative]="transaction.amount < 0" [class.positive]="transaction.amount >= 0">
+          {{ transaction.amount | number: '1.2-2' }} €
+        </td>
+        <td class="actions">
+          <button type="button" (click)="edit(transaction)">Modifier</button>
+          <button type="button" (click)="remove(transaction)">Supprimer</button>
+        </td>
+      </tr>
+    } @empty {
+      <tr>
+        <td colspan="8">Aucune transaction pour ce mois.</td>
+      </tr>
+    }
+  </tbody>
+</table>
+</div>
+
+<h2>{{ editingId() ? 'Modifier la transaction' : 'Ajouter une transaction' }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="transaction-form">
+  <label>
+    Date
+    <input type="date" formControlName="date" />
+  </label>
+
+  <label>
+    Libellé
+    <input type="text" formControlName="label" />
+  </label>
+
+  <label>
+    Type
+    <select formControlName="type">
+      @for (type of types; track type) {
+        <option [value]="type">{{ typeLabels[type] }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Montant
+    <input type="number" step="0.01" min="0.01" formControlName="amount" />
+  </label>
+
+  <label>
+    Compte
+    <select formControlName="accountId">
+      <option [ngValue]="null">Sélectionner…</option>
+      @for (account of accounts(); track account.id) {
+        <option [ngValue]="account.id">{{ account.name }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Catégorie
+    <select formControlName="categoryId">
+      <option [ngValue]="null">Aucune</option>
+      @for (category of categoryTree(); track category.id) {
+        <option [ngValue]="category.id">
+          {{ '  '.repeat(category.depth) }}{{ category.name }}
+        </option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Statut
+    <select formControlName="status">
+      @for (status of statuses; track status) {
+        <option [value]="status">{{ statusLabels[status] }}</option>
+      }
+    </select>
+  </label>
+
+  <div class="form-actions">
+    <button type="submit" [disabled]="form.invalid">
+      {{ editingId() ? 'Enregistrer' : 'Ajouter' }}
+    </button>
+    @if (editingId()) {
+      <button type="button" (click)="cancelEdit()">Annuler</button>
+    }
+  </div>
+</form>
