@@ -53,6 +53,10 @@
   </label>
 </div>
 
+@if (matchError()) {
+  <p class="error">{{ matchError() }}</p>
+}
+
 <div class="table-scroll">
 <table class="transactions-table">
   <thead>
@@ -64,6 +68,7 @@
       <th>Type</th>
       <th>Statut</th>
       <th>Montant</th>
+      <th>Rapprochement</th>
       <th></th>
     </tr>
   </thead>
@@ -79,6 +84,23 @@
         <td [class.negative]="transaction.amount < 0" [class.positive]="transaction.amount >= 0">
           {{ transaction.amount | number: '1.2-2' }} €
         </td>
+        <td class="match-cell">
+          @if (candidatesFor(transaction).length > 0) {
+            <select #candidate>
+              <option value="">Rapprocher avec…</option>
+              @for (option of candidatesFor(transaction); track option.id) {
+                <option [value]="option.id">
+                  {{ option.date | date: 'dd/MM' }} — {{ option.label }} ({{ option.amount | number: '1.2-2' }} €)
+                </option>
+              }
+            </select>
+            <button type="button" (click)="match(transaction, candidate.value ? +candidate.value : null)">
+              Rapprocher
+            </button>
+          } @else {
+            <span class="no-candidate">—</span>
+          }
+        </td>
         <td class="actions">
           <button type="button" (click)="edit(transaction)">Modifier</button>
           <button type="button" (click)="remove(transaction)">Supprimer</button>
@@ -86,7 +108,7 @@
       </tr>
     } @empty {
       <tr>
-        <td colspan="8">Aucune transaction pour ce mois.</td>
+        <td colspan="9">Aucune transaction pour ce mois.</td>
       </tr>
     }
   </tbody>

@@ -42,6 +42,24 @@
   margin-right: 0.5rem;
 }
 
+.match-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.no-candidate {
+  color: #9ca3af;
+}
+
+.error {
+  color: #b91c1c;
+  background: #fee2e2;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
 .transaction-form {
   display: flex;
   flex-wrap: wrap;

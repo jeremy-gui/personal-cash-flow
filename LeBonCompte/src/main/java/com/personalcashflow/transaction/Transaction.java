@@ -146,6 +146,13 @@ public class Transaction {
         return rawImportData;
     }
 
+    /** Fills in the category from a reconciled counterpart, but never overwrites one already set. */
+    public void assignCategoryIfMissing(Category category) {
+        if (this.category == null) {
+            this.category = category;
+        }
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

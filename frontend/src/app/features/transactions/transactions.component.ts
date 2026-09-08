@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Account } from '../../core/models/account.model';
@@ -42,6 +43,7 @@ export class TransactionsComponent {
   protected readonly categoryTree = computed(() => buildCategoryTree(this.categories()));
   protected readonly transactions = signal<Transaction[]>([]);
   protected readonly editingId = signal<number | null>(null);
+  protected readonly matchError = signal<string | null>(null);
 
   protected readonly month = signal(currentMonth());
   protected readonly filterAccountId = signal<number | null>(null);
@@ -154,5 +156,27 @@ export class TransactionsComponent {
       return;
     }
     this.transactionService.delete(transaction.id).subscribe(() => this.reload());
+  }
+
+  /** Candidates to reconcile with: same account, opposite status. */
+  protected candidatesFor(transaction: Transaction): Transaction[] {
+    return this.transactions().filter(
+      (candidate) =>
+        candidate.id !== transaction.id &&
+        candidate.accountId === transaction.accountId &&
+        candidate.status !== transaction.status,
+    );
+  }
+
+  /** Merges the previsionnelle into its pointee counterpart; the previsionnelle row disappears. */
+  protected match(transaction: Transaction, matchWithId: number | null): void {
+    if (matchWithId === null) {
+      return;
+    }
+    this.matchError.set(null);
+    this.transactionService.match(transaction.id, matchWithId).subscribe({
+      next: () => this.reload(),
+      error: (err: HttpErrorResponse) => this.matchError.set(err.error?.message ?? 'Une erreur est survenue.'),
+    });
   }
 }
