@@ -12,6 +12,8 @@ export interface Dashboard {
   revenus: number;
   depenses: number;
   soldeNet: number;
+  soldeActuel: number;
+  previsionnelFinDeMois: number;
   depensesParCategorie: CategoryAmount[];
   budgetsParCategorie: Budget[];
   previsionnellesNonPointees: Transaction[];

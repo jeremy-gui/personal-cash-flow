@@ -7,6 +7,35 @@
   width: fit-content;
 }
 
+.balance-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.balance-card {
+  flex: 1;
+  min-width: 220px;
+  border: 1px solid #e4e7eb;
+  border-radius: 8px;
+  padding: 1.25rem;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.balance-label {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.balance-value {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
 .kpi-row {
   display: flex;
   gap: 1rem;

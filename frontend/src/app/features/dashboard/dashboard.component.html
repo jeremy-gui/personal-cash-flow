@@ -6,6 +6,25 @@
 </label>
 
 @if (dashboard(); as data) {
+  <div class="balance-row">
+    <div class="balance-card">
+      <span class="balance-label">Solde actuel</span>
+      <span class="balance-value" [class.positive]="data.soldeActuel >= 0" [class.negative]="data.soldeActuel < 0">
+        {{ data.soldeActuel | number: '1.2-2' }} €
+      </span>
+    </div>
+    <div class="balance-card">
+      <span class="balance-label">Prévisionnel fin de mois</span>
+      <span
+        class="balance-value"
+        [class.positive]="data.previsionnelFinDeMois >= 0"
+        [class.negative]="data.previsionnelFinDeMois < 0"
+      >
+        {{ data.previsionnelFinDeMois | number: '1.2-2' }} €
+      </span>
+    </div>
+  </div>
+
   <div class="kpi-row">
     <div class="kpi-card">
       <span class="kpi-label">Revenus</span>

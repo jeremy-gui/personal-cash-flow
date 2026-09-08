@@ -46,4 +46,19 @@ public interface TransactionRepository
             @Param("from") LocalDate from, @Param("to") LocalDate to);
 
     boolean existsByAccountIdAndImportHash(Long accountId, String importHash);
+
+    /** Sum of amounts for a status, across all accounts and all dates (no month scoping). */
+    @Query("""
+            SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t
+            WHERE t.status = :status
+            """)
+    BigDecimal sumByStatus(@Param("status") TransactionStatus status);
+
+    /** Sum of amounts for a status, across all accounts, up to and including a given date. */
+    @Query("""
+            SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t
+            WHERE t.status = :status
+              AND t.date <= :upTo
+            """)
+    BigDecimal sumByStatusUpToDate(@Param("status") TransactionStatus status, @Param("upTo") LocalDate upTo);
 }

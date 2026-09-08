@@ -3,6 +3,7 @@ package com.personalcashflow.dashboard;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.personalcashflow.account.AccountRepository;
 import com.personalcashflow.budget.BudgetService;
 import com.personalcashflow.dashboard.dto.DashboardResponse;
 import com.personalcashflow.transaction.TransactionRepository;
@@ -30,26 +31,52 @@ class DashboardServiceTest {
     @Mock
     private BudgetService budgetService;
 
+    @Mock
+    private AccountRepository accountRepository;
+
     @InjectMocks
     private DashboardService dashboardService;
 
-    @Test
-    void getDashboard_shouldComputeRevenusDepensesAndSoldeNet() {
-        LocalDate from = LocalDate.of(2026, 9, 1);
-        LocalDate to = LocalDate.of(2026, 9, 30);
-        when(transactionRepository.sumByTypeAndDateRange(TransactionType.REVENU, from, to))
+    private static final LocalDate FROM = LocalDate.of(2026, 9, 1);
+    private static final LocalDate TO = LocalDate.of(2026, 9, 30);
+
+    private void stubCommon() {
+        when(transactionRepository.sumByTypeAndDateRange(TransactionType.REVENU, FROM, TO))
                 .thenReturn(BigDecimal.valueOf(2850));
-        when(transactionRepository.sumByTypeAndDateRange(TransactionType.DEPENSE, from, to))
+        when(transactionRepository.sumByTypeAndDateRange(TransactionType.DEPENSE, FROM, TO))
                 .thenReturn(BigDecimal.valueOf(-177.80));
-        when(transactionRepository.sumDepenseGroupedByCategory(from, to)).thenReturn(List.of());
+        when(transactionRepository.sumDepenseGroupedByCategory(FROM, TO)).thenReturn(List.of());
         when(budgetService.findAllForMonth("2026-09")).thenReturn(List.of());
         when(transactionService.search("2026-09", null, null, TransactionStatus.PREVISIONNELLE, null))
                 .thenReturn(List.of());
+    }
+
+    @Test
+    void getDashboard_shouldComputeRevenusDepensesAndSoldeNet() {
+        stubCommon();
+        when(accountRepository.sumInitialBalance()).thenReturn(BigDecimal.ZERO);
+        when(transactionRepository.sumByStatus(TransactionStatus.POINTEE)).thenReturn(BigDecimal.ZERO);
+        when(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, TO))
+                .thenReturn(BigDecimal.ZERO);
 
         DashboardResponse response = dashboardService.getDashboard("2026-09");
 
         assertThat(response.revenus()).isEqualByComparingTo(BigDecimal.valueOf(2850));
         assertThat(response.depenses()).isEqualByComparingTo(BigDecimal.valueOf(177.80));
         assertThat(response.soldeNet()).isEqualByComparingTo(BigDecimal.valueOf(2672.20));
+    }
+
+    @Test
+    void getDashboard_shouldComputeSoldeActuelAndPrevisionnelFinDeMois() {
+        stubCommon();
+        when(accountRepository.sumInitialBalance()).thenReturn(BigDecimal.valueOf(1000));
+        when(transactionRepository.sumByStatus(TransactionStatus.POINTEE)).thenReturn(BigDecimal.valueOf(-142.30));
+        when(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, TO))
+                .thenReturn(BigDecimal.valueOf(2000));
+
+        DashboardResponse response = dashboardService.getDashboard("2026-09");
+
+        assertThat(response.soldeActuel()).isEqualByComparingTo(BigDecimal.valueOf(857.70));
+        assertThat(response.previsionnelFinDeMois()).isEqualByComparingTo(BigDecimal.valueOf(2857.70));
     }
 }

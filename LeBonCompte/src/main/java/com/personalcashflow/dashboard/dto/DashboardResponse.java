@@ -10,6 +10,8 @@ public record DashboardResponse(
         BigDecimal revenus,
         BigDecimal depenses,
         BigDecimal soldeNet,
+        BigDecimal soldeActuel,
+        BigDecimal previsionnelFinDeMois,
         List<CategoryAmountResponse> depensesParCategorie,
         List<BudgetResponse> budgetsParCategorie,
         List<TransactionResponse> previsionnellesNonPointees) {

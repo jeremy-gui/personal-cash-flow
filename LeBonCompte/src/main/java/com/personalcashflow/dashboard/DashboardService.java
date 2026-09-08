@@ -1,5 +1,6 @@
 package com.personalcashflow.dashboard;
 
+import com.personalcashflow.account.AccountRepository;
 import com.personalcashflow.budget.BudgetService;
 import com.personalcashflow.dashboard.dto.CategoryAmountResponse;
 import com.personalcashflow.dashboard.dto.DashboardResponse;
@@ -21,14 +22,17 @@ public class DashboardService {
     private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
     private final BudgetService budgetService;
+    private final AccountRepository accountRepository;
 
     public DashboardService(
             TransactionRepository transactionRepository,
             TransactionService transactionService,
-            BudgetService budgetService) {
+            BudgetService budgetService,
+            AccountRepository accountRepository) {
         this.transactionRepository = transactionRepository;
         this.transactionService = transactionService;
         this.budgetService = budgetService;
+        this.accountRepository = accountRepository;
     }
 
     public DashboardResponse getDashboard(String month) {
@@ -53,7 +57,20 @@ public class DashboardService {
                 .map(TransactionResponse::from)
                 .toList();
 
+        BigDecimal soldeActuel = accountRepository.sumInitialBalance()
+                .add(transactionRepository.sumByStatus(TransactionStatus.POINTEE));
+        BigDecimal previsionnelFinDeMois = soldeActuel
+                .add(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, to));
+
         return new DashboardResponse(
-                month, revenus, depenses, soldeNet, depensesParCategorie, budgetsParCategorie, previsionnellesNonPointees);
+                month,
+                revenus,
+                depenses,
+                soldeNet,
+                soldeActuel,
+                previsionnelFinDeMois,
+                depensesParCategorie,
+                budgetsParCategorie,
+                previsionnellesNonPointees);
     }
 }
