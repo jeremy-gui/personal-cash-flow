@@ -1,0 +1,70 @@
+<h1>Budgets</h1>
+
+<label class="month-picker">
+  Mois
+  <input type="month" [value]="month()" (change)="onMonthChange($any($event.target).value)" />
+</label>
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
+
+<div class="budgets-list">
+  @for (budget of budgets(); track budget.id) {
+    <div class="budget-card">
+      <div class="budget-header">
+        <span class="category-name">{{ budget.categoryName }}</span>
+        <span class="amounts">
+          {{ budget.spent | number: '1.2-2' }} € / {{ budget.amount | number: '1.2-2' }} €
+        </span>
+      </div>
+      <div class="progress-bar">
+        <div
+          class="progress-fill"
+          [class.over-budget]="budget.percentageConsumed > 100"
+          [style.width.%]="budget.percentageConsumed > 100 ? 100 : budget.percentageConsumed"
+        ></div>
+      </div>
+      <div class="budget-footer">
+        <span>{{ budget.percentageConsumed }} % consommé</span>
+        <span [class.negative]="budget.remaining < 0">
+          Reste : {{ budget.remaining | number: '1.2-2' }} €
+        </span>
+        <span class="actions">
+          <button type="button" (click)="edit(budget)">Modifier</button>
+          <button type="button" (click)="remove(budget)">Supprimer</button>
+        </span>
+      </div>
+    </div>
+  } @empty {
+    <p>Aucun budget défini pour ce mois.</p>
+  }
+</div>
+
+<h2>{{ editingId() ? 'Modifier le budget' : 'Ajouter un budget' }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="budget-form">
+  <label>
+    Catégorie
+    <select formControlName="categoryId">
+      <option [ngValue]="null">Sélectionner…</option>
+      @for (category of availableCategories(); track category.id) {
+        <option [ngValue]="category.id">{{ category.name }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Montant mensuel
+    <input type="number" step="0.01" min="0.01" formControlName="amount" />
+  </label>
+
+  <div class="form-actions">
+    <button type="submit" [disabled]="form.invalid">
+      {{ editingId() ? 'Enregistrer' : 'Ajouter' }}
+    </button>
+    @if (editingId()) {
+      <button type="button" (click)="cancelEdit()">Annuler</button>
+    }
+  </div>
+</form>
