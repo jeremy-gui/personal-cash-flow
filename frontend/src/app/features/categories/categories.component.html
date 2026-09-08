@@ -1,0 +1,57 @@
+<h1>Catégories</h1>
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
+
+<table class="categories-table">
+  <thead>
+    <tr>
+      <th>Nom</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (category of tree(); track category.id) {
+      <tr>
+        <td [style.paddingLeft.px]="category.depth * 24">{{ category.name }}</td>
+        <td class="actions">
+          <button type="button" (click)="edit(category)">Modifier</button>
+          <button type="button" (click)="remove(category)">Supprimer</button>
+        </td>
+      </tr>
+    } @empty {
+      <tr>
+        <td colspan="2">Aucune catégorie pour l'instant.</td>
+      </tr>
+    }
+  </tbody>
+</table>
+
+<h2>{{ editingId() ? 'Modifier la catégorie' : 'Ajouter une catégorie' }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="category-form">
+  <label>
+    Nom
+    <input type="text" formControlName="name" />
+  </label>
+
+  <label>
+    Catégorie parente
+    <select formControlName="parentId">
+      <option [ngValue]="null">Aucune (catégorie racine)</option>
+      @for (option of parentOptions(); track option.id) {
+        <option [ngValue]="option.id">{{ option.name }}</option>
+      }
+    </select>
+  </label>
+
+  <div class="form-actions">
+    <button type="submit" [disabled]="form.invalid">
+      {{ editingId() ? 'Enregistrer' : 'Ajouter' }}
+    </button>
+    @if (editingId()) {
+      <button type="button" (click)="cancelEdit()">Annuler</button>
+    }
+  </div>
+</form>

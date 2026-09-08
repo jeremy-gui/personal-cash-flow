@@ -1,0 +1,42 @@
+.categories-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 2rem;
+}
+
+.categories-table th,
+.categories-table td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e4e7eb;
+}
+
+.actions button {
+  margin-right: 0.5rem;
+}
+
+.category-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.category-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.error {
+  color: #b91c1c;
+  background: #fee2e2;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+}
