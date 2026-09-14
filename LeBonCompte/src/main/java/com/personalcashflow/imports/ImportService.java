@@ -13,7 +13,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -47,7 +47,7 @@ public class ImportService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AccountNotFoundException(accountId));
 
-        List<String> lines = readLines(file);
+        List<String> lines = readLines(file, csvBankFormat.charset());
         List<String> dataLines = lines.size() > csvBankFormat.headerLineCount()
                 ? lines.subList(csvBankFormat.headerLineCount(), lines.size())
                 : List.of();
@@ -97,9 +97,9 @@ public class ImportService {
         return row.date() + "|" + row.label().trim().toLowerCase() + "|" + row.amount().stripTrailingZeros().toPlainString();
     }
 
-    private static List<String> readLines(MultipartFile file) {
+    private static List<String> readLines(MultipartFile file, Charset charset) {
         try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+                new InputStreamReader(file.getInputStream(), charset))) {
             return reader.lines().toList();
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to read uploaded file", e);

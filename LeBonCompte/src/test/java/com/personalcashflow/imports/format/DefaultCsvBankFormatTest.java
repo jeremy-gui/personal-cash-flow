@@ -3,6 +3,7 @@ package com.personalcashflow.imports.format;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 
@@ -11,13 +12,18 @@ class DefaultCsvBankFormatTest {
     private final DefaultCsvBankFormat format = new DefaultCsvBankFormat();
 
     @Test
-    void headerLineCount_shouldSkipExactlyOneLine() {
-        assertThat(format.headerLineCount()).isEqualTo(1);
+    void headerLineCount_shouldSkipFiveMetadataLinesTheBlankLineAndTheColumnHeader() {
+        assertThat(format.headerLineCount()).isEqualTo(7);
+    }
+
+    @Test
+    void charset_shouldBeWindows1252() {
+        assertThat(format.charset()).isEqualTo(Charset.forName("windows-1252"));
     }
 
     @Test
     void parseLine_withValidRow_shouldReturnImportedRow() {
-        var result = format.parseLine("05/09/2026;CARREFOUR;-81.24");
+        var result = format.parseLine("05/09/2026;\"CARREFOUR\";-81,24");
 
         assertThat(result).isPresent();
         assertThat(result.get().date()).isEqualTo(LocalDate.of(2026, 9, 5));
@@ -27,10 +33,26 @@ class DefaultCsvBankFormatTest {
 
     @Test
     void parseLine_withPositiveAmount_shouldReturnImportedRow() {
-        var result = format.parseLine("08/09/2026;SALAIRE;2850.00");
+        var result = format.parseLine("08/09/2026;\"SALAIRE\";2850,00");
 
         assertThat(result).isPresent();
         assertThat(result.get().amount()).isEqualByComparingTo(BigDecimal.valueOf(2850));
+    }
+
+    @Test
+    void parseLine_withUnquotedLabel_shouldStillParse() {
+        var result = format.parseLine("05/09/2026;CARREFOUR;-81,24");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().label()).isEqualTo("CARREFOUR");
+    }
+
+    @Test
+    void parseLine_withThousandsSeparatorInAmount_shouldParse() {
+        var result = format.parseLine("05/09/2026;\"VIREMENT\";1 616,00");
+
+        assertThat(result).isPresent();
+        assertThat(result.get().amount()).isEqualByComparingTo(BigDecimal.valueOf(1616));
     }
 
     @Test
@@ -40,7 +62,7 @@ class DefaultCsvBankFormatTest {
 
     @Test
     void parseLine_withInvalidDate_shouldReturnEmpty() {
-        assertThat(format.parseLine("2026-09-05;CARREFOUR;-81.24")).isEmpty();
+        assertThat(format.parseLine("2026-09-05;CARREFOUR;-81,24")).isEmpty();
     }
 
     @Test

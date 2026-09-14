@@ -21,6 +21,7 @@ export class CategoriesComponent {
 
   protected readonly categories = signal<Category[]>([]);
   protected readonly editingId = signal<number | null>(null);
+  protected readonly pendingDeleteId = signal<number | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly tree = computed(() => buildCategoryTree(this.categories()));
@@ -44,6 +45,7 @@ export class CategoriesComponent {
   }
 
   protected edit(category: Category): void {
+    this.pendingDeleteId.set(null);
     this.editingId.set(category.id);
     this.errorMessage.set(null);
     this.form.setValue({ name: category.name, parentId: category.parentId });
@@ -74,14 +76,26 @@ export class CategoriesComponent {
     });
   }
 
-  protected remove(category: Category): void {
-    if (!confirm(`Supprimer la catégorie "${category.name}" ?`)) {
-      return;
-    }
+  protected requestDelete(categoryId: number): void {
+    this.editingId.set(null);
+    this.pendingDeleteId.set(categoryId);
+  }
+
+  protected cancelDelete(): void {
+    this.pendingDeleteId.set(null);
+  }
+
+  protected confirmDelete(categoryId: number): void {
     this.errorMessage.set(null);
-    this.categoryService.delete(category.id).subscribe({
-      next: () => this.reload(),
-      error: (err: HttpErrorResponse) => this.errorMessage.set(this.extractMessage(err)),
+    this.categoryService.delete(categoryId).subscribe({
+      next: () => {
+        this.pendingDeleteId.set(null);
+        this.reload();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.pendingDeleteId.set(null);
+        this.errorMessage.set(this.extractMessage(err));
+      },
     });
   }
 

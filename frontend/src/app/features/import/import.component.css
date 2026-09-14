@@ -1,46 +1,33 @@
 .import-form {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: var(--space-6);
   align-items: flex-end;
-  margin-bottom: 1.5rem;
-}
-
-.import-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.9rem;
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--rule-soft);
 }
 
 .error {
-  color: #b91c1c;
-  background: #fee2e2;
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
+  color: var(--red);
+  background: var(--red-tint);
+  border: 1px solid var(--red);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.85rem;
+  margin-bottom: var(--space-4);
 }
 
 .result {
-  color: #15803d;
-  background: #dcfce7;
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
+  color: var(--green);
+  background: var(--green-tint);
+  border: 1px solid var(--green);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.85rem;
+  margin-bottom: var(--space-4);
+  font-family: var(--font-mono);
 }
 
 .table-scroll {
   overflow-x: auto;
-  margin-bottom: 2rem;
-}
-
-.history-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.history-table th,
-.history-table td {
-  text-align: left;
-  padding: 0.5rem;
-  border-bottom: 1px solid #e4e7eb;
-  white-space: nowrap;
+  margin-bottom: var(--space-8);
 }

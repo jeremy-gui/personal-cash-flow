@@ -1,1 +1,313 @@
-/* You can add global styles to this file, and also import other style files */
+/* LeBonCompte — direction: Cahier de comptes familial (see .impeccable/surfaces) */
+
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-sans/700.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/ibm-plex-mono/600.css';
+@import '@fontsource/ibm-plex-mono/700.css';
+
+:root {
+  --paper: #f5f0e1;
+  --paper-line: rgba(43, 43, 43, 0.09);
+  --surface: #fffdf6;
+  --ink: #2b2b2b;
+  --ink-soft: #6b6250;
+  --rule: #2b2b2b;
+  --rule-soft: rgba(43, 43, 43, 0.22);
+  --red: #8b1e1e;
+  --red-tint: #f3e2df;
+  --green: #2f6b3a;
+  --green-tint: #e3ebe0;
+  --kraft: #c9a66b;
+
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 27px,
+    var(--paper-line) 27px,
+    var(--paper-line) 28px
+  );
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--paper);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--rule-soft);
+  border: 3px solid var(--paper);
+  border-radius: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-4);
+}
+
+h1 {
+  font-size: 1.75rem;
+  padding-bottom: var(--space-3);
+  border-bottom: 3px double var(--rule);
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  border-bottom: 3px double var(--rule);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.page-header h1 {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+h2 {
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-top: var(--space-8);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+p {
+  margin: 0 0 var(--space-4);
+}
+
+/* Tabular data: every amount/date in this ledger is set in Plex Mono, aligned. */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+th {
+  text-align: left;
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-soft);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 2px solid var(--rule);
+  white-space: nowrap;
+}
+
+td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--rule-soft);
+  white-space: nowrap;
+}
+
+tbody tr:hover {
+  background: var(--surface);
+}
+
+.negative,
+.positive {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+td.negative,
+td.positive {
+  text-align: right;
+}
+
+.negative {
+  color: var(--red);
+}
+
+.positive {
+  color: var(--green);
+}
+
+/* Forms: fields are written on the ruled line, not boxed. */
+label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+input,
+select {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  padding: var(--space-2) var(--space-1);
+  min-width: 0;
+}
+
+input[type='number'],
+input[type='date'],
+input[type='month'] {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+    linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) center,
+    calc(100% - 9px) center;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+  padding-right: var(--space-6);
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-bottom: 2px solid var(--red);
+  background: var(--surface);
+}
+
+input[type='file'] {
+  border-bottom: none;
+  font-size: 0.85rem;
+}
+
+input[type='file']::file-selector-button {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: var(--space-2) var(--space-3);
+  margin-right: var(--space-3);
+  cursor: pointer;
+}
+
+input[type='file']::file-selector-button:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+/* Buttons: a stamped rectangle, never a pill. */
+button {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+button:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+button:disabled {
+  color: var(--ink-soft);
+  border-color: var(--rule-soft);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+button[type='submit'] {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+button[type='submit']:hover:not(:disabled) {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+button[type='submit']:disabled {
+  background: var(--surface);
+  color: var(--ink-soft);
+  border-color: var(--rule-soft);
+}
+
+/* Second step of a delete confirmation: armed and waiting for the deliberate click. */
+button.confirm-delete {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+button.confirm-delete:hover:not(:disabled) {
+  background: var(--red);
+  color: var(--paper);
+}

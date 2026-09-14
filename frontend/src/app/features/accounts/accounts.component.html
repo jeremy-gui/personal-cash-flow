@@ -1,5 +1,6 @@
 <h1>Comptes</h1>
 
+<div class="table-scroll">
 <table class="accounts-table">
   <thead>
     <tr>
@@ -16,8 +17,13 @@
         <td>{{ typeLabels[account.type] }}</td>
         <td>{{ account.initialBalance | number: '1.2-2' }} €</td>
         <td class="actions">
-          <button type="button" (click)="edit(account)">Modifier</button>
-          <button type="button" (click)="remove(account)">Supprimer</button>
+          @if (pendingDeleteId() === account.id) {
+            <button type="button" class="confirm-delete" (click)="confirmDelete(account.id)">Confirmer</button>
+            <button type="button" (click)="cancelDelete()">Annuler</button>
+          } @else {
+            <button type="button" (click)="edit(account)">Modifier</button>
+            <button type="button" (click)="requestDelete(account.id)">Supprimer</button>
+          }
         </td>
       </tr>
     } @empty {
@@ -27,6 +33,7 @@
     }
   </tbody>
 </table>
+</div>
 
 <h2>{{ editingId() ? 'Modifier le compte' : 'Ajouter un compte' }}</h2>
 

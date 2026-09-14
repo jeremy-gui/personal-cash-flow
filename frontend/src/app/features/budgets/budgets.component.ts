@@ -27,6 +27,7 @@ export class BudgetsComponent {
   protected readonly budgets = signal<Budget[]>([]);
   protected readonly categories = signal<Category[]>([]);
   protected readonly editingId = signal<number | null>(null);
+  protected readonly pendingDeleteId = signal<number | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
 
   protected readonly availableCategories = computed(() => {
@@ -58,10 +59,12 @@ export class BudgetsComponent {
   protected onMonthChange(value: string): void {
     this.month.set(value);
     this.cancelEdit();
+    this.pendingDeleteId.set(null);
     this.reload();
   }
 
   protected edit(budget: Budget): void {
+    this.pendingDeleteId.set(null);
     this.editingId.set(budget.id);
     this.errorMessage.set(null);
     this.form.setValue({ categoryId: budget.categoryId, amount: budget.amount });
@@ -91,10 +94,19 @@ export class BudgetsComponent {
     });
   }
 
-  protected remove(budget: Budget): void {
-    if (!confirm(`Supprimer le budget "${budget.categoryName}" ?`)) {
-      return;
-    }
-    this.budgetService.delete(budget.id).subscribe(() => this.reload());
+  protected requestDelete(budgetId: number): void {
+    this.editingId.set(null);
+    this.pendingDeleteId.set(budgetId);
+  }
+
+  protected cancelDelete(): void {
+    this.pendingDeleteId.set(null);
+  }
+
+  protected confirmDelete(budgetId: number): void {
+    this.budgetService.delete(budgetId).subscribe(() => {
+      this.pendingDeleteId.set(null);
+      this.reload();
+    });
   }
 }

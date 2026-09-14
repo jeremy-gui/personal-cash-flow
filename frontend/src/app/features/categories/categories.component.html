@@ -4,6 +4,7 @@
   <p class="error">{{ errorMessage() }}</p>
 }
 
+<div class="table-scroll">
 <table class="categories-table">
   <thead>
     <tr>
@@ -16,8 +17,13 @@
       <tr>
         <td [style.paddingLeft.px]="category.depth * 24">{{ category.name }}</td>
         <td class="actions">
-          <button type="button" (click)="edit(category)">Modifier</button>
-          <button type="button" (click)="remove(category)">Supprimer</button>
+          @if (pendingDeleteId() === category.id) {
+            <button type="button" class="confirm-delete" (click)="confirmDelete(category.id)">Confirmer</button>
+            <button type="button" (click)="cancelDelete()">Annuler</button>
+          } @else {
+            <button type="button" (click)="edit(category)">Modifier</button>
+            <button type="button" (click)="requestDelete(category.id)">Supprimer</button>
+          }
         </td>
       </tr>
     } @empty {
@@ -27,6 +33,7 @@
     }
   </tbody>
 </table>
+</div>
 
 <h2>{{ editingId() ? 'Modifier la catégorie' : 'Ajouter une catégorie' }}</h2>
 

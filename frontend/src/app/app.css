@@ -1,33 +1,47 @@
 .topbar {
   display: flex;
-  align-items: center;
-  gap: 2rem;
-  padding: 0.75rem 1.5rem;
-  background: #1f2933;
-  color: #fff;
+  align-items: baseline;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-6);
+  background: var(--ink);
+  border-bottom: 4px double var(--kraft);
 }
 
 .topbar .brand {
-  font-weight: 600;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  color: var(--paper);
 }
 
 .topbar nav {
   display: flex;
-  gap: 1rem;
+  gap: var(--space-6);
+  flex-wrap: wrap;
 }
 
 .topbar nav a {
-  color: #cbd2d9;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--kraft);
   text-decoration: none;
+  padding-bottom: var(--space-1);
+  border-bottom: 2px solid transparent;
 }
 
-.topbar nav a.active,
+.topbar nav a.active {
+  color: var(--paper);
+  border-bottom-color: var(--red);
+}
+
 .topbar nav a:hover {
-  color: #fff;
+  color: var(--paper);
 }
 
 main {
-  max-width: 960px;
+  max-width: 1000px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: var(--space-8) var(--space-6) var(--space-8) calc(var(--space-6) + 12px);
+  border-left: 2px solid rgba(139, 30, 30, 0.28);
 }

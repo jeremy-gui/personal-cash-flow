@@ -20,6 +20,7 @@ export class AccountsComponent {
 
   protected readonly accounts = signal<Account[]>([]);
   protected readonly editingId = signal<number | null>(null);
+  protected readonly pendingDeleteId = signal<number | null>(null);
   protected readonly accountTypes = Object.keys(ACCOUNT_TYPE_LABELS) as AccountType[];
   protected readonly typeLabels = ACCOUNT_TYPE_LABELS;
 
@@ -38,6 +39,7 @@ export class AccountsComponent {
   }
 
   protected edit(account: Account): void {
+    this.pendingDeleteId.set(null);
     this.editingId.set(account.id);
     this.form.setValue({
       name: account.name,
@@ -67,10 +69,19 @@ export class AccountsComponent {
     });
   }
 
-  protected remove(account: Account): void {
-    if (!confirm(`Supprimer le compte "${account.name}" ?`)) {
-      return;
-    }
-    this.accountService.delete(account.id).subscribe(() => this.reload());
+  protected requestDelete(accountId: number): void {
+    this.editingId.set(null);
+    this.pendingDeleteId.set(accountId);
+  }
+
+  protected cancelDelete(): void {
+    this.pendingDeleteId.set(null);
+  }
+
+  protected confirmDelete(accountId: number): void {
+    this.accountService.delete(accountId).subscribe(() => {
+      this.pendingDeleteId.set(null);
+      this.reload();
+    });
   }
 }

@@ -43,6 +43,7 @@ export class TransactionsComponent {
   protected readonly categoryTree = computed(() => buildCategoryTree(this.categories()));
   protected readonly transactions = signal<Transaction[]>([]);
   protected readonly editingId = signal<number | null>(null);
+  protected readonly pendingDeleteId = signal<number | null>(null);
   protected readonly matchError = signal<string | null>(null);
 
   protected readonly month = signal(currentMonth());
@@ -53,6 +54,16 @@ export class TransactionsComponent {
 
   protected readonly form = this.fb.nonNullable.group({
     date: [this.today(), Validators.required],
+    label: ['', Validators.required],
+    amount: [0, [Validators.required, Validators.min(0.01)]],
+    accountId: this.fb.control<number | null>(null, Validators.required),
+    categoryId: this.fb.control<number | null>(null),
+    type: this.fb.nonNullable.control<TransactionType>('DEPENSE'),
+  });
+
+  /** Populated per-row when a transaction is being edited in-line in the table. */
+  protected readonly editForm = this.fb.nonNullable.group({
+    date: ['', Validators.required],
     label: ['', Validators.required],
     amount: [0, [Validators.required, Validators.min(0.01)]],
     accountId: this.fb.control<number | null>(null, Validators.required),
@@ -108,8 +119,9 @@ export class TransactionsComponent {
   }
 
   protected edit(transaction: Transaction): void {
+    this.pendingDeleteId.set(null);
     this.editingId.set(transaction.id);
-    this.form.setValue({
+    this.editForm.setValue({
       date: transaction.date,
       label: transaction.label,
       amount: Math.abs(transaction.amount),
@@ -121,14 +133,10 @@ export class TransactionsComponent {
 
   protected cancelEdit(): void {
     this.editingId.set(null);
-    this.form.reset({
-      date: this.today(),
-      label: '',
-      amount: 0,
-      accountId: null,
-      categoryId: null,
-      type: 'DEPENSE',
-    });
+  }
+
+  protected setEditType(type: TransactionType): void {
+    this.editForm.controls.type.setValue(type);
   }
 
   protected submit(): void {
@@ -137,22 +145,49 @@ export class TransactionsComponent {
     }
     const raw = this.form.getRawValue();
     const request: TransactionRequest = { ...raw, accountId: raw.accountId! };
-    const id = this.editingId();
-    const request$ = id
-      ? this.transactionService.update(id, request)
-      : this.transactionService.create(request);
-
-    request$.subscribe(() => {
-      this.cancelEdit();
+    this.transactionService.create(request).subscribe(() => {
+      this.form.reset({
+        date: this.today(),
+        label: '',
+        amount: 0,
+        accountId: null,
+        categoryId: null,
+        type: 'DEPENSE',
+      });
       this.reload();
     });
   }
 
-  protected remove(transaction: Transaction): void {
-    if (!confirm(`Supprimer la transaction "${transaction.label}" ?`)) {
+  protected submitEdit(): void {
+    if (this.editForm.invalid) {
       return;
     }
-    this.transactionService.delete(transaction.id).subscribe(() => this.reload());
+    const id = this.editingId();
+    if (id === null) {
+      return;
+    }
+    const raw = this.editForm.getRawValue();
+    const request: TransactionRequest = { ...raw, accountId: raw.accountId! };
+    this.transactionService.update(id, request).subscribe(() => {
+      this.editingId.set(null);
+      this.reload();
+    });
+  }
+
+  protected requestDelete(transactionId: number): void {
+    this.editingId.set(null);
+    this.pendingDeleteId.set(transactionId);
+  }
+
+  protected cancelDelete(): void {
+    this.pendingDeleteId.set(null);
+  }
+
+  protected confirmDelete(transactionId: number): void {
+    this.transactionService.delete(transactionId).subscribe(() => {
+      this.pendingDeleteId.set(null);
+      this.reload();
+    });
   }
 
   /** Candidates to reconcile with: same account, opposite status. */
