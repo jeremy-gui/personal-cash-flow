@@ -164,6 +164,15 @@ public class Transaction {
         }
     }
 
+    /**
+     * Reconciliation always prefers the previsionnelle's label (usually hand-written and more
+     * meaningful) over the pointee's raw bank wording. The pointee's original label is not lost:
+     * it survives untouched inside {@link #rawImportData}.
+     */
+    public void assignLabel(String label) {
+        this.label = label;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

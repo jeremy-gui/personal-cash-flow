@@ -102,6 +102,28 @@ class ReconciliationServiceTest {
     }
 
     @Test
+    void match_shouldAdoptPrevisionnelleLabelOnThePointee() {
+        Account account = accountWithId(10L, "Compte courant");
+        Transaction previsionnelle = transaction(1L, account, null, TransactionStatus.PREVISIONNELLE, "Loyer");
+        Transaction pointee = Transaction.imported(
+                LocalDate.now(),
+                "PRLV LOYER",
+                BigDecimal.TEN,
+                account,
+                TransactionType.DEPENSE,
+                "hash",
+                "05/09/2026;\"PRLV LOYER\";-10.00");
+        setId(pointee, Transaction.class, 2L);
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelle));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(pointee));
+
+        reconciliationService.match(1L, 2L);
+
+        assertThat(pointee.getLabel()).isEqualTo("Loyer");
+        assertThat(pointee.getRawImportData()).contains("PRLV LOYER");
+    }
+
+    @Test
     void match_whenPointeeAlreadyHasCategory_shouldNotOverwriteIt() {
         Account account = accountWithId(10L, "Compte courant");
         Category previsionnelleCategory = categoryWithId(5L, "Logement");
@@ -117,8 +139,13 @@ class ReconciliationServiceTest {
     }
 
     private static Transaction transaction(Long id, Account account, Category category, TransactionStatus status) {
+        return transaction(id, account, category, status, "Test");
+    }
+
+    private static Transaction transaction(
+            Long id, Account account, Category category, TransactionStatus status, String label) {
         Transaction transaction = new Transaction(
-                LocalDate.now(), "Test", BigDecimal.TEN, account, category, TransactionType.DEPENSE, status);
+                LocalDate.now(), label, BigDecimal.TEN, account, category, TransactionType.DEPENSE, status);
         setId(transaction, Transaction.class, id);
         return transaction;
     }

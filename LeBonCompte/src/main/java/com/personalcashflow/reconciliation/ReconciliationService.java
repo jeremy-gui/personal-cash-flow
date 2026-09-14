@@ -10,9 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * A previsionnelle and its matching pointee describe a single real movement, so reconciling
- * them merges the two rows into one rather than keeping both around: the previsionnelle's
- * category (if any) is copied onto the pointee, then the previsionnelle is deleted. This is a
- * one-way operation - there is no "unmatch" that could resurrect the deleted row.
+ * them merges the two rows into one rather than keeping both around: the pointee adopts the
+ * previsionnelle's label (usually hand-written and more meaningful than the bank's wording) and
+ * category (if any), then the previsionnelle is deleted. The pointee's original bank label is
+ * not lost - it stays recoverable in its rawImportData. This is a one-way operation - there is
+ * no "unmatch" that could resurrect the deleted row.
  */
 @Service
 @Transactional
@@ -43,6 +45,7 @@ public class ReconciliationService {
         Transaction previsionnelle = a.getStatus() == TransactionStatus.PREVISIONNELLE ? a : b;
         Transaction pointee = previsionnelle == a ? b : a;
 
+        pointee.assignLabel(previsionnelle.getLabel());
         pointee.assignCategoryIfMissing(previsionnelle.getCategory());
         transactionRepository.delete(previsionnelle);
         return TransactionResponse.from(pointee);
