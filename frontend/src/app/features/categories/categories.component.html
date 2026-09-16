@@ -4,6 +4,7 @@
   <p class="error">{{ errorMessage() }}</p>
 }
 
+<div class="card table-card">
 <div class="table-scroll">
 <table class="categories-table">
   <thead>
@@ -15,7 +16,7 @@
   <tbody>
     @for (category of tree(); track category.id) {
       <tr>
-        <td [style.paddingLeft.px]="category.depth * 24">{{ category.name }}</td>
+        <td [style.paddingLeft.px]="category.depth * 24 + 24">{{ category.name }}</td>
         <td class="actions">
           @if (pendingDeleteId() === category.id) {
             <button type="button" class="confirm-delete" (click)="confirmDelete(category.id)">Confirmer</button>
@@ -34,7 +35,9 @@
   </tbody>
 </table>
 </div>
+</div>
 
+<div class="card">
 <h2>{{ editingId() ? 'Modifier la catégorie' : 'Ajouter une catégorie' }}</h2>
 
 <form [formGroup]="form" (ngSubmit)="submit()" class="category-form">
@@ -62,3 +65,4 @@
     }
   </div>
 </form>
+</div>

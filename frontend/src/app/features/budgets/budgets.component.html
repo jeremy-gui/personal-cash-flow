@@ -12,7 +12,7 @@
 
 <div class="budgets-list">
   @for (budget of budgets(); track budget.id) {
-    <div class="budget-card">
+    <div class="card budget-card">
       <div class="budget-header">
         <span class="category-name">{{ budget.categoryName }}</span>
         <span class="amounts">
@@ -47,6 +47,7 @@
   }
 </div>
 
+<div class="card">
 <h2>{{ editingId() ? 'Modifier le budget' : 'Ajouter un budget' }}</h2>
 
 <form [formGroup]="form" (ngSubmit)="submit()" class="budget-form">
@@ -74,3 +75,4 @@
     }
   </div>
 </form>
+</div>

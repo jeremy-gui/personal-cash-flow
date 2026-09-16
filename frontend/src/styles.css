@@ -1,30 +1,40 @@
-/* LeBonCompte — direction: Cahier de comptes familial (see .impeccable/surfaces) */
+/* LeBonCompte — direction: Standard du genre (canon), référence de qualité Revolut (see .impeccable/surfaces) */
 
-@import '@fontsource/ibm-plex-sans/400.css';
-@import '@fontsource/ibm-plex-sans/500.css';
-@import '@fontsource/ibm-plex-sans/600.css';
-@import '@fontsource/ibm-plex-sans/700.css';
-@import '@fontsource/ibm-plex-mono/400.css';
-@import '@fontsource/ibm-plex-mono/500.css';
-@import '@fontsource/ibm-plex-mono/600.css';
-@import '@fontsource/ibm-plex-mono/700.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/inter/800.css';
 
 :root {
-  --paper: #f5f0e1;
-  --paper-line: rgba(43, 43, 43, 0.09);
-  --surface: #fffdf6;
-  --ink: #2b2b2b;
-  --ink-soft: #6b6250;
-  --rule: #2b2b2b;
-  --rule-soft: rgba(43, 43, 43, 0.22);
-  --red: #8b1e1e;
-  --red-tint: #f3e2df;
-  --green: #2f6b3a;
-  --green-tint: #e3ebe0;
-  --kraft: #c9a66b;
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --ink: #0f172a;
+  --ink-soft: #64748b;
+  --ink-faint: #94a3b8;
+  --border: #e6e9ee;
+  --border-soft: #f0f2f5;
 
-  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+  --blue: #2563eb;
+  --blue-dark: #1d4ed8;
+  --blue-soft: #eff6ff;
+  --blue-100: #dbeafe;
+
+  --red: #dc2626;
+  --red-soft: #fef2f2;
+  --green: #16a34a;
+  --green-soft: #f0fdf4;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.06), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 20px 40px rgba(37, 99, 235, 0.18);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -47,44 +57,39 @@ body {
 }
 
 body {
-  background-color: var(--paper);
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 27px,
-    var(--paper-line) 27px,
-    var(--paper-line) 28px
-  );
+  background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'tnum' 1;
 }
 
 ::selection {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--blue-100);
+  color: var(--blue-dark);
 }
 
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--paper);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--rule-soft);
-  border: 3px solid var(--paper);
-  border-radius: 0;
+  background: #d1d5db;
+  border: 2px solid var(--bg);
+  border-radius: var(--radius-pill);
 }
 
 :focus-visible {
-  outline: 2px solid var(--red);
+  outline: 2px solid var(--blue);
   outline-offset: 2px;
+  border-radius: 4px;
 }
 
 h1,
@@ -93,82 +98,87 @@ h3 {
   font-family: var(--font-sans);
   font-weight: 700;
   color: var(--ink);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   margin: 0 0 var(--space-4);
 }
 
 h1 {
-  font-size: 1.75rem;
-  padding-bottom: var(--space-3);
-  border-bottom: 3px double var(--rule);
+  font-size: 1.5rem;
 }
 
 .page-header {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-4);
-  border-bottom: 3px double var(--rule);
-  padding-bottom: var(--space-3);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-6);
 }
 
 .page-header h1 {
-  border-bottom: none;
-  padding-bottom: 0;
   margin-bottom: 0;
 }
 
 h2 {
-  font-size: 1.05rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: var(--ink-soft);
+  color: var(--ink);
   margin-top: var(--space-8);
-  padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--rule-soft);
+  margin-bottom: var(--space-3);
 }
 
 p {
   margin: 0 0 var(--space-4);
 }
 
-/* Tabular data: every amount/date in this ledger is set in Plex Mono, aligned. */
+/* Cards: the base container of the whole system. */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-6);
+}
+
+.card > h2:first-child {
+  margin-top: 0;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
-  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
 
 th {
   text-align: left;
-  font-family: var(--font-sans);
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.04em;
   color: var(--ink-soft);
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 2px solid var(--rule);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
 td {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--rule-soft);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border-soft);
   white-space: nowrap;
 }
 
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
 tbody tr:hover {
-  background: var(--surface);
+  background: var(--bg);
 }
 
 .negative,
 .positive {
-  font-family: var(--font-mono);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 td.negative,
@@ -184,7 +194,7 @@ td.positive {
   color: var(--green);
 }
 
-/* Forms: fields are written on the ruled line, not boxed. */
+/* Forms: bordered rounded fields, Revolut-style. */
 label {
   display: flex;
   flex-direction: column;
@@ -197,30 +207,29 @@ label {
 input,
 select {
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   color: var(--ink);
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--rule);
-  border-radius: 0;
-  padding: var(--space-2) var(--space-1);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
   min-width: 0;
+  transition: border-color 120ms ease-out, box-shadow 120ms ease-out;
 }
 
 input[type='number'],
 input[type='date'],
 input[type='month'] {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
 }
 
 select {
   appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%),
-    linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+    linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
   background-position:
-    calc(100% - 14px) center,
-    calc(100% - 9px) center;
+    calc(100% - 16px) center,
+    calc(100% - 11px) center;
   background-size:
     5px 5px,
     5px 5px;
@@ -231,13 +240,14 @@ select {
 input:focus,
 select:focus {
   outline: none;
-  border-bottom: 2px solid var(--red);
-  background: var(--surface);
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft);
 }
 
 input[type='file'] {
-  border-bottom: none;
+  border: none;
   font-size: 0.85rem;
+  padding: 0;
 }
 
 input[type='file']::file-selector-button {
@@ -246,68 +256,74 @@ input[type='file']::file-selector-button {
   font-weight: 600;
   color: var(--ink);
   background: var(--surface);
-  border: 1px solid var(--rule);
-  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
   margin-right: var(--space-3);
   cursor: pointer;
+  transition: background-color 120ms ease-out;
 }
 
 input[type='file']::file-selector-button:hover {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--bg);
 }
 
-/* Buttons: a stamped rectangle, never a pill. */
+/* Buttons: rounded, filled blue primary, quiet gray secondary. */
 button {
   font-family: var(--font-sans);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
   color: var(--ink);
   background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: 0;
-  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
   cursor: pointer;
-  transition: background-color 120ms ease-out, color 120ms ease-out;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out, box-shadow 120ms ease-out, transform 80ms ease-out;
 }
 
 button:hover:not(:disabled) {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--bg);
+  border-color: #d7dce3;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 button:disabled {
-  color: var(--ink-soft);
-  border-color: var(--rule-soft);
+  color: var(--ink-faint);
+  border-color: var(--border-soft);
   cursor: not-allowed;
-  opacity: 0.6;
 }
 
 button[type='submit'] {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
+  background: var(--blue);
+  color: #ffffff;
+  border-color: var(--blue);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
 button[type='submit']:hover:not(:disabled) {
-  background: var(--red);
-  border-color: var(--red);
+  background: var(--blue-dark);
+  border-color: var(--blue-dark);
 }
 
 button[type='submit']:disabled {
-  background: var(--surface);
-  color: var(--ink-soft);
-  border-color: var(--rule-soft);
+  background: var(--border-soft);
+  color: var(--ink-faint);
+  border-color: var(--border-soft);
+  box-shadow: none;
 }
 
 /* Second step of a delete confirmation: armed and waiting for the deliberate click. */
 button.confirm-delete {
   border-color: var(--red);
   color: var(--red);
+  background: var(--red-soft);
 }
 
 button.confirm-delete:hover:not(:disabled) {
   background: var(--red);
-  color: var(--paper);
+  color: #ffffff;
 }

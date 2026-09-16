@@ -1,6 +1,6 @@
 <h1>Transactions</h1>
 
-<div class="filters">
+<div class="card filters">
   <label>
     Mois
     <input
@@ -57,6 +57,7 @@
   <p class="error">{{ matchError() }}</p>
 }
 
+<div class="card table-card">
 <div class="table-scroll">
 <table class="transactions-table">
   <colgroup>
@@ -284,7 +285,9 @@
   </tbody>
 </table>
 </div>
+</div>
 
+<div class="card">
 <h2>Ajouter une transaction</h2>
 
 <form [formGroup]="form" (ngSubmit)="submit()" class="transaction-form">
@@ -343,3 +346,4 @@
     <button type="submit" [disabled]="form.invalid">Ajouter</button>
   </div>
 </form>
+</div>

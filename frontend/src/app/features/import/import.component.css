@@ -3,31 +3,44 @@
   flex-wrap: wrap;
   gap: var(--space-6);
   align-items: flex-end;
-  margin-bottom: var(--space-6);
-  padding-bottom: var(--space-6);
-  border-bottom: 1px solid var(--rule-soft);
+  margin-bottom: var(--space-4);
 }
 
 .error {
   color: var(--red);
-  background: var(--red-tint);
-  border: 1px solid var(--red);
-  padding: var(--space-2) var(--space-3);
+  background: var(--red-soft);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
   font-size: 0.85rem;
   margin-bottom: var(--space-4);
 }
 
 .result {
   color: var(--green);
-  background: var(--green-tint);
-  border: 1px solid var(--green);
-  padding: var(--space-2) var(--space-3);
+  background: var(--green-soft);
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
   font-size: 0.85rem;
   margin-bottom: var(--space-4);
-  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.table-card {
+  padding: var(--space-6);
 }
 
 .table-scroll {
   overflow-x: auto;
-  margin-bottom: var(--space-8);
+}
+
+.history-table th:first-child,
+.history-table td:first-child {
+  padding-left: 0;
+}
+
+.history-table th:last-child,
+.history-table td:last-child {
+  padding-right: 0;
 }

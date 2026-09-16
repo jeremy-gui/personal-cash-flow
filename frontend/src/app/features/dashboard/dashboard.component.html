@@ -7,116 +7,171 @@
 </div>
 
 @if (dashboard(); as data) {
-  <div class="balance-row">
-    <div class="balance-card">
-      <span class="balance-label">Solde actuel</span>
-      <span class="balance-value" [class.positive]="data.soldeActuel >= 0" [class.negative]="data.soldeActuel < 0">
-        {{ data.soldeActuel | number: '1.2-2' }} €
-      </span>
+  <div class="hero-card">
+    <div class="hero-block">
+      <span class="hero-label">Solde actuel</span>
+      <span class="hero-value">{{ data.soldeActuel | number: '1.2-2' }} €</span>
     </div>
-    <div class="balance-card">
-      <span class="balance-label">Prévisionnel fin de mois</span>
-      <span
-        class="balance-value"
-        [class.positive]="data.previsionnelFinDeMois >= 0"
-        [class.negative]="data.previsionnelFinDeMois < 0"
-      >
-        {{ data.previsionnelFinDeMois | number: '1.2-2' }} €
-      </span>
+    <div class="hero-divider"></div>
+    <div class="hero-block">
+      <span class="hero-label">Prévisionnel fin de mois</span>
+      <span class="hero-value hero-value-secondary">{{ data.previsionnelFinDeMois | number: '1.2-2' }} €</span>
     </div>
   </div>
 
   <div class="kpi-row">
     <div class="kpi-card">
-      <span class="kpi-label">Revenus</span>
-      <span class="kpi-value positive">{{ data.revenus | number: '1.2-2' }} €</span>
-    </div>
-    <div class="kpi-card">
-      <span class="kpi-label">Dépenses</span>
-      <span class="kpi-value negative">{{ data.depenses | number: '1.2-2' }} €</span>
-    </div>
-    <div class="kpi-card">
-      <span class="kpi-label">Solde net</span>
-      <span class="kpi-value" [class.positive]="data.soldeNet >= 0" [class.negative]="data.soldeNet < 0">
-        {{ data.soldeNet | number: '1.2-2' }} €
+      <span class="kpi-icon kpi-icon-positive">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="19" x2="12" y2="5"></line>
+          <polyline points="6 11 12 5 18 11"></polyline>
+        </svg>
       </span>
+      <div class="kpi-text">
+        <span class="kpi-label">Revenus</span>
+        <span class="kpi-value">{{ data.revenus | number: '1.2-2' }} €</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-icon kpi-icon-negative">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <polyline points="18 13 12 19 6 13"></polyline>
+        </svg>
+      </span>
+      <div class="kpi-text">
+        <span class="kpi-label">Dépenses</span>
+        <span class="kpi-value">{{ data.depenses | number: '1.2-2' }} €</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-icon" [class.kpi-icon-positive]="data.soldeNet >= 0" [class.kpi-icon-negative]="data.soldeNet < 0">
+        @if (data.soldeNet >= 0) {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="19" x2="12" y2="5"></line>
+            <polyline points="6 11 12 5 18 11"></polyline>
+          </svg>
+        } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <polyline points="18 13 12 19 6 13"></polyline>
+          </svg>
+        }
+      </span>
+      <div class="kpi-text">
+        <span class="kpi-label">Solde net</span>
+        <span class="kpi-value">{{ data.soldeNet | number: '1.2-2' }} €</span>
+      </div>
     </div>
   </div>
 
-  <h2>Dépenses par catégorie</h2>
-  <div class="category-spending">
-    @for (category of data.depensesParCategorie; track category.categoryId) {
-      <div class="spending-row">
-        <span class="category-name">{{ category.categoryName }}</span>
-        <div class="spending-bar">
-          <div class="spending-fill" [style.width.%]="barWidth(category.amount)"></div>
+  <div class="split-row">
+    <div class="card">
+      <h2 class="card-title">Dépenses par catégorie</h2>
+      @if (categoryDonutSegments().length > 0) {
+        <div class="donut-block">
+          <div class="donut" [style.background]="categoryDonutGradient()">
+            <div class="donut-hole">
+              <span class="donut-total">{{ data.depenses | number: '1.0-0' }} €</span>
+              <span class="donut-total-label">total</span>
+            </div>
+          </div>
+          <ul class="donut-legend">
+            @for (segment of categoryDonutSegments(); track segment.categoryName) {
+              <li>
+                <span class="dot" [style.background]="segment.color"></span>
+                <span class="legend-name">{{ segment.categoryName }}</span>
+                <span class="legend-amount">{{ segment.amount | number: '1.2-2' }} €</span>
+              </li>
+            }
+          </ul>
         </div>
-        <span class="spending-amount">{{ category.amount | number: '1.2-2' }} €</span>
-      </div>
-    } @empty {
-      <p>Aucune dépense catégorisée ce mois-ci.</p>
+      } @else {
+        <p class="empty-hint">Aucune dépense catégorisée ce mois-ci.</p>
+      }
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">Budgets par catégorie</h2>
+      @if (data.budgetsParCategorie.length > 0) {
+        <ul class="budget-mini-list">
+          @for (budget of data.budgetsParCategorie; track budget.id) {
+            <li>
+              <div class="budget-mini-head">
+                <span>{{ budget.categoryName }}</span>
+                <span class="budget-mini-amounts">{{ budget.spent | number: '1.2-2' }} € / {{ budget.amount | number: '1.2-2' }} €</span>
+              </div>
+              <div class="progress-track">
+                <div
+                  class="progress-fill"
+                  [class.over-budget]="budget.percentageConsumed > 100"
+                  [style.width.%]="budget.percentageConsumed > 100 ? 100 : budget.percentageConsumed"
+                ></div>
+              </div>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty-hint">Aucun budget défini ce mois-ci.</p>
+      }
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 class="card-title">Dernières transactions</h2>
+    @if (recentTransactions().length > 0) {
+      <ul class="recent-list">
+        @for (transaction of recentTransactions(); track transaction.id) {
+          <li>
+            <span class="recent-icon" [style.background]="categoryColor(transaction)">
+              {{ categoryInitial(transaction) }}
+            </span>
+            <div class="recent-text">
+              <span class="recent-label">{{ transaction.label }}</span>
+              <span class="recent-sub">{{ transaction.categoryName ?? transaction.accountName }} · {{ transaction.date | date: 'dd/MM' }}</span>
+            </div>
+            <span class="recent-amount" [class.negative]="transaction.amount < 0" [class.positive]="transaction.amount >= 0">
+              {{ transaction.amount | number: '1.2-2' }} €
+            </span>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="empty-hint">Aucune transaction ce mois-ci.</p>
     }
   </div>
 
-  <h2>Budgets par catégorie</h2>
-  <div class="table-scroll">
-    <table class="budgets-table">
-      <thead>
-        <tr>
-          <th>Catégorie</th>
-          <th>Budget</th>
-          <th>Dépensé</th>
-          <th>Reste</th>
-          <th>%</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (budget of data.budgetsParCategorie; track budget.id) {
+  <div class="card table-card">
+    <h2 class="card-title">Prévisionnelles non pointées</h2>
+    <div class="table-scroll">
+      <table class="previsionnelles-table">
+        <thead>
           <tr>
-            <td>{{ budget.categoryName }}</td>
-            <td>{{ budget.amount | number: '1.2-2' }} €</td>
-            <td>{{ budget.spent | number: '1.2-2' }} €</td>
-            <td [class.negative]="budget.remaining < 0">{{ budget.remaining | number: '1.2-2' }} €</td>
-            <td [class.negative]="budget.percentageConsumed > 100">{{ budget.percentageConsumed }} %</td>
+            <th>Date</th>
+            <th>Libellé</th>
+            <th>Compte</th>
+            <th>Catégorie</th>
+            <th>Montant</th>
           </tr>
-        } @empty {
-          <tr>
-            <td colspan="5">Aucun budget défini ce mois-ci.</td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-
-  <h2>Prévisionnelles non pointées</h2>
-  <div class="table-scroll">
-    <table class="previsionnelles-table">
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Libellé</th>
-          <th>Compte</th>
-          <th>Catégorie</th>
-          <th>Montant</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (transaction of data.previsionnellesNonPointees; track transaction.id) {
-          <tr>
-            <td>{{ transaction.date | date: 'dd/MM/yyyy' }}</td>
-            <td>{{ transaction.label }}</td>
-            <td>{{ transaction.accountName }}</td>
-            <td>{{ transaction.categoryName ?? '—' }}</td>
-            <td [class.negative]="transaction.amount < 0" [class.positive]="transaction.amount >= 0">
-              {{ transaction.amount | number: '1.2-2' }} €
-            </td>
-          </tr>
-        } @empty {
-          <tr>
-            <td colspan="5">Aucune transaction prévisionnelle en attente.</td>
-          </tr>
-        }
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          @for (transaction of data.previsionnellesNonPointees; track transaction.id) {
+            <tr>
+              <td>{{ transaction.date | date: 'dd/MM/yyyy' }}</td>
+              <td>{{ transaction.label }}</td>
+              <td>{{ transaction.accountName }}</td>
+              <td>{{ transaction.categoryName ?? '—' }}</td>
+              <td [class.negative]="transaction.amount < 0" [class.positive]="transaction.amount >= 0">
+                {{ transaction.amount | number: '1.2-2' }} €
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5">Aucune transaction prévisionnelle en attente.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 }

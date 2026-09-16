@@ -1,47 +1,99 @@
 .topbar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-8);
   padding: var(--space-4) var(--space-6);
-  background: var(--ink);
-  border-bottom: 4px double var(--kraft);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .topbar .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 1.15rem;
-  letter-spacing: 0.02em;
-  color: var(--paper);
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.topbar .brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--blue), #60a5fa);
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.9rem;
 }
 
 .topbar nav {
   display: flex;
-  gap: var(--space-6);
+  gap: var(--space-1);
   flex-wrap: wrap;
 }
 
 .topbar nav a {
   font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--kraft);
+  font-weight: 600;
+  color: var(--ink-soft);
   text-decoration: none;
-  padding-bottom: var(--space-1);
-  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+/* Below wrap threshold: a single-line scrollable nav strip instead of a tall wrapped stack. */
+@media (max-width: 640px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .topbar nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .topbar nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topbar nav a {
+    flex-shrink: 0;
+  }
 }
 
 .topbar nav a.active {
-  color: var(--paper);
-  border-bottom-color: var(--red);
+  color: var(--blue);
+  background: var(--blue-soft);
 }
 
 .topbar nav a:hover {
-  color: var(--paper);
+  color: var(--ink);
+  background: var(--bg);
+}
+
+.topbar nav a.active:hover {
+  color: var(--blue);
+  background: var(--blue-soft);
 }
 
 main {
-  max-width: 1000px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: var(--space-8) var(--space-6) var(--space-8) calc(var(--space-6) + 12px);
-  border-left: 2px solid rgba(139, 30, 30, 0.28);
+  padding: var(--space-8) var(--space-6);
 }

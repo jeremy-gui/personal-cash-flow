@@ -1,10 +1,20 @@
-.table-scroll {
-  overflow-x: auto;
-  margin-bottom: var(--space-8);
+.table-card {
+  padding: var(--space-4) 0;
+  margin-bottom: var(--space-4);
 }
 
-.accounts-table {
-  margin-bottom: 0;
+.table-scroll {
+  overflow-x: auto;
+}
+
+.accounts-table th:first-child,
+.accounts-table td:first-child {
+  padding-left: var(--space-6);
+}
+
+.accounts-table th:last-child,
+.accounts-table td:last-child {
+  padding-right: var(--space-6);
 }
 
 .accounts-table th:nth-child(3),
@@ -12,8 +22,9 @@
   text-align: right;
 }
 
-.actions button {
-  margin-right: var(--space-2);
+.actions {
+  display: flex;
+  gap: var(--space-2);
 }
 
 .account-form {

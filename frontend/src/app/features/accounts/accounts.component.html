@@ -1,5 +1,6 @@
 <h1>Comptes</h1>
 
+<div class="card table-card">
 <div class="table-scroll">
 <table class="accounts-table">
   <thead>
@@ -34,7 +35,9 @@
   </tbody>
 </table>
 </div>
+</div>
 
+<div class="card">
 <h2>{{ editingId() ? 'Modifier le compte' : 'Ajouter un compte' }}</h2>
 
 <form [formGroup]="form" (ngSubmit)="submit()" class="account-form">
@@ -66,3 +69,4 @@
     }
   </div>
 </form>
+</div>

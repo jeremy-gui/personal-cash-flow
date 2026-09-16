@@ -1,6 +1,6 @@
 <h1>Import bancaire</h1>
 
-<div class="import-form">
+<div class="card import-form">
   <label>
     Compte
     <select (change)="onAccountChange($any($event.target).value)">
@@ -36,6 +36,7 @@
   </p>
 }
 
+<div class="card table-card">
 <h2>Historique des imports</h2>
 <div class="table-scroll">
   <table class="history-table">
@@ -64,4 +65,5 @@
       }
     </tbody>
   </table>
+</div>
 </div>

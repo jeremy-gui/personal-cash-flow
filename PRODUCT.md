@@ -30,6 +30,8 @@ Monolithe modulaire Spring Boot (backend) + Angular (frontend) + PostgreSQL, dé
 
 Nom : "LeBonCompte" (jeu de mots sur "avoir le bon compte"). Aucune autre identité de marque établie — pas de logo, pas de charte graphique, pas de ton de voix fixé.
 
+Direction visuelle (standing preference, choisie explicitement le 2026-09-14 en remplacement du monde "Cahier de comptes familial") : dashboard fintech standard du genre — cartes arrondies, accent bleu, ombres douces, typographie sans-serif claire — exécuté avec le niveau de finition de Revolut comme référence de qualité. Choix assumé et non ironique : pas de pastiche, pas de clin d'œil, l'app doit ressembler à une app bancaire moderne sérieuse.
+
 ## Evidence on Hand
 
 Aucune donnée réelle fournie à ce jour ; seules des données de test fictives existent (comptes et transactions créés pendant le développement). Pas de témoignages ni de contenu marketing à préserver.
