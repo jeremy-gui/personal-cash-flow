@@ -3,5 +3,8 @@
 exemple_banque_postale.csv
 exemple.ofx
 
+# Real personal budget history used locally by scripts/import-xlsx-history.js.
+compte_test.xlsx
+
 # Claude Code local machine/session settings — not meant to be shared.
 .claude/settings.local.json
