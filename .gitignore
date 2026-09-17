@@ -1,6 +1,7 @@
-# Real personal bank export used locally to validate the CSV import format.
-# Contains real names, amounts, and partial bank references — never commit.
+# Real personal bank exports used locally to validate the bank import format.
+# Contain real names, amounts, and partial bank references — never commit.
 exemple_banque_postale.csv
+exemple.ofx
 
 # Claude Code local machine/session settings — not meant to be shared.
 .claude/settings.local.json

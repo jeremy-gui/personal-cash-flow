@@ -18,7 +18,9 @@ public record TransactionResponse(
         String categoryName,
         TransactionType type,
         TransactionStatus status,
-        TransactionSource source) {
+        TransactionSource source,
+        LocalDate originalDate,
+        String originalLabel) {
 
     public static TransactionResponse from(Transaction transaction) {
         var category = transaction.getCategory();
@@ -33,6 +35,8 @@ public record TransactionResponse(
                 category != null ? category.getName() : null,
                 transaction.getType(),
                 transaction.getStatus(),
-                transaction.getSource());
+                transaction.getSource(),
+                transaction.getOriginalDate(),
+                transaction.getOriginalLabel());
     }
 }

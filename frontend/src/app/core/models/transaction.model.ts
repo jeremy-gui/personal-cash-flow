@@ -24,6 +24,8 @@ export interface Transaction {
   type: TransactionType;
   status: TransactionStatus;
   source: TransactionSource;
+  originalDate: string | null;
+  originalLabel: string | null;
 }
 
 /**

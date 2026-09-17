@@ -124,6 +124,42 @@ class TransactionServiceTest {
     }
 
     @Test
+    void create_shouldLeaveOriginalDateAndLabelNull() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TransactionRequest request = new TransactionRequest(
+                LocalDate.of(2026, 9, 5), "Carrefour", BigDecimal.valueOf(80), 1L, null,
+                TransactionType.DEPENSE);
+
+        Transaction created = transactionService.create(request);
+
+        assertThat(created.getOriginalDate()).isNull();
+        assertThat(created.getOriginalLabel()).isNull();
+    }
+
+    @Test
+    void update_shouldNotChangeOriginalDateAndLabel() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO);
+        Transaction transaction = Transaction.imported(
+                LocalDate.of(2026, 9, 5), "CARREFOUR", BigDecimal.TEN, account,
+                TransactionType.DEPENSE, "hash", "raw");
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+
+        TransactionRequest request = new TransactionRequest(
+                LocalDate.of(2026, 9, 6), "Courses", BigDecimal.valueOf(80), 1L, null,
+                TransactionType.DEPENSE);
+
+        Transaction updated = transactionService.update(1L, request);
+
+        assertThat(updated.getLabel()).isEqualTo("Courses");
+        assertThat(updated.getOriginalDate()).isEqualTo(LocalDate.of(2026, 9, 5));
+        assertThat(updated.getOriginalLabel()).isEqualTo("CARREFOUR");
+    }
+
+    @Test
     void delete_whenTransactionMissing_shouldThrowTransactionNotFoundException() {
         when(transactionRepository.findById(42L)).thenReturn(Optional.empty());
 

@@ -20,7 +20,7 @@ Un outil personnel et privé, pas un produit commercial concurrent des apps banc
 
 ## Operating Context
 
-Usage mensuel récurrent : import du relevé bancaire CSV, saisie manuelle de dépenses/revenus anticipés (prévisionnel), rapprochement des prévisionnels avec les opérations bancaires réelles importées, consultation du dashboard pour suivre budgets par catégorie et solde prévisionnel de fin de mois.
+Usage mensuel récurrent : import du relevé bancaire OFX, saisie manuelle de dépenses/revenus anticipés (prévisionnel), rapprochement des prévisionnels avec les opérations bancaires réelles importées, consultation du dashboard pour suivre budgets par catégorie et solde prévisionnel de fin de mois.
 
 ## Capabilities and Constraints
 

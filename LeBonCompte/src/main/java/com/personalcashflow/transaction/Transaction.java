@@ -54,13 +54,24 @@ public class Transaction {
     @Column(nullable = false, length = 20)
     private TransactionSource source;
 
-    /** Deterministic dedup key (date|label|amount) for imported rows; null for manual entries. */
+    /** The bank's own unique transaction id (OFX FITID) for imported rows; null for manual entries. */
     @Column(name = "import_hash")
     private String importHash;
 
-    /** The original CSV line, preserved as-is when the transaction came from an import. */
+    /** A summary of the original OFX transaction record, preserved when the transaction came from an import. */
     @Column(name = "raw_import_data")
     private String rawImportData;
+
+    /**
+     * The bank's own date/label at import time, set once by {@link #imported} and never touched
+     * again by {@link #update} or {@link #assignLabel}. Null for manual entries, which have no
+     * bank origin to diverge from.
+     */
+    @Column(name = "original_date")
+    private LocalDate originalDate;
+
+    @Column(name = "original_label")
+    private String originalLabel;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -110,6 +121,8 @@ public class Transaction {
         transaction.source = TransactionSource.IMPORT;
         transaction.importHash = importHash;
         transaction.rawImportData = rawImportData;
+        transaction.originalDate = date;
+        transaction.originalLabel = label;
         return transaction;
     }
 
@@ -157,6 +170,14 @@ public class Transaction {
         return rawImportData;
     }
 
+    public LocalDate getOriginalDate() {
+        return originalDate;
+    }
+
+    public String getOriginalLabel() {
+        return originalLabel;
+    }
+
     /** Fills in the category from a reconciled counterpart, but never overwrites one already set. */
     public void assignCategoryIfMissing(Category category) {
         if (this.category == null) {
@@ -167,7 +188,7 @@ public class Transaction {
     /**
      * Reconciliation always prefers the previsionnelle's label (usually hand-written and more
      * meaningful) over the pointee's raw bank wording. The pointee's original label is not lost:
-     * it survives untouched inside {@link #rawImportData}.
+     * it stays available via {@link #getOriginalLabel}.
      */
     public void assignLabel(String label) {
         this.label = label;

@@ -87,6 +87,23 @@
   white-space: nowrap;
 }
 
+.label-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.label-cell .truncate {
+  min-width: 0;
+}
+
+.icon.original-marker {
+  flex-shrink: 0;
+  width: 13px;
+  height: 13px;
+  color: var(--ink-faint);
+}
+
 .icon-header {
   text-align: center;
   cursor: default;

@@ -121,6 +121,8 @@ class ReconciliationServiceTest {
 
         assertThat(pointee.getLabel()).isEqualTo("Loyer");
         assertThat(pointee.getRawImportData()).contains("PRLV LOYER");
+        assertThat(pointee.getOriginalLabel()).isEqualTo("PRLV LOYER");
+        assertThat(pointee.getOriginalDate()).isEqualTo(pointee.getDate());
     }
 
     @Test

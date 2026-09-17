@@ -200,6 +200,23 @@ export class TransactionsComponent {
     );
   }
 
+  protected hasOriginalDivergence(transaction: Transaction): boolean {
+    return (
+      transaction.originalLabel !== null &&
+      (transaction.originalLabel !== transaction.label || transaction.originalDate !== transaction.date)
+    );
+  }
+
+  protected originalTooltip(transaction: Transaction): string {
+    const date = transaction.originalDate ? this.formatDate(transaction.originalDate) : '';
+    return `Import d'origine : ${date} — ${transaction.originalLabel}`;
+  }
+
+  private formatDate(isoDate: string): string {
+    const [year, month, day] = isoDate.split('-');
+    return `${day}/${month}/${year}`;
+  }
+
   /** Merges the previsionnelle into its pointee counterpart; the previsionnelle row disappears. */
   protected match(transaction: Transaction, matchWithId: number | null): void {
     if (matchWithId === null) {
