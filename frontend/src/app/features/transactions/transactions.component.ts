@@ -42,6 +42,12 @@ export class TransactionsComponent {
   protected readonly categories = signal<Category[]>([]);
   protected readonly categoryTree = computed(() => buildCategoryTree(this.categories()));
   protected readonly transactions = signal<Transaction[]>([]);
+  protected readonly previsionnelleTransactions = computed(() =>
+    this.transactions().filter((t) => t.status === 'PREVISIONNELLE'),
+  );
+  protected readonly pointeeTransactions = computed(() =>
+    this.transactions().filter((t) => t.status === 'POINTEE'),
+  );
   protected readonly editingId = signal<number | null>(null);
   protected readonly pendingDeleteId = signal<number | null>(null);
   protected readonly matchError = signal<string | null>(null);
@@ -204,6 +210,16 @@ export class TransactionsComponent {
         candidate.accountId === transaction.accountId &&
         candidate.status !== transaction.status,
     );
+  }
+
+  /** Wraps the Record lookup so it stays typed when called from the shared row ng-template,
+   *  whose ngTemplateOutletContext variables aren't inferred by the template type checker. */
+  protected statusLabel(status: TransactionStatus): string {
+    return this.statusLabels[status];
+  }
+
+  protected typeLabel(type: TransactionType): string {
+    return this.typeLabels[type];
   }
 
   protected hasOriginalDivergence(transaction: Transaction): boolean {

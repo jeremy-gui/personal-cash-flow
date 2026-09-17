@@ -69,6 +69,7 @@
   <p class="error">{{ matchError() }}</p>
 }
 
+<h2>Prévisionnel</h2>
 <div class="card table-card">
 <div class="table-scroll">
 <table class="transactions-table">
@@ -87,7 +88,7 @@
       <th>Date</th>
       <th>Libellé</th>
       <th>Catégorie</th>
-      <th class="icon-header" title="Type">T</th>
+      <th class="icon-header" title="Type">Type</th>
       <th class="icon-header" title="Statut">S</th>
       <th>Montant</th>
       <th>Rapprochement</th>
@@ -95,209 +96,262 @@
     </tr>
   </thead>
   <tbody>
-    @for (transaction of transactions(); track transaction.id) {
-      @if (transaction.id === editingId()) {
-        <tr class="editing-row">
-          <td><input type="date" [formControl]="editForm.controls.date" /></td>
-          <td>
-            <input type="text" [formControl]="editForm.controls.label" />
-          </td>
-          <td>
-            <select [formControl]="editForm.controls.categoryId">
-              <option [ngValue]="null">Aucune</option>
-              @for (category of categoryTree(); track category.id) {
-                <option [ngValue]="category.id">
-                  {{ '  '.repeat(category.depth) }}{{ category.name }}
-                </option>
-              }
-            </select>
-          </td>
-          <td class="icon-cell type-toggle">
-            <button
-              type="button"
-              class="icon-toggle"
-              [class.active]="editForm.controls.type.value === 'REVENU'"
-              title="Revenu"
-              aria-label="Revenu"
-              (click)="setEditType('REVENU')"
-            >
-              <svg class="icon positive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="12" y1="19" x2="12" y2="5"></line>
-                <polyline points="6 11 12 5 18 11"></polyline>
-              </svg>
-            </button>
-            <button
-              type="button"
-              class="icon-toggle"
-              [class.active]="editForm.controls.type.value === 'DEPENSE'"
-              title="Dépense"
-              aria-label="Dépense"
-              (click)="setEditType('DEPENSE')"
-            >
-              <svg class="icon negative" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <polyline points="18 13 12 19 6 13"></polyline>
-              </svg>
-            </button>
-          </td>
-          <td class="icon-cell" [title]="statusLabels[transaction.status]">
-            @if (transaction.status === 'POINTEE') {
-              <svg class="icon status-pointee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            } @else {
-              <svg class="icon status-previsionnelle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="7" stroke-dasharray="2.5 2.5"></circle>
-              </svg>
-            }
-          </td>
-          <td>
-            <input type="number" step="0.01" min="0.01" class="amount-input" [formControl]="editForm.controls.amount" />
-          </td>
-          <td class="match-cell">
-            <span class="no-candidate">—</span>
-          </td>
-          <td class="actions">
-            <button
-              type="button"
-              class="icon-button"
-              title="Enregistrer"
-              aria-label="Enregistrer"
-              [disabled]="editForm.invalid"
-              (click)="submitEdit()"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </button>
-            <button type="button" class="icon-button" title="Annuler" aria-label="Annuler" (click)="cancelEdit()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          </td>
-        </tr>
-      } @else {
-        <tr>
-          <td>{{ transaction.date | date: 'dd/MM/yyyy' }}</td>
-          <td [title]="hasOriginalDivergence(transaction) ? originalTooltip(transaction) : transaction.label">
-            <div class="label-row">
-              <span class="label-text">{{ transaction.label }}</span>
-              @if (hasOriginalDivergence(transaction)) {
-                <svg class="icon original-marker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M12 20h9"></path>
-                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-                </svg>
-              }
-            </div>
-          </td>
-          <td class="truncate" [title]="transaction.categoryName ?? ''">{{ transaction.categoryName ?? '—' }}</td>
-          <td class="icon-cell" [title]="typeLabels[transaction.type]">
-            @if (transaction.type === 'REVENU') {
-              <svg class="icon positive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="12" y1="19" x2="12" y2="5"></line>
-                <polyline points="6 11 12 5 18 11"></polyline>
-              </svg>
-            } @else {
-              <svg class="icon negative" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <polyline points="18 13 12 19 6 13"></polyline>
-              </svg>
-            }
-          </td>
-          <td class="icon-cell" [title]="statusLabels[transaction.status]">
-            @if (transaction.status === 'POINTEE') {
-              <svg class="icon status-pointee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            } @else {
-              <svg class="icon status-previsionnelle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="7" stroke-dasharray="2.5 2.5"></circle>
-              </svg>
-            }
-          </td>
-          <td [class.negative]="transaction.amount < 0" [class.positive]="transaction.amount >= 0">
-            {{ transaction.amount | number: '1.2-2' }} €
-          </td>
-          <td class="match-cell">
-            @if (candidatesFor(transaction).length > 0) {
-              <select #candidate>
-                <option value="">Rapprocher avec…</option>
-                @for (option of candidatesFor(transaction); track option.id) {
-                  <option [value]="option.id">
-                    {{ option.date | date: 'dd/MM' }} — {{ option.label }} ({{ option.amount | number: '1.2-2' }} €)
-                  </option>
-                }
-              </select>
-              <button
-                type="button"
-                class="icon-button"
-                title="Rapprocher"
-                aria-label="Rapprocher"
-                (click)="match(transaction, candidate.value ? +candidate.value : null)"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M9 12l2 2 4-4"></path>
-                  <circle cx="12" cy="12" r="9"></circle>
-                </svg>
-              </button>
-            } @else {
-              <span class="no-candidate">—</span>
-            }
-          </td>
-          <td class="actions">
-            @if (pendingDeleteId() === transaction.id) {
-              <button
-                type="button"
-                class="icon-button danger"
-                title="Confirmer la suppression"
-                aria-label="Confirmer la suppression"
-                (click)="confirmDelete(transaction.id)"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M3 6h18"></path>
-                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                  <line x1="10" y1="11" x2="10" y2="17"></line>
-                  <line x1="14" y1="11" x2="14" y2="17"></line>
-                </svg>
-              </button>
-              <button type="button" class="icon-button" title="Annuler" aria-label="Annuler" (click)="cancelDelete()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            } @else {
-              <button type="button" class="icon-button" title="Modifier" aria-label="Modifier" (click)="edit(transaction)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M12 20h9"></path>
-                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-                </svg>
-              </button>
-              <button type="button" class="icon-button danger" title="Supprimer" aria-label="Supprimer" (click)="requestDelete(transaction.id)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M3 6h18"></path>
-                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                  <line x1="10" y1="11" x2="10" y2="17"></line>
-                  <line x1="14" y1="11" x2="14" y2="17"></line>
-                </svg>
-              </button>
-            }
-          </td>
-        </tr>
-      }
+    @for (transaction of previsionnelleTransactions(); track transaction.id) {
+      <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: transaction, showStatus: true }"></ng-container>
     } @empty {
       <tr>
-        <td colspan="8">Aucune transaction pour ce mois.</td>
+        <td colspan="8">Aucune transaction prévisionnelle pour ce mois.</td>
       </tr>
     }
   </tbody>
 </table>
 </div>
 </div>
+
+<h2>Transactions importées</h2>
+<div class="card table-card">
+<div class="table-scroll">
+<table class="transactions-table">
+  <colgroup>
+    <col class="col-date" />
+    <col class="col-label" />
+    <col class="col-category" />
+    <col class="col-type" />
+    <col class="col-amount" />
+    <col class="col-match" />
+    <col class="col-actions" />
+  </colgroup>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Libellé</th>
+      <th>Catégorie</th>
+      <th class="icon-header" title="Type">Type</th>
+      <th>Montant</th>
+      <th>Rapprochement</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (transaction of pointeeTransactions(); track transaction.id) {
+      <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: transaction, showStatus: false }"></ng-container>
+    } @empty {
+      <tr>
+        <td colspan="7">Aucune transaction importée pour ce mois.</td>
+      </tr>
+    }
+  </tbody>
+</table>
+</div>
+</div>
+
+<ng-template #row let-transaction let-showStatus="showStatus">
+  @if (transaction.id === editingId()) {
+    <tr class="editing-row">
+      <td><input type="date" [formControl]="editForm.controls.date" /></td>
+      <td>
+        <input type="text" [formControl]="editForm.controls.label" />
+      </td>
+      <td>
+        <select [formControl]="editForm.controls.categoryId">
+          <option [ngValue]="null">Aucune</option>
+          @for (category of categoryTree(); track category.id) {
+            <option [ngValue]="category.id">
+              {{ '  '.repeat(category.depth) }}{{ category.name }}
+            </option>
+          }
+        </select>
+      </td>
+      <td class="icon-cell type-toggle">
+        <button
+          type="button"
+          class="icon-toggle"
+          [class.active]="editForm.controls.type.value === 'REVENU'"
+          title="Revenu"
+          aria-label="Revenu"
+          (click)="setEditType('REVENU')"
+        >
+          <svg class="icon positive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="19" x2="12" y2="5"></line>
+            <polyline points="6 11 12 5 18 11"></polyline>
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="icon-toggle"
+          [class.active]="editForm.controls.type.value === 'DEPENSE'"
+          title="Dépense"
+          aria-label="Dépense"
+          (click)="setEditType('DEPENSE')"
+        >
+          <svg class="icon negative" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <polyline points="18 13 12 19 6 13"></polyline>
+          </svg>
+        </button>
+      </td>
+      @if (showStatus) {
+        <td class="icon-cell" [title]="statusLabel(transaction.status)">
+          @if (transaction.status === 'POINTEE') {
+            <svg class="icon status-pointee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          } @else {
+            <svg class="icon status-previsionnelle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="7" stroke-dasharray="2.5 2.5"></circle>
+            </svg>
+          }
+        </td>
+      }
+      <td>
+        <input type="number" step="0.01" min="0.01" class="amount-input" [formControl]="editForm.controls.amount" />
+      </td>
+      <td class="match-cell">
+        <div class="match-row">
+          <span class="no-candidate">—</span>
+        </div>
+      </td>
+      <td class="actions">
+        <div class="actions-row">
+          <button
+            type="button"
+            class="icon-button"
+            title="Enregistrer"
+            aria-label="Enregistrer"
+            [disabled]="editForm.invalid"
+            (click)="submitEdit()"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </button>
+          <button type="button" class="icon-button" title="Annuler" aria-label="Annuler" (click)="cancelEdit()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  } @else {
+    <tr>
+      <td>{{ transaction.date | date: 'dd/MM/yyyy' }}</td>
+      <td [title]="hasOriginalDivergence(transaction) ? originalTooltip(transaction) : transaction.label">
+        <div class="label-row">
+          <span class="label-text">{{ transaction.label }}</span>
+          @if (hasOriginalDivergence(transaction)) {
+            <svg class="icon original-marker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+            </svg>
+          }
+        </div>
+      </td>
+      <td class="truncate" [title]="transaction.categoryName ?? ''">{{ transaction.categoryName ?? '—' }}</td>
+      <td class="icon-cell" [title]="typeLabel(transaction.type)">
+        @if (transaction.type === 'REVENU') {
+          <svg class="icon positive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="19" x2="12" y2="5"></line>
+            <polyline points="6 11 12 5 18 11"></polyline>
+          </svg>
+        } @else {
+          <svg class="icon negative" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <polyline points="18 13 12 19 6 13"></polyline>
+          </svg>
+        }
+      </td>
+      @if (showStatus) {
+        <td class="icon-cell" [title]="statusLabel(transaction.status)">
+          @if (transaction.status === 'POINTEE') {
+            <svg class="icon status-pointee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          } @else {
+            <svg class="icon status-previsionnelle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="7" stroke-dasharray="2.5 2.5"></circle>
+            </svg>
+          }
+        </td>
+      }
+      <td [class.negative]="transaction.amount < 0" [class.positive]="transaction.amount >= 0">
+        {{ transaction.amount | number: '1.2-2' }} €
+      </td>
+      <td class="match-cell">
+        <div class="match-row">
+          @if (candidatesFor(transaction).length > 0) {
+            <select #candidate>
+              <option value="">Rapprocher avec…</option>
+              @for (option of candidatesFor(transaction); track option.id) {
+                <option [value]="option.id">
+                  {{ option.date | date: 'dd/MM' }} — {{ option.label }} ({{ option.amount | number: '1.2-2' }} €)
+                </option>
+              }
+            </select>
+            <button
+              type="button"
+              class="icon-button"
+              title="Rapprocher"
+              aria-label="Rapprocher"
+              (click)="match(transaction, candidate.value ? +candidate.value : null)"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9 12l2 2 4-4"></path>
+                <circle cx="12" cy="12" r="9"></circle>
+              </svg>
+            </button>
+          } @else {
+            <span class="no-candidate">—</span>
+          }
+        </div>
+      </td>
+      <td class="actions">
+        <div class="actions-row">
+          @if (pendingDeleteId() === transaction.id) {
+            <button
+              type="button"
+              class="icon-button danger"
+              title="Confirmer la suppression"
+              aria-label="Confirmer la suppression"
+              (click)="confirmDelete(transaction.id)"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>
+            <button type="button" class="icon-button" title="Annuler" aria-label="Annuler" (click)="cancelDelete()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          } @else {
+            <button type="button" class="icon-button" title="Modifier" aria-label="Modifier" (click)="edit(transaction)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+              </svg>
+            </button>
+            <button type="button" class="icon-button danger" title="Supprimer" aria-label="Supprimer" (click)="requestDelete(transaction.id)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>
+          }
+        </div>
+      </td>
+    </tr>
+  }
+</ng-template>
 
 <div class="card">
 <h2>Ajouter une transaction</h2>

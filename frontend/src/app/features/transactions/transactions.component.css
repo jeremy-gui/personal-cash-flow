@@ -44,7 +44,7 @@
 .col-status { width: 40px; }
 .col-amount { width: 132px; }
 .col-match { width: 170px; }
-.col-actions { width: 84px; }
+.col-actions { width: 104px; }
 
 .editing-row input,
 .editing-row select {
@@ -143,14 +143,17 @@
   color: var(--ink-faint);
 }
 
-.actions {
+.actions-row {
   display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
   gap: var(--space-1);
   align-items: center;
 }
 
 .icon-button {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   width: 28px;
@@ -182,14 +185,16 @@
   color: var(--red);
 }
 
-.match-cell {
+.match-row {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: var(--space-2);
 }
 
-.match-cell select {
+.match-row select {
   min-width: 0;
+  max-width: 100%;
   flex: 1;
 }
 
