@@ -214,10 +214,6 @@ export class TransactionsComponent {
 
   /** Wraps the Record lookup so it stays typed when called from the shared row ng-template,
    *  whose ngTemplateOutletContext variables aren't inferred by the template type checker. */
-  protected statusLabel(status: TransactionStatus): string {
-    return this.statusLabels[status];
-  }
-
   protected typeLabel(type: TransactionType): string {
     return this.typeLabels[type];
   }

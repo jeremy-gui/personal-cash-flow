@@ -41,7 +41,6 @@
 .col-label { width: auto; }
 .col-category { width: 120px; }
 .col-type { width: 56px; }
-.col-status { width: 40px; }
 .col-amount { width: 132px; }
 .col-match { width: 170px; }
 .col-actions { width: 104px; }
@@ -133,14 +132,6 @@
 
 .icon.negative {
   color: var(--red);
-}
-
-.icon.status-pointee {
-  color: var(--blue);
-}
-
-.icon.status-previsionnelle {
-  color: var(--ink-faint);
 }
 
 .actions-row {

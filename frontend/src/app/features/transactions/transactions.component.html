@@ -69,7 +69,7 @@
   <p class="error">{{ matchError() }}</p>
 }
 
-<h2>Prévisionnel</h2>
+<h2>Transactions prévisionnelles</h2>
 <div class="card table-card">
 <div class="table-scroll">
 <table class="transactions-table">
@@ -78,7 +78,6 @@
     <col class="col-label" />
     <col class="col-category" />
     <col class="col-type" />
-    <col class="col-status" />
     <col class="col-amount" />
     <col class="col-match" />
     <col class="col-actions" />
@@ -89,7 +88,6 @@
       <th>Libellé</th>
       <th>Catégorie</th>
       <th class="icon-header" title="Type">Type</th>
-      <th class="icon-header" title="Statut">S</th>
       <th>Montant</th>
       <th>Rapprochement</th>
       <th></th>
@@ -97,10 +95,10 @@
   </thead>
   <tbody>
     @for (transaction of previsionnelleTransactions(); track transaction.id) {
-      <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: transaction, showStatus: true }"></ng-container>
+      <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: transaction }"></ng-container>
     } @empty {
       <tr>
-        <td colspan="8">Aucune transaction prévisionnelle pour ce mois.</td>
+        <td colspan="7">Aucune transaction prévisionnelle pour ce mois.</td>
       </tr>
     }
   </tbody>
@@ -134,7 +132,7 @@
   </thead>
   <tbody>
     @for (transaction of pointeeTransactions(); track transaction.id) {
-      <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: transaction, showStatus: false }"></ng-container>
+      <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: transaction }"></ng-container>
     } @empty {
       <tr>
         <td colspan="7">Aucune transaction importée pour ce mois.</td>
@@ -145,7 +143,7 @@
 </div>
 </div>
 
-<ng-template #row let-transaction let-showStatus="showStatus">
+<ng-template #row let-transaction>
   @if (transaction.id === editingId()) {
     <tr class="editing-row">
       <td><input type="date" [formControl]="editForm.controls.date" /></td>
@@ -190,19 +188,6 @@
           </svg>
         </button>
       </td>
-      @if (showStatus) {
-        <td class="icon-cell" [title]="statusLabel(transaction.status)">
-          @if (transaction.status === 'POINTEE') {
-            <svg class="icon status-pointee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          } @else {
-            <svg class="icon status-previsionnelle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="7" stroke-dasharray="2.5 2.5"></circle>
-            </svg>
-          }
-        </td>
-      }
       <td>
         <input type="number" step="0.01" min="0.01" class="amount-input" [formControl]="editForm.controls.amount" />
       </td>
@@ -262,19 +247,6 @@
           </svg>
         }
       </td>
-      @if (showStatus) {
-        <td class="icon-cell" [title]="statusLabel(transaction.status)">
-          @if (transaction.status === 'POINTEE') {
-            <svg class="icon status-pointee" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          } @else {
-            <svg class="icon status-previsionnelle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="7" stroke-dasharray="2.5 2.5"></circle>
-            </svg>
-          }
-        </td>
-      }
       <td [class.negative]="transaction.amount < 0" [class.positive]="transaction.amount >= 0">
         {{ transaction.amount | number: '1.2-2' }} €
       </td>
