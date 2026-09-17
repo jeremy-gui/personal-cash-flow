@@ -24,6 +24,7 @@
   table-layout: fixed;
   width: 100%;
   min-width: 900px;
+  font-size: 13px;
 }
 
 .transactions-table th:first-child,
@@ -92,14 +93,16 @@
   white-space: nowrap;
 }
 
-.label-cell {
+.label-row {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.label-cell .truncate {
+.label-row .label-text {
   min-width: 0;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .icon.original-marker {

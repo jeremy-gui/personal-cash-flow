@@ -181,14 +181,16 @@
       } @else {
         <tr>
           <td>{{ transaction.date | date: 'dd/MM/yyyy' }}</td>
-          <td class="label-cell" [title]="hasOriginalDivergence(transaction) ? originalTooltip(transaction) : transaction.label">
-            <span class="truncate">{{ transaction.label }}</span>
-            @if (hasOriginalDivergence(transaction)) {
-              <svg class="icon original-marker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-              </svg>
-            }
+          <td [title]="hasOriginalDivergence(transaction) ? originalTooltip(transaction) : transaction.label">
+            <div class="label-row">
+              <span class="label-text">{{ transaction.label }}</span>
+              @if (hasOriginalDivergence(transaction)) {
+                <svg class="icon original-marker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 20h9"></path>
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                </svg>
+              }
+            </div>
           </td>
           <td class="truncate" [title]="transaction.categoryName ?? ''">{{ transaction.categoryName ?? '—' }}</td>
           <td class="icon-cell" [title]="typeLabels[transaction.type]">
