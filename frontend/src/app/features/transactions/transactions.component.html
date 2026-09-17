@@ -75,7 +75,6 @@
   <colgroup>
     <col class="col-date" />
     <col class="col-label" />
-    <col class="col-account" />
     <col class="col-category" />
     <col class="col-type" />
     <col class="col-status" />
@@ -87,7 +86,6 @@
     <tr>
       <th>Date</th>
       <th>Libellé</th>
-      <th>Compte</th>
       <th>Catégorie</th>
       <th class="icon-header" title="Type">T</th>
       <th class="icon-header" title="Statut">S</th>
@@ -103,13 +101,6 @@
           <td><input type="date" [formControl]="editForm.controls.date" /></td>
           <td>
             <input type="text" [formControl]="editForm.controls.label" />
-          </td>
-          <td>
-            <select [formControl]="editForm.controls.accountId">
-              @for (account of accounts(); track account.id) {
-                <option [ngValue]="account.id">{{ account.name }}</option>
-              }
-            </select>
           </td>
           <td>
             <select [formControl]="editForm.controls.categoryId">
@@ -199,7 +190,6 @@
               </svg>
             }
           </td>
-          <td class="truncate" [title]="transaction.accountName">{{ transaction.accountName }}</td>
           <td class="truncate" [title]="transaction.categoryName ?? ''">{{ transaction.categoryName ?? '—' }}</td>
           <td class="icon-cell" [title]="typeLabels[transaction.type]">
             @if (transaction.type === 'REVENU') {
@@ -299,7 +289,7 @@
       }
     } @empty {
       <tr>
-        <td colspan="9">Aucune transaction pour ce mois.</td>
+        <td colspan="8">Aucune transaction pour ce mois.</td>
       </tr>
     }
   </tbody>
