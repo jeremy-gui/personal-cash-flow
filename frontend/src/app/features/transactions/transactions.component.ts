@@ -77,10 +77,17 @@ export class TransactionsComponent {
     type: this.fb.nonNullable.control<TransactionType>('DEPENSE'),
   });
 
+  private defaultAccountId: number | null = null;
+
   constructor() {
-    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
+    this.accountService.list().subscribe((accounts) => {
+      this.accounts.set(accounts);
+      this.defaultAccountId = accounts.find((a) => a.isDefault)?.id ?? null;
+      this.form.controls.accountId.setValue(this.defaultAccountId);
+      this.filterAccountId.set(this.defaultAccountId);
+      this.reload();
+    });
     this.categoryService.list().subscribe((categories) => this.categories.set(categories));
-    this.reload();
   }
 
   private today(): string {
@@ -162,7 +169,7 @@ export class TransactionsComponent {
         date: this.today(),
         label: '',
         amount: 0,
-        accountId: null,
+        accountId: this.defaultAccountId,
         categoryId: null,
         type: 'DEPENSE',
       });

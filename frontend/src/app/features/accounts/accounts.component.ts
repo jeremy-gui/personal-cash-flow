@@ -28,6 +28,8 @@ export class AccountsComponent {
     name: ['', Validators.required],
     type: this.fb.nonNullable.control<AccountType>('COURANT'),
     initialBalance: [0, Validators.required],
+    accountNumber: this.fb.control<string | null>(null),
+    isDefault: this.fb.nonNullable.control(false),
   });
 
   constructor() {
@@ -45,12 +47,14 @@ export class AccountsComponent {
       name: account.name,
       type: account.type,
       initialBalance: account.initialBalance,
+      accountNumber: account.accountNumber,
+      isDefault: account.isDefault,
     });
   }
 
   protected cancelEdit(): void {
     this.editingId.set(null);
-    this.form.reset({ name: '', type: 'COURANT', initialBalance: 0 });
+    this.form.reset({ name: '', type: 'COURANT', initialBalance: 0, accountNumber: null, isDefault: false });
   }
 
   protected submit(): void {

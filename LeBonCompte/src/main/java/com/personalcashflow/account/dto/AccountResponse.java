@@ -8,13 +8,17 @@ public record AccountResponse(
         Long id,
         String name,
         AccountType type,
-        BigDecimal initialBalance) {
+        BigDecimal initialBalance,
+        String accountNumber,
+        boolean isDefault) {
 
     public static AccountResponse from(Account account) {
         return new AccountResponse(
                 account.getId(),
                 account.getName(),
                 account.getType(),
-                account.getInitialBalance());
+                account.getInitialBalance(),
+                account.getAccountNumber(),
+                account.isDefault());
     }
 }

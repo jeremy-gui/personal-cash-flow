@@ -8,5 +8,7 @@ import java.math.BigDecimal;
 public record AccountRequest(
         @NotBlank String name,
         @NotNull AccountType type,
-        @NotNull BigDecimal initialBalance) {
+        @NotNull BigDecimal initialBalance,
+        String accountNumber,
+        boolean isDefault) {
 }

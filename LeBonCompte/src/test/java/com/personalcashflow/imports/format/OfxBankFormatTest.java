@@ -57,8 +57,10 @@ class OfxBankFormatTest {
                 stmttrn("POS", "20260905", "-81.24", "FIT001", "CARREFOUR"),
                 stmttrn("DIRECTDEP", "20260908", "2850.00", "FIT002", "SALAIRE"));
 
-        List<Optional<ImportedRow>> rows = format.parse(stream(ofx));
+        OfxBankFormat.ParsedStatement statement = format.parse(stream(ofx));
+        List<Optional<ImportedRow>> rows = statement.rows();
 
+        assertThat(statement.accountNumber()).isEqualTo("123");
         assertThat(rows).hasSize(2);
         ImportedRow first = rows.get(0).orElseThrow();
         assertThat(first.date()).isEqualTo(LocalDate.of(2026, 9, 5));
@@ -77,7 +79,7 @@ class OfxBankFormatTest {
                 stmttrn("POS", "20260905", "-81.24", "FIT001", "CARREFOUR"),
                 stmttrn("DEBIT", "20260906", "0.00", "FIT002", "NO-OP"));
 
-        List<Optional<ImportedRow>> rows = format.parse(stream(ofx));
+        List<Optional<ImportedRow>> rows = format.parse(stream(ofx)).rows();
 
         assertThat(rows).hasSize(2);
         assertThat(rows.get(0)).isPresent();

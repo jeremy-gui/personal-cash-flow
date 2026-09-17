@@ -1,7 +1,6 @@
 package com.personalcashflow.imports;
 
 import com.personalcashflow.account.Account;
-import com.personalcashflow.account.AccountNotFoundException;
 import com.personalcashflow.account.AccountRepository;
 import com.personalcashflow.imports.dto.ImportSummaryResponse;
 import com.personalcashflow.imports.format.ImportedRow;
@@ -37,14 +36,17 @@ public class ImportService {
         this.ofxBankFormat = ofxBankFormat;
     }
 
-    public ImportSummaryResponse importOfx(Long accountId, MultipartFile file) {
+    public ImportSummaryResponse importOfx(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new EmptyImportFileException();
         }
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AccountNotFoundException(accountId));
 
-        List<Optional<ImportedRow>> parsedRows = parse(file);
+        OfxBankFormat.ParsedStatement statement = parse(file);
+        Account account = accountRepository.findByAccountNumber(statement.accountNumber())
+                .orElseThrow(() -> new UnmatchedOfxAccountException(statement.accountNumber()));
+        Long accountId = account.getId();
+
+        List<Optional<ImportedRow>> parsedRows = statement.rows();
         int rowCount = parsedRows.size();
         int createdCount = 0;
         int skippedCount = 0;
@@ -80,7 +82,7 @@ public class ImportService {
                 .toList();
     }
 
-    private List<Optional<ImportedRow>> parse(MultipartFile file) {
+    private OfxBankFormat.ParsedStatement parse(MultipartFile file) {
         try (var inputStream = file.getInputStream()) {
             return ofxBankFormat.parse(inputStream);
         } catch (IOException e) {

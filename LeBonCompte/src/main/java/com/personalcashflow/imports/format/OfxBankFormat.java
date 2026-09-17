@@ -4,6 +4,8 @@ import com.personalcashflow.imports.InvalidOfxFileException;
 import com.webcohesion.ofx4j.domain.data.MessageSetType;
 import com.webcohesion.ofx4j.domain.data.ResponseEnvelope;
 import com.webcohesion.ofx4j.domain.data.ResponseMessageSet;
+import com.webcohesion.ofx4j.domain.data.banking.BankAccountDetails;
+import com.webcohesion.ofx4j.domain.data.banking.BankStatementResponse;
 import com.webcohesion.ofx4j.domain.data.banking.BankStatementResponseTransaction;
 import com.webcohesion.ofx4j.domain.data.banking.BankingResponseMessageSet;
 import com.webcohesion.ofx4j.domain.data.common.TransactionList;
@@ -27,11 +29,27 @@ import org.springframework.stereotype.Component;
 @Component
 public class OfxBankFormat {
 
-    /** One entry per OFX transaction record; empty for a record filtered out (e.g. zero amount). */
-    public List<Optional<ImportedRow>> parse(InputStream content) {
+    /**
+     * The bank's own account number (OFX {@code ACCTID}), read from the first {@code STMTTRNRS}
+     * block, alongside the transaction rows parsed from every block. {@code accountNumber} is
+     * null if the file has no {@code BANKACCTFROM} at all.
+     */
+    public record ParsedStatement(String accountNumber, List<Optional<ImportedRow>> rows) {
+    }
+
+    public ParsedStatement parse(InputStream content) {
         ResponseEnvelope envelope = unmarshal(content);
+        List<BankStatementResponseTransaction> responses = bankingResponses(envelope);
+
+        String accountNumber = responses.stream()
+                .findFirst()
+                .map(BankStatementResponseTransaction::getMessage)
+                .map(BankStatementResponse::getAccount)
+                .map(BankAccountDetails::getAccountNumber)
+                .orElse(null);
+
         List<Optional<ImportedRow>> rows = new ArrayList<>();
-        for (BankStatementResponseTransaction statementResponse : bankingResponses(envelope)) {
+        for (BankStatementResponseTransaction statementResponse : responses) {
             TransactionList transactionList = statementResponse.getMessage().getTransactionList();
             if (transactionList == null) {
                 continue;
@@ -40,7 +58,7 @@ public class OfxBankFormat {
                 rows.add(toImportedRow(transaction));
             }
         }
-        return rows;
+        return new ParsedStatement(accountNumber, rows);
     }
 
     private static ResponseEnvelope unmarshal(InputStream content) {

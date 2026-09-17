@@ -13,6 +13,15 @@
   padding: 8px 12px;
 }
 
+.error {
+  color: var(--red);
+  background: var(--red-soft);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  font-size: 0.85rem;
+}
+
 .month-nav {
   display: flex;
   align-items: center;

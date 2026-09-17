@@ -25,9 +25,9 @@
   <label>
     Compte
     <select (change)="onFilterAccountChange($any($event.target).value)">
-      <option value="">Tous</option>
+      <option value="" [selected]="filterAccountId() === null">Tous</option>
       @for (account of accounts(); track account.id) {
-        <option [value]="account.id">{{ account.name }}</option>
+        <option [value]="account.id" [selected]="account.id === filterAccountId()">{{ account.name }}</option>
       }
     </select>
   </label>

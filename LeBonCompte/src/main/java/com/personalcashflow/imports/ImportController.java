@@ -23,9 +23,8 @@ public class ImportController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ImportSummaryResponse importOfx(
-            @RequestParam Long accountId, @RequestParam MultipartFile file) {
-        return importService.importOfx(accountId, file);
+    public ImportSummaryResponse importOfx(@RequestParam MultipartFile file) {
+        return importService.importOfx(file);
     }
 
     @GetMapping

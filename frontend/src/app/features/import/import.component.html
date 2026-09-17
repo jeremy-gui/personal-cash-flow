@@ -2,25 +2,11 @@
 
 <div class="card import-form">
   <label>
-    Compte
-    <select (change)="onAccountChange($any($event.target).value)">
-      <option value="">Sélectionner…</option>
-      @for (account of accounts(); track account.id) {
-        <option [value]="account.id">{{ account.name }}</option>
-      }
-    </select>
-  </label>
-
-  <label>
     Fichier OFX
     <input type="file" accept=".ofx" (change)="onFileSelected($event)" />
   </label>
 
-  <button
-    type="button"
-    [disabled]="selectedAccountId() === null || !selectedFile() || uploading()"
-    (click)="upload()"
-  >
+  <button type="button" [disabled]="!selectedFile() || uploading()" (click)="upload()">
     {{ uploading() ? 'Import en cours…' : 'Importer' }}
   </button>
 </div>
@@ -31,8 +17,8 @@
 
 @if (lastResult(); as result) {
   <p class="result">
-    {{ result.filename }} : {{ result.rowCount }} ligne(s), {{ result.createdCount }} créée(s),
-    {{ result.skippedCount }} ignorée(s) (doublon ou ligne invalide).
+    {{ result.filename }} : compte {{ accountName(result.accountId) }}, {{ result.rowCount }} ligne(s),
+    {{ result.createdCount }} créée(s), {{ result.skippedCount }} ignorée(s) (doublon ou ligne invalide).
   </p>
 }
 
@@ -44,6 +30,7 @@
       <tr>
         <th>Date</th>
         <th>Fichier</th>
+        <th>Compte</th>
         <th>Lignes</th>
         <th>Créées</th>
         <th>Ignorées</th>
@@ -54,13 +41,14 @@
         <tr>
           <td>{{ entry.importedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
           <td>{{ entry.filename }}</td>
+          <td>{{ accountName(entry.accountId) }}</td>
           <td>{{ entry.rowCount }}</td>
           <td>{{ entry.createdCount }}</td>
           <td>{{ entry.skippedCount }}</td>
         </tr>
       } @empty {
         <tr>
-          <td colspan="5">Aucun import pour l'instant.</td>
+          <td colspan="6">Aucun import pour l'instant.</td>
         </tr>
       }
     </tbody>

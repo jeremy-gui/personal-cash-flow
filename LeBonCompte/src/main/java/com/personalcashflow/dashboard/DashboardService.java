@@ -1,5 +1,6 @@
 package com.personalcashflow.dashboard;
 
+import com.personalcashflow.account.Account;
 import com.personalcashflow.account.AccountRepository;
 import com.personalcashflow.budget.BudgetService;
 import com.personalcashflow.dashboard.dto.CategoryAmountResponse;
@@ -36,31 +37,37 @@ public class DashboardService {
     }
 
     public DashboardResponse getDashboard(String month) {
+        Account defaultAccount = accountRepository.findByIsDefaultTrue()
+                .orElseThrow(NoDefaultAccountException::new);
+        Long accountId = defaultAccount.getId();
+
         YearMonth yearMonth = YearMonth.parse(month);
         LocalDate from = yearMonth.atDay(1);
         LocalDate to = yearMonth.atEndOfMonth();
 
-        BigDecimal revenus = transactionRepository.sumByTypeAndDateRange(TransactionType.REVENU, from, to);
-        BigDecimal depensesSigned = transactionRepository.sumByTypeAndDateRange(TransactionType.DEPENSE, from, to);
+        BigDecimal revenus = transactionRepository.sumByTypeAndDateRange(TransactionType.REVENU, accountId, from, to);
+        BigDecimal depensesSigned =
+                transactionRepository.sumByTypeAndDateRange(TransactionType.DEPENSE, accountId, from, to);
         BigDecimal depenses = depensesSigned.negate();
         BigDecimal soldeNet = revenus.add(depensesSigned);
 
-        var depensesParCategorie = transactionRepository.sumDepenseGroupedByCategory(from, to).stream()
+        var depensesParCategorie = transactionRepository.sumDepenseGroupedByCategory(accountId, from, to).stream()
                 .map(p -> new CategoryAmountResponse(p.getCategoryId(), p.getCategoryName(), p.getTotal().negate()))
                 .toList();
 
+        // Budgets stay household-wide: Budget has no account relation.
         var budgetsParCategorie = budgetService.findAllForMonth(month);
 
         var previsionnellesNonPointees = transactionService
-                .search(month, null, null, TransactionStatus.PREVISIONNELLE, null)
+                .search(month, accountId, null, TransactionStatus.PREVISIONNELLE, null)
                 .stream()
                 .map(TransactionResponse::from)
                 .toList();
 
-        BigDecimal soldeActuel = accountRepository.sumInitialBalance()
-                .add(transactionRepository.sumByStatus(TransactionStatus.POINTEE));
+        BigDecimal soldeActuel = defaultAccount.getInitialBalance()
+                .add(transactionRepository.sumByStatus(TransactionStatus.POINTEE, accountId));
         BigDecimal previsionnelFinDeMois = soldeActuel
-                .add(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, to));
+                .add(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, accountId, to));
 
         return new DashboardResponse(
                 month,

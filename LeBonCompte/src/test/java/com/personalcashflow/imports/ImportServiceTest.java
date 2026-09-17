@@ -9,13 +9,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.personalcashflow.account.Account;
-import com.personalcashflow.account.AccountNotFoundException;
 import com.personalcashflow.account.AccountRepository;
 import com.personalcashflow.account.AccountType;
 import com.personalcashflow.imports.dto.ImportSummaryResponse;
 import com.personalcashflow.imports.format.OfxBankFormat;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionRepository;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -74,10 +74,21 @@ class ImportServiceTest {
                 .formatted(type, datePosted, amount, fitid, name);
     }
 
+    private static void setId(Account account, Long id) {
+        try {
+            Field idField = Account.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(account, id);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Test
     void importOfx_withNewRows_shouldCreateTransactionsAndSkipDuplicates() {
-        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO);
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, "123");
+        setId(account, 1L);
+        when(accountRepository.findByAccountNumber("123")).thenReturn(Optional.of(account));
         when(transactionRepository.existsByAccountIdAndImportHash(any(), any())).thenReturn(false);
         // second transaction is a duplicate
         when(transactionRepository.existsByAccountIdAndImportHash(1L, "FIT002")).thenReturn(true);
@@ -90,7 +101,7 @@ class ImportServiceTest {
         MockMultipartFile file = new MockMultipartFile(
                 "file", "releve.ofx", "application/x-ofx", ofx.getBytes(StandardCharsets.US_ASCII));
 
-        ImportSummaryResponse summary = service().importOfx(1L, file);
+        ImportSummaryResponse summary = service().importOfx(file);
 
         assertThat(summary.rowCount()).isEqualTo(3);
         assertThat(summary.createdCount()).isEqualTo(2);
@@ -104,21 +115,22 @@ class ImportServiceTest {
     }
 
     @Test
-    void importOfx_whenAccountMissing_shouldThrowAccountNotFoundException() {
-        when(accountRepository.findById(99L)).thenReturn(Optional.empty());
+    void importOfx_whenNoAccountMatchesAcctId_shouldThrowUnmatchedOfxAccountException() {
+        when(accountRepository.findByAccountNumber("123")).thenReturn(Optional.empty());
         String ofx = ofxDocument(stmttrn("POS", "20260905", "-81.24", "FIT001", "CARREFOUR"));
         MockMultipartFile file = new MockMultipartFile(
                 "file", "releve.ofx", "application/x-ofx", ofx.getBytes(StandardCharsets.US_ASCII));
 
-        assertThatThrownBy(() -> service().importOfx(99L, file))
-                .isInstanceOf(AccountNotFoundException.class);
+        assertThatThrownBy(() -> service().importOfx(file))
+                .isInstanceOf(UnmatchedOfxAccountException.class);
+        verify(transactionRepository, never()).save(any());
     }
 
     @Test
     void importOfx_withEmptyFile_shouldThrowEmptyImportFileException() {
         MockMultipartFile file = new MockMultipartFile("file", "releve.ofx", "application/x-ofx", new byte[0]);
 
-        assertThatThrownBy(() -> service().importOfx(1L, file))
+        assertThatThrownBy(() -> service().importOfx(file))
                 .isInstanceOf(EmptyImportFileException.class);
         verify(transactionRepository, never()).save(any());
     }

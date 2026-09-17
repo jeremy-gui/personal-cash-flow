@@ -7,7 +7,9 @@
     <tr>
       <th>Nom</th>
       <th>Type</th>
+      <th>N° de compte</th>
       <th>Solde initial</th>
+      <th>Défaut</th>
       <th></th>
     </tr>
   </thead>
@@ -16,7 +18,9 @@
       <tr>
         <td>{{ account.name }}</td>
         <td>{{ typeLabels[account.type] }}</td>
+        <td>{{ account.accountNumber ?? '—' }}</td>
         <td>{{ account.initialBalance | number: '1.2-2' }} €</td>
+        <td>{{ account.isDefault ? '✓' : '' }}</td>
         <td class="actions">
           @if (pendingDeleteId() === account.id) {
             <button type="button" class="confirm-delete" (click)="confirmDelete(account.id)">Confirmer</button>
@@ -29,7 +33,7 @@
       </tr>
     } @empty {
       <tr>
-        <td colspan="4">Aucun compte pour l'instant.</td>
+        <td colspan="6">Aucun compte pour l'instant.</td>
       </tr>
     }
   </tbody>
@@ -56,8 +60,18 @@
   </label>
 
   <label>
+    Numéro de compte
+    <input type="text" formControlName="accountNumber" placeholder="ACCTID du fichier OFX" />
+  </label>
+
+  <label>
     Solde initial
     <input type="number" step="0.01" formControlName="initialBalance" />
+  </label>
+
+  <label class="checkbox-label">
+    <input type="checkbox" formControlName="isDefault" />
+    Compte par défaut
   </label>
 
   <div class="form-actions">

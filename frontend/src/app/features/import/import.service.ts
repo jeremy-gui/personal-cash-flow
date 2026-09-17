@@ -9,9 +9,8 @@ export class ImportService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/imports`;
 
-  upload(accountId: number, file: File): Observable<ImportSummary> {
+  upload(file: File): Observable<ImportSummary> {
     const formData = new FormData();
-    formData.append('accountId', String(accountId));
     formData.append('file', file);
     return this.http.post<ImportSummary>(this.baseUrl, formData);
   }

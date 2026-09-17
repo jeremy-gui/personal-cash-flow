@@ -17,9 +17,14 @@
   padding-right: var(--space-6);
 }
 
-.accounts-table th:nth-child(3),
-.accounts-table td:nth-child(3) {
+.accounts-table th:nth-child(4),
+.accounts-table td:nth-child(4) {
   text-align: right;
+}
+
+.accounts-table th:nth-child(5),
+.accounts-table td:nth-child(5) {
+  text-align: center;
 }
 
 .actions {
@@ -32,6 +37,17 @@
   flex-wrap: wrap;
   gap: var(--space-6);
   align-items: flex-end;
+}
+
+.checkbox-label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.checkbox-label input {
+  width: auto;
 }
 
 .form-actions {

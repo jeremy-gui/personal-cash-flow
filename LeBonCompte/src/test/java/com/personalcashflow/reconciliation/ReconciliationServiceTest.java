@@ -153,7 +153,7 @@ class ReconciliationServiceTest {
     }
 
     private static Account accountWithId(Long id, String name) {
-        Account account = new Account(name, AccountType.COURANT, BigDecimal.ZERO);
+        Account account = new Account(name, AccountType.COURANT, BigDecimal.ZERO, null);
         setId(account, Account.class, id);
         return account;
     }

@@ -12,10 +12,14 @@ export interface Account {
   name: string;
   type: AccountType;
   initialBalance: number;
+  accountNumber: string | null;
+  isDefault: boolean;
 }
 
 export interface AccountRequest {
   name: string;
   type: AccountType;
   initialBalance: number;
+  accountNumber: string | null;
+  isDefault: boolean;
 }

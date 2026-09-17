@@ -17,7 +17,6 @@ export class ImportComponent {
   private readonly accountService = inject(AccountService);
 
   protected readonly accounts = signal<Account[]>([]);
-  protected readonly selectedAccountId = signal<number | null>(null);
   protected readonly selectedFile = signal<File | null>(null);
   protected readonly history = signal<ImportSummary[]>([]);
   protected readonly lastResult = signal<ImportSummary | null>(null);
@@ -33,26 +32,21 @@ export class ImportComponent {
     this.importService.history().subscribe((history) => this.history.set(history));
   }
 
-  protected onAccountChange(value: string): void {
-    this.selectedAccountId.set(value ? Number(value) : null);
-  }
-
   protected onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.selectedFile.set(input.files?.[0] ?? null);
   }
 
   protected upload(): void {
-    const accountId = this.selectedAccountId();
     const file = this.selectedFile();
-    if (accountId === null || file === null) {
+    if (file === null) {
       return;
     }
     this.errorMessage.set(null);
     this.lastResult.set(null);
     this.uploading.set(true);
 
-    this.importService.upload(accountId, file).subscribe({
+    this.importService.upload(file).subscribe({
       next: (result) => {
         this.lastResult.set(result);
         this.uploading.set(false);
@@ -64,5 +58,9 @@ export class ImportComponent {
         this.uploading.set(false);
       },
     });
+  }
+
+  protected accountName(accountId: number): string {
+    return this.accounts().find((a) => a.id === accountId)?.name ?? `#${accountId}`;
   }
 }

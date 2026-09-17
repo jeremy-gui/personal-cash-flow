@@ -40,7 +40,7 @@ class TransactionServiceTest {
 
     @Test
     void create_withDepenseType_shouldStoreNegativeAmount() {
-        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO);
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -55,7 +55,7 @@ class TransactionServiceTest {
 
     @Test
     void create_shouldAlwaysStoreStatusPrevisionnelle() {
-        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO);
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -70,7 +70,7 @@ class TransactionServiceTest {
 
     @Test
     void create_withRevenuType_shouldStorePositiveAmount() {
-        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO);
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -97,7 +97,7 @@ class TransactionServiceTest {
 
     @Test
     void create_whenCategoryMissing_shouldThrowCategoryNotFoundException() {
-        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO);
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -125,7 +125,7 @@ class TransactionServiceTest {
 
     @Test
     void create_shouldLeaveOriginalDateAndLabelNull() {
-        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO);
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -141,7 +141,7 @@ class TransactionServiceTest {
 
     @Test
     void update_shouldNotChangeOriginalDateAndLabel() {
-        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO);
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
         Transaction transaction = Transaction.imported(
                 LocalDate.of(2026, 9, 5), "CARREFOUR", BigDecimal.TEN, account,
                 TransactionType.DEPENSE, "hash", "raw");
@@ -169,7 +169,7 @@ class TransactionServiceTest {
 
     @Test
     void delete_whenTransactionExists_shouldRemoveIt() {
-        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO);
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
         Transaction transaction = new Transaction(
                 LocalDate.now(), "Test", BigDecimal.TEN, account, (Category) null,
                 TransactionType.REVENU, TransactionStatus.POINTEE);
