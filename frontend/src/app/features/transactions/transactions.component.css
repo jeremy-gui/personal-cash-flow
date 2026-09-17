@@ -5,6 +5,12 @@
   margin-bottom: var(--space-4);
 }
 
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .table-card {
   padding: var(--space-4) 0;
   margin-bottom: var(--space-4);

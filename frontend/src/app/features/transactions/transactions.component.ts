@@ -98,6 +98,12 @@ export class TransactionsComponent {
     this.reload();
   }
 
+  protected shiftMonth(delta: number): void {
+    const [year, month] = this.month().split('-').map(Number);
+    const date = new Date(year, month - 1 + delta, 1);
+    this.onMonthChange(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  }
+
   protected onFilterAccountChange(value: string): void {
     this.filterAccountId.set(value ? Number(value) : null);
     this.reload();
