@@ -433,10 +433,10 @@ class CategoryResolver {
     return created.id;
   }
 
-  /** Only creates the parent if a child is actually needed under it. */
+  /** Rows with no sub-category get the parent itself as their category, so every row ends up categorized. */
   async resolve(parentName, childName) {
-    if (!childName) return null;
     const parentId = await this.resolveParent(parentName);
+    if (!childName) return parentId;
     return this.resolveChild(parentId, childName);
   }
 }
