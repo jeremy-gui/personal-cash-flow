@@ -76,6 +76,8 @@ class DashboardServiceTest {
         when(transactionRepository.sumByStatus(TransactionStatus.POINTEE, ACCOUNT_ID)).thenReturn(BigDecimal.ZERO);
         when(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, ACCOUNT_ID, TO))
                 .thenReturn(BigDecimal.ZERO);
+        when(transactionRepository.sumByStatusUpToDate(TransactionStatus.POINTEE, ACCOUNT_ID, TO))
+                .thenReturn(BigDecimal.ZERO);
 
         DashboardResponse response = dashboardService.getDashboard("2026-09");
 
@@ -85,17 +87,20 @@ class DashboardServiceTest {
     }
 
     @Test
-    void getDashboard_shouldComputeSoldeActuelAndPrevisionnelFinDeMois() {
+    void getDashboard_shouldComputeSoldeActuelPrevisionnelFinDeMoisAndSoldeReelFinDeMois() {
         stubCommon(BigDecimal.valueOf(1000));
         when(transactionRepository.sumByStatus(TransactionStatus.POINTEE, ACCOUNT_ID))
                 .thenReturn(BigDecimal.valueOf(-142.30));
         when(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, ACCOUNT_ID, TO))
                 .thenReturn(BigDecimal.valueOf(2000));
+        when(transactionRepository.sumByStatusUpToDate(TransactionStatus.POINTEE, ACCOUNT_ID, TO))
+                .thenReturn(BigDecimal.valueOf(-300));
 
         DashboardResponse response = dashboardService.getDashboard("2026-09");
 
         assertThat(response.soldeActuel()).isEqualByComparingTo(BigDecimal.valueOf(857.70));
         assertThat(response.previsionnelFinDeMois()).isEqualByComparingTo(BigDecimal.valueOf(2857.70));
+        assertThat(response.soldeReelFinDeMois()).isEqualByComparingTo(BigDecimal.valueOf(700));
     }
 
     @Test

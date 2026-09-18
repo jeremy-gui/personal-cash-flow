@@ -77,6 +77,25 @@
         <span class="kpi-value">{{ data.soldeNet | number: '1.2-2' }} €</span>
       </div>
     </div>
+    <div class="kpi-card">
+      <span class="kpi-icon" [class.kpi-icon-positive]="data.soldeReelFinDeMois >= 0" [class.kpi-icon-negative]="data.soldeReelFinDeMois < 0">
+        @if (data.soldeReelFinDeMois >= 0) {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="19" x2="12" y2="5"></line>
+            <polyline points="6 11 12 5 18 11"></polyline>
+          </svg>
+        } @else {
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <polyline points="18 13 12 19 6 13"></polyline>
+          </svg>
+        }
+      </span>
+      <div class="kpi-text">
+        <span class="kpi-label">Solde réel fin de mois</span>
+        <span class="kpi-value">{{ data.soldeReelFinDeMois | number: '1.2-2' }} €</span>
+      </div>
+    </div>
   </div>
 
   <div class="split-row">

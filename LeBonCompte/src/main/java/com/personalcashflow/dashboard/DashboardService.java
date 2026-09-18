@@ -68,12 +68,15 @@ public class DashboardService {
                 .add(transactionRepository.sumByStatus(TransactionStatus.POINTEE, accountId));
         BigDecimal previsionnelFinDeMois = soldeActuel
                 .add(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, accountId, to));
+        BigDecimal soldeReelFinDeMois = defaultAccount.getInitialBalance()
+                .add(transactionRepository.sumByStatusUpToDate(TransactionStatus.POINTEE, accountId, to));
 
         return new DashboardResponse(
                 month,
                 revenus,
                 depenses,
                 soldeNet,
+                soldeReelFinDeMois,
                 soldeActuel,
                 previsionnelFinDeMois,
                 depensesParCategorie,

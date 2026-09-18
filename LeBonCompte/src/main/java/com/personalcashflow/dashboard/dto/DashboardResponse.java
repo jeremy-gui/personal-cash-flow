@@ -10,6 +10,7 @@ public record DashboardResponse(
         BigDecimal revenus,
         BigDecimal depenses,
         BigDecimal soldeNet,
+        BigDecimal soldeReelFinDeMois,
         BigDecimal soldeActuel,
         BigDecimal previsionnelFinDeMois,
         List<CategoryAmountResponse> depensesParCategorie,
