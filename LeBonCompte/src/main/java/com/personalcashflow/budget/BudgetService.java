@@ -30,23 +30,24 @@ public class BudgetService {
         this.transactionRepository = transactionRepository;
     }
 
+    /** A budget applies to every month from its start month onward, so this returns every budget whose start month is at or before {@code month}. */
     @Transactional(readOnly = true)
     public List<BudgetResponse> findAllForMonth(String month) {
         YearMonth yearMonth = YearMonth.parse(month);
         LocalDate monthStart = yearMonth.atDay(1);
         LocalDate monthEnd = yearMonth.atEndOfMonth();
 
-        return budgetRepository.findByMonth(monthStart).stream()
+        return budgetRepository.findByStartMonthLessThanEqual(monthStart).stream()
                 .map(budget -> BudgetResponse.of(budget, spent(budget.getCategory().getId(), monthStart, monthEnd)))
                 .toList();
     }
 
     public BudgetResponse create(BudgetRequest request) {
         Category category = resolveCategory(request.categoryId());
-        LocalDate monthStart = YearMonth.parse(request.month()).atDay(1);
-        if (budgetRepository.existsByCategoryIdAndMonth(category.getId(), monthStart)) {
-            throw new BudgetAlreadyExistsException(category.getId(), request.month());
+        if (budgetRepository.existsByCategoryId(category.getId())) {
+            throw new BudgetAlreadyExistsException(category.getId());
         }
+        LocalDate monthStart = YearMonth.parse(request.month()).atDay(1);
         Budget budget = new Budget(category, monthStart, request.amount());
         budgetRepository.save(budget);
         return BudgetResponse.of(budget, spentForMonth(category.getId(), monthStart));
@@ -55,12 +56,11 @@ public class BudgetService {
     public BudgetResponse update(Long id, BudgetRequest request) {
         Budget budget = findById(id);
         Category category = resolveCategory(request.categoryId());
-        LocalDate monthStart = YearMonth.parse(request.month()).atDay(1);
-        if (budgetRepository.existsByCategoryIdAndMonthAndIdNot(category.getId(), monthStart, id)) {
-            throw new BudgetAlreadyExistsException(category.getId(), request.month());
+        if (budgetRepository.existsByCategoryIdAndIdNot(category.getId(), id)) {
+            throw new BudgetAlreadyExistsException(category.getId());
         }
-        budget.update(category, monthStart, request.amount());
-        return BudgetResponse.of(budget, spentForMonth(category.getId(), monthStart));
+        budget.update(category, request.amount());
+        return BudgetResponse.of(budget, spentForMonth(category.getId(), YearMonth.parse(request.month()).atDay(1)));
     }
 
     public void delete(Long id) {

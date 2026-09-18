@@ -10,25 +10,25 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "budget", uniqueConstraints = @UniqueConstraint(columnNames = {"category_id", "month"}))
+@Table(name = "budget")
 public class Budget {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** One budget per category: creating a second one for the same category is a conflict. */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "category_id", nullable = false)
+    @JoinColumn(name = "category_id", nullable = false, unique = true)
     private Category category;
 
-    /** Always the first day of the budgeted month. */
-    @Column(nullable = false)
-    private LocalDate month;
+    /** Always the first day of the month this budget started applying from. */
+    @Column(name = "start_month", nullable = false)
+    private LocalDate startMonth;
 
     @Column(nullable = false)
     private BigDecimal amount;
@@ -36,9 +36,9 @@ public class Budget {
     protected Budget() {
     }
 
-    public Budget(Category category, LocalDate month, BigDecimal amount) {
+    public Budget(Category category, LocalDate startMonth, BigDecimal amount) {
         this.category = category;
-        this.month = month;
+        this.startMonth = startMonth;
         this.amount = amount;
     }
 
@@ -50,17 +50,17 @@ public class Budget {
         return category;
     }
 
-    public LocalDate getMonth() {
-        return month;
+    public LocalDate getStartMonth() {
+        return startMonth;
     }
 
     public BigDecimal getAmount() {
         return amount;
     }
 
-    public void update(Category category, LocalDate month, BigDecimal amount) {
+    /** The start month never changes after creation: only the amount/category can be edited. */
+    public void update(Category category, BigDecimal amount) {
         this.category = category;
-        this.month = month;
         this.amount = amount;
     }
 }

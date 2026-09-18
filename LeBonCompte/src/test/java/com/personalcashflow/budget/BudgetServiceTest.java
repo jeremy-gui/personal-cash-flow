@@ -39,7 +39,7 @@ class BudgetServiceTest {
     void findAllForMonth_shouldComputeSpentRemainingAndPercentage() {
         Category category = categoryWithId(1L, "Courses alimentaires");
         Budget budget = new Budget(category, LocalDate.of(2026, 9, 1), BigDecimal.valueOf(500));
-        when(budgetRepository.findByMonth(LocalDate.of(2026, 9, 1))).thenReturn(List.of(budget));
+        when(budgetRepository.findByStartMonthLessThanEqual(LocalDate.of(2026, 9, 1))).thenReturn(List.of(budget));
         when(transactionRepository.sumDepenseByCategoryAndDateRange(
                 1L, LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30)))
                 .thenReturn(BigDecimal.valueOf(-150));
@@ -54,10 +54,24 @@ class BudgetServiceTest {
     }
 
     @Test
-    void create_whenBudgetAlreadyExistsForCategoryAndMonth_shouldThrowConflict() {
+    void findAllForMonth_shouldIncludeBudgetsStartedInEarlierMonths() {
+        Category category = categoryWithId(1L, "Courses alimentaires");
+        Budget budget = new Budget(category, LocalDate.of(2026, 7, 1), BigDecimal.valueOf(500));
+        when(budgetRepository.findByStartMonthLessThanEqual(LocalDate.of(2026, 9, 1))).thenReturn(List.of(budget));
+        when(transactionRepository.sumDepenseByCategoryAndDateRange(
+                1L, LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 30)))
+                .thenReturn(BigDecimal.ZERO);
+
+        var responses = budgetService.findAllForMonth("2026-09");
+
+        assertThat(responses).hasSize(1);
+    }
+
+    @Test
+    void create_whenBudgetAlreadyExistsForCategory_shouldThrowConflict() {
         Category category = categoryWithId(1L, "Courses alimentaires");
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
-        when(budgetRepository.existsByCategoryIdAndMonth(1L, LocalDate.of(2026, 9, 1))).thenReturn(true);
+        when(budgetRepository.existsByCategoryId(1L)).thenReturn(true);
 
         BudgetRequest request = new BudgetRequest(1L, "2026-09", BigDecimal.valueOf(500));
 

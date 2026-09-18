@@ -2,6 +2,7 @@ package com.personalcashflow.transaction;
 
 import com.personalcashflow.account.Account;
 import com.personalcashflow.category.Category;
+import com.personalcashflow.recurring.RecurringTransaction;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -73,6 +74,11 @@ public class Transaction {
     @Column(name = "original_label")
     private String originalLabel;
 
+    /** The recurring definition this instance was generated from, if any; never set for manual/imported rows. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recurring_transaction_id")
+    private RecurringTransaction recurringTransaction;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -126,6 +132,20 @@ public class Transaction {
         return transaction;
     }
 
+    /** Generated from a recurring definition; always PREVISIONNELLE, same as a manual entry. */
+    public static Transaction recurring(
+            LocalDate date,
+            String label,
+            BigDecimal amount,
+            Account account,
+            Category category,
+            TransactionType type,
+            RecurringTransaction recurringTransaction) {
+        Transaction transaction = new Transaction(date, label, amount, account, category, type, TransactionStatus.PREVISIONNELLE);
+        transaction.recurringTransaction = recurringTransaction;
+        return transaction;
+    }
+
     public Long getId() {
         return id;
     }
@@ -176,6 +196,10 @@ public class Transaction {
 
     public String getOriginalLabel() {
         return originalLabel;
+    }
+
+    public RecurringTransaction getRecurringTransaction() {
+        return recurringTransaction;
     }
 
     /** Fills in the category from a reconciled counterpart, but never overwrites one already set. */

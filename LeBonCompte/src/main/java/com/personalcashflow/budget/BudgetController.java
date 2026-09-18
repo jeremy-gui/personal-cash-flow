@@ -2,6 +2,7 @@ package com.personalcashflow.budget;
 
 import com.personalcashflow.budget.dto.BudgetRequest;
 import com.personalcashflow.budget.dto.BudgetResponse;
+import com.personalcashflow.recurring.RecurringTransactionService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -22,13 +23,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class BudgetController {
 
     private final BudgetService budgetService;
+    private final RecurringTransactionService recurringTransactionService;
 
-    public BudgetController(BudgetService budgetService) {
+    public BudgetController(BudgetService budgetService, RecurringTransactionService recurringTransactionService) {
         this.budgetService = budgetService;
+        this.recurringTransactionService = recurringTransactionService;
     }
 
     @GetMapping
     public List<BudgetResponse> findAllForMonth(@RequestParam String month) {
+        recurringTransactionService.ensureGeneratedForMonth(month);
         return budgetService.findAllForMonth(month);
     }
 

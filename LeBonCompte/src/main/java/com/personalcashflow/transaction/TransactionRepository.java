@@ -52,6 +52,8 @@ public interface TransactionRepository
 
     boolean existsByAccountIdAndImportHash(Long accountId, String importHash);
 
+    boolean existsByRecurringTransactionIdAndDate(Long recurringTransactionId, LocalDate date);
+
     /** Sum of amounts for a status, for one account, across all dates (no month scoping). */
     @Query("""
             SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t

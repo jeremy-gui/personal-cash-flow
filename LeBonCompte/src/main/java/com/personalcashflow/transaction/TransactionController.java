@@ -1,5 +1,6 @@
 package com.personalcashflow.transaction;
 
+import com.personalcashflow.recurring.RecurringTransactionService;
 import com.personalcashflow.transaction.dto.TransactionRequest;
 import com.personalcashflow.transaction.dto.TransactionResponse;
 import jakarta.validation.Valid;
@@ -22,9 +23,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final RecurringTransactionService recurringTransactionService;
 
-    public TransactionController(TransactionService transactionService) {
+    public TransactionController(TransactionService transactionService, RecurringTransactionService recurringTransactionService) {
         this.transactionService = transactionService;
+        this.recurringTransactionService = recurringTransactionService;
     }
 
     @GetMapping
@@ -34,6 +37,9 @@ public class TransactionController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) TransactionStatus status,
             @RequestParam(required = false) TransactionType type) {
+        if (month != null) {
+            recurringTransactionService.ensureGeneratedForMonth(month);
+        }
         return transactionService.search(month, accountId, categoryId, status, type).stream()
                 .map(TransactionResponse::from)
                 .toList();

@@ -76,3 +76,72 @@
   </div>
 </form>
 </div>
+
+<div class="card">
+<h2>Transactions récurrentes</h2>
+
+@if (recurringErrorMessage()) {
+  <p class="error">{{ recurringErrorMessage() }}</p>
+}
+
+<div class="budgets-list">
+  @for (recurring of recurringTransactions(); track recurring.id) {
+    <div class="card budget-card">
+      <div class="budget-header">
+        <span class="category-name">{{ recurring.label }}</span>
+        <span class="amounts" [class.negative]="recurring.type === 'DEPENSE'">
+          {{ recurring.type === 'DEPENSE' ? '-' : '+' }}{{ recurring.amount | number: '1.2-2' }} €
+        </span>
+      </div>
+      <div class="budget-footer">
+        <span>{{ recurring.categoryName }}</span>
+        <span class="actions">
+          @if (pendingDeleteRecurringId() === recurring.id) {
+            <button type="button" class="confirm-delete" (click)="confirmDeleteRecurring(recurring.id)">Confirmer</button>
+            <button type="button" (click)="cancelDeleteRecurring()">Annuler</button>
+          } @else {
+            <button type="button" (click)="requestDeleteRecurring(recurring.id)">Supprimer</button>
+          }
+        </span>
+      </div>
+    </div>
+  } @empty {
+    <p>Aucune transaction récurrente.</p>
+  }
+</div>
+
+<form [formGroup]="recurringForm" (ngSubmit)="submitRecurring()" class="budget-form">
+  <label>
+    Libellé
+    <input type="text" formControlName="label" />
+  </label>
+
+  <label>
+    Type
+    <select formControlName="type">
+      @for (type of types; track type) {
+        <option [value]="type">{{ typeLabels[type] }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Catégorie
+    <select formControlName="categoryId">
+      <option [ngValue]="null">Sélectionner…</option>
+      @for (category of categories(); track category.id) {
+        <option [ngValue]="category.id">{{ category.name }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Montant mensuel
+    <input type="number" step="0.01" min="0.01" formControlName="amount" />
+  </label>
+
+  <div class="form-actions">
+    <button type="submit" [disabled]="recurringForm.invalid">Ajouter</button>
+  </div>
+</form>
+</div>

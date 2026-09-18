@@ -50,6 +50,11 @@
   font-size: 0.88rem;
 }
 
+.budget-header .amounts.negative {
+  color: var(--red);
+  font-weight: 700;
+}
+
 .progress-bar {
   height: 8px;
   background: var(--border-soft);
