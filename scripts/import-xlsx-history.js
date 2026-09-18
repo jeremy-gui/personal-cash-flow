@@ -3,15 +3,29 @@
 
 /**
  * One-time backfill: reads a hand-maintained budget spreadsheet
- * (compte_test.xlsx, one tab per month, six side-by-side transaction blocks
- * per tab) and imports the target months' rows into LeBonCompte.
+ * (compte_test.xlsx, one tab per month) and imports the target months' rows
+ * into LeBonCompte.
+ *
+ * Each monthly tab has TWO stacked sections of 6 side-by-side transaction
+ * blocks, sharing the same column layout (block starts at A, F, J, O, T, Y):
+ *   - Section 1 (row 1 titles): CREDIT, LOGEMENT, ALIMENTATION, ENFANTS,
+ *     ADULTES, SANTE.
+ *   - Section 2 (titles on the row where column A says "EPARGNE", found
+ *     dynamically since its row number varies by month): EPARGNE,
+ *     ABONNEMENTS, TRANSPORT, LOISIRS ET VIE SOCIALE, VACANCES, DIVERS.
+ * Each block is [Montant | Libellé | Catégorie | "x"] (the block starting at
+ * column F never has a Catégorie column, in either section). The block's
+ * title is the PARENT category; the per-row Catégorie cell is the CHILD.
+ * Only the CREDIT block is REVENU; every other block (including EPARGNE) is
+ * DEPENSE. The "x" checkbox is ignored entirely.
  *
  * Reuses the existing backend instead of adding a migration endpoint:
  *   1. Builds a synthetic OFX file from the parsed rows and POSTs it to
  *      /api/imports (the real import pipeline: ACCTID account matching,
  *      FITID dedup, POINTEE status).
- *   2. Backfills category on the created transactions via PUT
- *      /api/transactions/{id} (status is left untouched by that endpoint).
+ *   2. Backfills category (creating parent then child as needed) on the
+ *      created transactions via PUT /api/transactions/{id}, which leaves
+ *      status untouched.
  *
  * No xlsx library: an .xlsx is a zip of XML, unzipped by hand below.
  *
@@ -43,15 +57,37 @@ const TARGET_MONTHS = {
   sept2026: { year: 2026, month: 9 },
 };
 
-// [Montant | Libellé | Catégorie | "x"] per block; block 2 has no category column.
-const BLOCKS = [
-  { name: 'block1', type: 'REVENU', amount: 'C', label: 'D', category: 'E' },
-  { name: 'block2', type: 'DEPENSE', amount: 'H', label: 'I', category: null },
-  { name: 'block3', type: 'DEPENSE', amount: 'L', label: 'M', category: 'N' },
-  { name: 'block4', type: 'DEPENSE', amount: 'Q', label: 'R', category: 'S' },
-  { name: 'block5', type: 'DEPENSE', amount: 'V', label: 'W', category: 'X' },
-  { name: 'block6', type: 'DEPENSE', amount: 'AA', label: 'AB', category: 'AC' },
+// Every block starts at one of these columns, in both sections. The block
+// starting at F never has a Catégorie column (checkbox sits right after the
+// label instead) — confirmed structurally identical in both sections.
+const BLOCK_STARTS = [
+  { start: 'A', hasCategory: true },
+  { start: 'F', hasCategory: false },
+  { start: 'J', hasCategory: true },
+  { start: 'O', hasCategory: true },
+  { start: 'T', hasCategory: true },
+  { start: 'Y', hasCategory: true },
 ];
+
+const TITLE_DISPLAY_NAMES = {
+  CREDIT: 'Crédit',
+  LOGEMENT: 'Logement',
+  ALIMENTATION: 'Alimentation',
+  ENFANTS: 'Enfants',
+  ADULTES: 'Adultes',
+  SANTE: 'Santé',
+  EPARGNE: 'Épargne',
+  TRANSPORT: 'Transport',
+  'LOISIRS ET VIE SOCIALE': 'Loisirs et vie sociale',
+  VACANCES: 'Vacances',
+  DIVERS: 'Divers',
+};
+
+function displayTitle(raw) {
+  const trimmed = raw.trim();
+  const key = trimmed.toUpperCase();
+  return TITLE_DISPLAY_NAMES[key] ?? trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+}
 
 // ---------- minimal zip reader ----------
 
@@ -134,6 +170,30 @@ function colToIndex(colLetters) {
   return idx - 1;
 }
 
+function indexToCol(idx) {
+  let n = idx + 1;
+  let s = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    s = String.fromCharCode(65 + rem) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+function colOffset(colLetters, offset) {
+  return indexToCol(colToIndex(colLetters) + offset);
+}
+
+// A self-closing `<c .../>` cell must NOT be treated as an open `<c ...>...</c>`
+// cell whose content run all the way to the next real closing tag — that was
+// the actual bug behind rows silently vanishing (e.g. "alimentation Sam"):
+// a naive `<c ...>([\s\S]*?)<\/c>` regex matches straight through a
+// self-closing cell's trailing "/>" as if it were content, swallowing every
+// subsequent empty cell and misattributing the NEXT real cell's value to the
+// wrong column.
+const CELL_RE = /<c r="([A-Z]+)(\d+)"([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+
 function parseSheetRows(xml, sharedStrings) {
   const rows = [];
   const rowRegex = /<row[^>]*r="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
@@ -141,13 +201,14 @@ function parseSheetRows(xml, sharedStrings) {
   while ((rm = rowRegex.exec(xml))) {
     const rowNum = parseInt(rm[1], 10);
     const rowXml = rm[2];
-    const cellRegex = /<c r="([A-Z]+)(\d+)"([^>]*)>([\s\S]*?)<\/c>/g;
     const cells = {};
     let cm;
-    while ((cm = cellRegex.exec(rowXml))) {
+    CELL_RE.lastIndex = 0;
+    while ((cm = CELL_RE.exec(rowXml))) {
       const colLetters = cm[1];
       const attrs = cm[3];
       const inner = cm[4];
+      if (inner === undefined) continue; // self-closing: genuinely empty cell
       const type = (attrs.match(/t="([^"]+)"/) || [])[1] || 'n';
       const v = (inner.match(/<v>([\s\S]*?)<\/v>/) || [])[1];
       if (v === undefined) continue;
@@ -170,46 +231,87 @@ function isBlankOrNumericOnly(text) {
   return t === '' || /^\d+([.,]\d+)?$/.test(t);
 }
 
-function extractRows(tabName, rows) {
-  const { year, month } = TARGET_MONTHS[tabName];
-  const date = `${year}-${String(month).padStart(2, '0')}-01`;
-  const out = [];
-  const skipped = [];
+function readTitles(cells) {
+  return BLOCK_STARTS.map((b) => {
+    const raw = cells[b.start];
+    return raw === undefined ? null : String(raw).trim();
+  });
+}
 
+function findSection2Start(rows) {
   for (let r = 2; r < rows.length; r++) {
     const cells = rows[r];
+    if (cells && typeof cells['A'] === 'string' && cells['A'].trim().toUpperCase() === 'EPARGNE') {
+      return r;
+    }
+  }
+  return null;
+}
+
+function extractSection(tabName, rows, titles, fromRow, toRowExclusive, date, out, skipped) {
+  for (let r = fromRow; r < toRowExclusive; r++) {
+    const cells = rows[r];
     if (!cells) continue;
-    for (const block of BLOCKS) {
-      const rawAmount = cells[block.amount];
-      const rawLabel = cells[block.label];
-      const rawCategory = block.category ? cells[block.category] : undefined;
+    for (let i = 0; i < BLOCK_STARTS.length; i++) {
+      const { start, hasCategory } = BLOCK_STARTS[i];
+      const title = titles[i];
+      if (!title) continue; // no title read for this block in this section: skip defensively
+
+      const amountCol = start;
+      const labelCol = colOffset(start, 1);
+      const categoryCol = hasCategory ? colOffset(start, 2) : null;
+
+      const rawAmount = cells[amountCol];
+      const rawLabel = cells[labelCol];
+      const rawCategory = categoryCol ? cells[categoryCol] : undefined;
 
       const amount = rawAmount === undefined ? NaN : parseFloat(String(rawAmount).replace(',', '.'));
       const label = rawLabel === undefined ? '' : String(rawLabel).trim();
 
       if (!Number.isFinite(amount) || amount === 0 || label === '') {
         if (rawAmount !== undefined || rawLabel !== undefined) {
-          skipped.push({ tab: tabName, row: r, block: block.name, reason: !label ? 'no label' : 'no/zero amount' });
+          skipped.push({ tab: tabName, row: r, block: title, reason: !label ? 'no label' : 'no/zero amount' });
         }
         continue;
       }
 
-      const category = isBlankOrNumericOnly(rawCategory) ? null : String(rawCategory).trim();
-      const signedAmount = block.type === 'DEPENSE' ? -Math.abs(amount) : Math.abs(amount);
+      const type = title.toUpperCase() === 'CREDIT' ? 'REVENU' : 'DEPENSE';
+      const parentCategory = displayTitle(title);
+      const childCategory = isBlankOrNumericOnly(rawCategory) ? null : String(rawCategory).trim();
+      const signedAmount = type === 'DEPENSE' ? -Math.abs(amount) : Math.abs(amount);
 
       out.push({
         tab: tabName,
-        block: block.name,
+        block: title,
         row: r,
         date,
         label,
         amount: signedAmount,
-        type: block.type,
-        category,
-        fitid: `XLSX-${tabName}-${block.name}-${r}`,
+        type,
+        parentCategory,
+        childCategory,
+        fitid: `XLSX-${tabName}-${start}-${r}`,
       });
     }
   }
+}
+
+function extractRows(tabName, rows) {
+  const { year, month } = TARGET_MONTHS[tabName];
+  const date = `${year}-${String(month).padStart(2, '0')}-01`;
+  const out = [];
+  const skipped = [];
+
+  const section1Titles = readTitles(rows[1] || {});
+  const section2Start = findSection2Start(rows);
+  if (section2Start === null) {
+    throw new Error(`${tabName}: could not find the "EPARGNE" section header row.`);
+  }
+  const section2Titles = readTitles(rows[section2Start] || {});
+
+  extractSection(tabName, rows, section1Titles, 2, section2Start, date, out, skipped);
+  extractSection(tabName, rows, section2Titles, section2Start + 1, rows.length, date, out, skipped);
+
   return { rows: out, skipped };
 }
 
@@ -295,6 +397,50 @@ async function apiPostOfx(ofxBytes, filename) {
   return res.json();
 }
 
+// ---------- category resolution (parent then child, created lazily) ----------
+
+class CategoryResolver {
+  constructor(existingCategories) {
+    this.byId = new Map(existingCategories.map((c) => [c.id, c]));
+    this.parentKey = new Map(); // name(lowercase) -> id, for top-level categories only
+    for (const c of existingCategories) {
+      if (c.parentId === null) this.parentKey.set(c.name.trim().toLowerCase(), c.id);
+    }
+    this.childKey = new Map(); // `${parentId}::${name(lowercase)}` -> id
+    for (const c of existingCategories) {
+      if (c.parentId !== null) this.childKey.set(`${c.parentId}::${c.name.trim().toLowerCase()}`, c.id);
+    }
+    this.created = 0;
+  }
+
+  async resolveParent(name) {
+    const key = name.trim().toLowerCase();
+    if (this.parentKey.has(key)) return this.parentKey.get(key);
+    const created = await apiPostJson('/categories', { name, parentId: null });
+    this.parentKey.set(key, created.id);
+    this.created++;
+    console.log(`  created parent category "${name}" (id ${created.id})`);
+    return created.id;
+  }
+
+  async resolveChild(parentId, name) {
+    const key = `${parentId}::${name.trim().toLowerCase()}`;
+    if (this.childKey.has(key)) return this.childKey.get(key);
+    const created = await apiPostJson('/categories', { name, parentId });
+    this.childKey.set(key, created.id);
+    this.created++;
+    console.log(`  created child category "${name}" (id ${created.id}, parent ${parentId})`);
+    return created.id;
+  }
+
+  /** Only creates the parent if a child is actually needed under it. */
+  async resolve(parentName, childName) {
+    if (!childName) return null;
+    const parentId = await this.resolveParent(parentName);
+    return this.resolveChild(parentId, childName);
+  }
+}
+
 // ---------- main ----------
 
 async function main() {
@@ -349,13 +495,14 @@ async function main() {
   console.log(`\nTotal: ${allRows.length} row(s) across ${Object.keys(TARGET_MONTHS).length} months, ${allSkipped.length} skipped.`);
   if (allSkipped.length > 0) {
     console.log('Skipped rows (review these manually):');
-    for (const s of allSkipped) console.log(`  ${s.tab} row ${s.row} ${s.block}: ${s.reason}`);
+    for (const s of allSkipped) console.log(`  ${s.tab} row ${s.row} [${s.block}]: ${s.reason}`);
   }
 
   if (DRY_RUN) {
-    console.log('\n--dry-run: not calling the API. Sample of first 10 rows:');
-    for (const r of allRows.slice(0, 10)) {
-      console.log(`  ${r.date} | ${r.type.padEnd(7)} | ${r.amount.toFixed(2).padStart(10)} | ${r.category ?? '(none)'} | ${r.label}`);
+    console.log('\n--dry-run: not calling the API. Sample of first 15 rows:');
+    for (const r of allRows.slice(0, 15)) {
+      const cat = r.childCategory ? `${r.parentCategory} > ${r.childCategory}` : `${r.parentCategory} (no sub-category)`;
+      console.log(`  ${r.date} | ${r.type.padEnd(7)} | ${r.amount.toFixed(2).padStart(10)} | ${cat.padEnd(35)} | ${r.label}`);
     }
     return;
   }
@@ -373,19 +520,13 @@ async function main() {
   const importResult = await apiPostOfx(ofxBytes, 'xlsx-history.ofx');
   console.log('Import result:', importResult);
 
-  console.log('\nResolving categories...');
-  const categories = await apiGet('/categories');
-  const categoryByName = new Map(categories.map((c) => [c.name.trim().toLowerCase(), c.id]));
-  let categoriesCreated = 0;
+  console.log('\nResolving categories (parent then child)...');
+  const existingCategories = await apiGet('/categories');
+  const resolver = new CategoryResolver(existingCategories);
+  const categoryIdByRow = new Map(); // row identity -> categoryId
   for (const r of allRows) {
-    if (!r.category) continue;
-    const key = r.category.toLowerCase();
-    if (!categoryByName.has(key)) {
-      const created = await apiPostJson('/categories', { name: r.category, parentId: null });
-      categoryByName.set(key, created.id);
-      categoriesCreated++;
-      console.log(`  created category "${r.category}" (id ${created.id})`);
-    }
+    const categoryId = await resolver.resolve(r.parentCategory, r.childCategory);
+    categoryIdByRow.set(r, categoryId);
   }
 
   console.log('\nBackfilling categories on imported transactions...');
@@ -398,7 +539,8 @@ async function main() {
     const rowsForMonth = allRows.filter((r) => r.date.startsWith(monthParam));
 
     for (const r of rowsForMonth) {
-      if (!r.category) continue;
+      const categoryId = categoryIdByRow.get(r);
+      if (!categoryId) continue;
       const match = monthTransactions.find(
         (t) => t.date === r.date && t.label === r.label && Math.abs(t.amount - r.amount) < 0.005 && t.categoryId === null,
       );
@@ -406,7 +548,6 @@ async function main() {
         notMatched++;
         continue;
       }
-      const categoryId = categoryByName.get(r.category.toLowerCase());
       await apiPutJson(`/transactions/${match.id}`, {
         date: match.date,
         label: match.label,
@@ -419,7 +560,7 @@ async function main() {
     }
   }
 
-  console.log(`\nDone. Categories created: ${categoriesCreated}. Category assignments applied: ${assigned}. Not matched for category backfill: ${notMatched}.`);
+  console.log(`\nDone. Categories created: ${resolver.created}. Category assignments applied: ${assigned}. Not matched for category backfill: ${notMatched}.`);
 }
 
 main().catch((err) => {
