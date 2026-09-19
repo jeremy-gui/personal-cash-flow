@@ -251,32 +251,11 @@
         {{ transaction.amount | number: '1.2-2' }} €
       </td>
       <td class="match-cell">
-        <div class="match-row">
-          @if (candidatesFor(transaction).length > 0) {
-            <select #candidate>
-              <option value="">Rapprocher avec…</option>
-              @for (option of candidatesFor(transaction); track option.id) {
-                <option [value]="option.id">
-                  {{ option.date | date: 'dd/MM' }} — {{ option.label }} ({{ option.amount | number: '1.2-2' }} €)
-                </option>
-              }
-            </select>
-            <button
-              type="button"
-              class="icon-button"
-              title="Rapprocher"
-              aria-label="Rapprocher"
-              (click)="match(transaction, candidate.value ? +candidate.value : null)"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M9 12l2 2 4-4"></path>
-                <circle cx="12" cy="12" r="9"></circle>
-              </svg>
-            </button>
-          } @else {
-            <span class="no-candidate">—</span>
-          }
-        </div>
+        <app-match-picker
+          [candidates]="candidatesFor(transaction)"
+          [suggested]="suggestedMatchFor(transaction)"
+          (matched)="match(transaction, $event)"
+        />
       </td>
       <td class="actions">
         <div class="actions-row">

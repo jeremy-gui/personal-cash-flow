@@ -81,9 +81,18 @@ public class TransactionService {
         return transaction;
     }
 
-    public void delete(Long id) {
+    /** Recurring-generated instance info, if any, so a caller can tell the recurrence to skip regenerating it. */
+    public record DeletedTransaction(Long recurringTransactionId, LocalDate date) {
+    }
+
+    public DeletedTransaction delete(Long id) {
         Transaction transaction = findById(id);
+        Long recurringTransactionId = transaction.getRecurringTransaction() != null
+                ? transaction.getRecurringTransaction().getId()
+                : null;
+        LocalDate date = transaction.getDate();
         transactionRepository.delete(transaction);
+        return new DeletedTransaction(recurringTransactionId, date);
     }
 
     private static BigDecimal signedAmount(TransactionRequest request) {

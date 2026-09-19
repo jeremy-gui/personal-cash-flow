@@ -1,0 +1,74 @@
+@if (candidates().length === 0) {
+  <span class="no-candidate">—</span>
+} @else {
+  <div class="match-picker" [class.has-selection]="selectedCandidate()">
+    <div class="match-selection">
+      @if (selectedCandidate(); as selected) {
+        <button type="button" class="selection-validate" title="Cliquer pour valider ce rapprochement" (click)="confirm()">
+          @if (isSuggested(selected)) {
+            <span class="suggested-badge">suggéré</span>
+          }
+          <span class="selection-text">{{ optionText(selected) }}</span>
+        </button>
+      } @else {
+        <span class="no-candidate">Aucune sélection</span>
+      }
+    </div>
+
+    <div class="match-controls">
+      <input
+        ngCombobox
+        #combobox="ngCombobox"
+        type="text"
+        class="match-search"
+        placeholder="Rechercher (libellé, montant)…"
+        [(value)]="searchTerm"
+        [(expanded)]="expanded"
+        (focus)="openPopup($event)"
+      />
+      <button
+        type="button"
+        class="icon-button"
+        title="Rapprocher"
+        aria-label="Rapprocher"
+        [disabled]="committedId() === null"
+        (click)="confirm()"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 12l2 2 4-4"></path>
+          <circle cx="12" cy="12" r="9"></circle>
+        </svg>
+      </button>
+    </div>
+
+    <ng-template ngComboboxPopup [combobox]="combobox">
+      <ul
+        ngComboboxWidget
+        ngListbox
+        #listbox="ngListbox"
+        [(value)]="selectedIds"
+        [activeDescendant]="listbox.activeDescendant()"
+        class="match-dropdown"
+        [style.top.px]="popupPosition()?.top"
+        [style.left.px]="popupPosition()?.left"
+        [style.width.px]="popupPosition()?.width"
+        (click)="closePopup()"
+        (keydown.enter)="closePopup()"
+      >
+        @for (option of filteredCandidates(); track option.id) {
+          <li
+            ngOption
+            [value]="option.id"
+            [label]="optionText(option)"
+            class="match-option"
+            [class.suggested]="isSuggested(option)"
+          >
+            {{ optionText(option) }}
+          </li>
+        } @empty {
+          <li class="match-option-empty">Aucun résultat</li>
+        }
+      </ul>
+    </ng-template>
+  </div>
+}

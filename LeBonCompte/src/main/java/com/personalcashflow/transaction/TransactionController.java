@@ -58,7 +58,10 @@ public class TransactionController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        transactionService.delete(id);
+        TransactionService.DeletedTransaction deleted = transactionService.delete(id);
+        if (deleted.recurringTransactionId() != null) {
+            recurringTransactionService.recordSkip(deleted.recurringTransactionId(), deleted.date());
+        }
         return ResponseEntity.noContent().build();
     }
 }

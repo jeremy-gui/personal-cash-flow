@@ -14,6 +14,7 @@ import {
 } from '../../core/models/transaction.model';
 import { AccountService } from '../accounts/account.service';
 import { CategoryService } from '../categories/category.service';
+import { MatchPickerComponent } from './match-picker.component';
 import { TransactionService } from './transaction.service';
 
 function currentMonth(): string {
@@ -21,9 +22,44 @@ function currentMonth(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function normalizeText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
+
+function normalizeTokens(label: string): Set<string> {
+  return new Set(
+    normalizeText(label)
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length > 1),
+  );
+}
+
+/** Fraction of `a`'s tokens found in `b` - simple, dependency-free, mirrors the backend's OFX label matching. */
+function labelSimilarity(a: string, b: string): number {
+  const tokensA = normalizeTokens(a);
+  if (tokensA.size === 0) {
+    return 0;
+  }
+  const tokensB = normalizeTokens(b);
+  let overlap = 0;
+  for (const token of tokensA) {
+    if (tokensB.has(token)) {
+      overlap++;
+    }
+  }
+  return overlap / tokensA.size;
+}
+
+function sameAmount(a: number, b: number): boolean {
+  return Math.round(a * 100) === Math.round(b * 100);
+}
+
 @Component({
   selector: 'app-transactions',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, MatchPickerComponent],
   templateUrl: './transactions.component.html',
   styleUrl: './transactions.component.css',
 })
@@ -217,6 +253,41 @@ export class TransactionsComponent {
         candidate.accountId === transaction.accountId &&
         candidate.status !== transaction.status,
     );
+  }
+
+  /**
+   * Best-guess match to pre-select for validation: the unique same-amount candidate, or - when
+   * several share that amount - the unique candidate whose label best overlaps this one's.
+   * Returns null rather than guess when nothing stands out, so the user searches manually instead.
+   */
+  protected suggestedMatchFor(transaction: Transaction): Transaction | null {
+    const candidates = this.candidatesFor(transaction).filter((candidate) =>
+      sameAmount(candidate.amount, transaction.amount),
+    );
+    if (candidates.length === 0) {
+      return null;
+    }
+    if (candidates.length === 1) {
+      return candidates[0];
+    }
+
+    let best: Transaction | null = null;
+    let bestScore = -1;
+    let tieCount = 0;
+    for (const candidate of candidates) {
+      const score = Math.max(
+        labelSimilarity(transaction.label, candidate.label),
+        labelSimilarity(candidate.label, transaction.label),
+      );
+      if (score > bestScore) {
+        bestScore = score;
+        best = candidate;
+        tieCount = 1;
+      } else if (score === bestScore) {
+        tieCount++;
+      }
+    }
+    return bestScore > 0 && tieCount === 1 ? best : null;
   }
 
   /** Wraps the Record lookup so it stays typed when called from the shared row ng-template,

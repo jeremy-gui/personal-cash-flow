@@ -39,6 +39,9 @@ class RecurringTransactionServiceTest {
     private RecurringTransactionRepository recurringTransactionRepository;
 
     @Mock
+    private RecurringTransactionSkipRepository skipRepository;
+
+    @Mock
     private TransactionRepository transactionRepository;
 
     @Mock
@@ -81,6 +84,35 @@ class RecurringTransactionServiceTest {
         recurringTransactionService.ensureGeneratedForMonth("2026-08");
 
         verify(transactionRepository, times(1)).save(any());
+    }
+
+    @Test
+    void ensureGeneratedForMonth_shouldSkipMonthsExplicitlySkipped() {
+        RecurringTransaction recurring = recurringWithId(
+                1L, "journal (paypal)", BigDecimal.valueOf(10.99), TransactionType.DEPENSE, LocalDate.of(2026, 9, 1));
+        Account account = accountWithId(2L);
+        when(recurringTransactionRepository.findAll()).thenReturn(List.of(recurring));
+        when(accountRepository.findByIsDefaultTrue()).thenReturn(Optional.of(account));
+        when(transactionRepository.existsByRecurringTransactionIdAndDate(1L, LocalDate.of(2026, 9, 1))).thenReturn(false);
+        when(skipRepository.existsByRecurringTransactionIdAndMonth(1L, LocalDate.of(2026, 9, 1))).thenReturn(true);
+
+        recurringTransactionService.ensureGeneratedForMonth("2026-09");
+
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void recordSkip_shouldSaveOnlyOnce() {
+        when(skipRepository.existsByRecurringTransactionIdAndMonth(1L, LocalDate.of(2026, 9, 1)))
+                .thenReturn(false, true);
+        RecurringTransaction recurring = recurringWithId(
+                1L, "journal (paypal)", BigDecimal.valueOf(10.99), TransactionType.DEPENSE, LocalDate.of(2026, 9, 1));
+        when(recurringTransactionRepository.getReferenceById(1L)).thenReturn(recurring);
+
+        recurringTransactionService.recordSkip(1L, LocalDate.of(2026, 9, 15));
+        recurringTransactionService.recordSkip(1L, LocalDate.of(2026, 9, 20));
+
+        verify(skipRepository, times(1)).save(any());
     }
 
     @Test

@@ -1,0 +1,142 @@
+.match-picker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+}
+
+.match-selection {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-size: 0.78rem;
+  min-height: 1.1em;
+}
+
+.match-picker.has-selection .match-selection {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.selection-text {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.selection-validate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.selection-validate:hover .selection-text {
+  text-decoration: underline;
+}
+
+.suggested-badge {
+  flex-shrink: 0;
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.match-controls {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.match-search {
+  min-width: 0;
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 0.78rem;
+}
+
+.no-candidate {
+  color: var(--ink-faint);
+}
+
+.icon-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-soft);
+}
+
+.icon-button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.match-dropdown {
+  position: fixed;
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 4px 0 0;
+  padding: var(--space-1) 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.match-option {
+  padding: 6px var(--space-3);
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.match-option.suggested {
+  font-weight: 600;
+}
+
+.match-option[aria-selected='true'] {
+  color: var(--blue-dark);
+}
+
+.match-option:hover {
+  background: var(--border-soft);
+}
+
+.match-option-empty {
+  padding: 6px var(--space-3);
+  font-size: 0.8rem;
+  color: var(--ink-faint);
+}

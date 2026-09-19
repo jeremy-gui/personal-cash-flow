@@ -23,16 +23,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class RecurringTransactionService {
 
     private final RecurringTransactionRepository recurringTransactionRepository;
+    private final RecurringTransactionSkipRepository skipRepository;
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
     private final AccountRepository accountRepository;
 
     public RecurringTransactionService(
             RecurringTransactionRepository recurringTransactionRepository,
+            RecurringTransactionSkipRepository skipRepository,
             TransactionRepository transactionRepository,
             CategoryRepository categoryRepository,
             AccountRepository accountRepository) {
         this.recurringTransactionRepository = recurringTransactionRepository;
+        this.skipRepository = skipRepository;
         this.transactionRepository = transactionRepository;
         this.categoryRepository = categoryRepository;
         this.accountRepository = accountRepository;
@@ -60,6 +63,19 @@ public class RecurringTransactionService {
     }
 
     /**
+     * Remembers that this recurring definition's instance for this month was explicitly deleted,
+     * so {@link #ensureGeneratedForMonth} never silently recreates it. No-op if already recorded.
+     */
+    public void recordSkip(Long recurringTransactionId, LocalDate date) {
+        LocalDate monthStart = YearMonth.from(date).atDay(1);
+        if (skipRepository.existsByRecurringTransactionIdAndMonth(recurringTransactionId, monthStart)) {
+            return;
+        }
+        skipRepository.save(new RecurringTransactionSkip(
+                recurringTransactionRepository.getReferenceById(recurringTransactionId), monthStart));
+    }
+
+    /**
      * Materializes every recurring definition as a PREVISIONNELLE transaction for each month from
      * its start through {@code month}, skipping months already generated. Called before any read
      * that depends on a month's transactions (Transactions list, Dashboard, Budgets), so viewing a
@@ -78,7 +94,9 @@ public class RecurringTransactionService {
             YearMonth cursor = YearMonth.from(recurring.getStartMonth());
             while (!cursor.isAfter(target)) {
                 LocalDate date = cursor.atDay(1);
-                if (!transactionRepository.existsByRecurringTransactionIdAndDate(recurring.getId(), date)) {
+                boolean alreadyGenerated = transactionRepository.existsByRecurringTransactionIdAndDate(recurring.getId(), date);
+                boolean skipped = skipRepository.existsByRecurringTransactionIdAndMonth(recurring.getId(), date);
+                if (!alreadyGenerated && !skipped) {
                     transactionRepository.save(Transaction.recurring(
                             date,
                             recurring.getLabel(),

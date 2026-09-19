@@ -13,7 +13,9 @@ import com.personalcashflow.account.AccountType;
 import com.personalcashflow.category.Category;
 import com.personalcashflow.category.CategoryNotFoundException;
 import com.personalcashflow.category.CategoryRepository;
+import com.personalcashflow.recurring.RecurringTransaction;
 import com.personalcashflow.transaction.dto.TransactionRequest;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -175,8 +177,37 @@ class TransactionServiceTest {
                 TransactionType.REVENU, TransactionStatus.POINTEE);
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
 
-        transactionService.delete(1L);
+        TransactionService.DeletedTransaction deleted = transactionService.delete(1L);
 
         verify(transactionRepository).delete(transaction);
+        assertThat(deleted.recurringTransactionId()).isNull();
+    }
+
+    @Test
+    void delete_whenTransactionIsRecurringGenerated_shouldReturnRecurringInfo() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
+        Category category = new Category("Abonnements", null);
+        RecurringTransaction recurring = new RecurringTransaction(
+                "journal (paypal)", BigDecimal.valueOf(10.99), TransactionType.DEPENSE, category, LocalDate.of(2026, 9, 1));
+        setId(recurring, 13L);
+        Transaction transaction = Transaction.recurring(
+                LocalDate.of(2026, 9, 1), "journal (paypal)", BigDecimal.valueOf(-10.99),
+                account, category, TransactionType.DEPENSE, recurring);
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(transaction));
+
+        TransactionService.DeletedTransaction deleted = transactionService.delete(2L);
+
+        assertThat(deleted.recurringTransactionId()).isEqualTo(13L);
+        assertThat(deleted.date()).isEqualTo(LocalDate.of(2026, 9, 1));
+    }
+
+    private static void setId(RecurringTransaction recurring, Long id) {
+        try {
+            Field field = RecurringTransaction.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(recurring, id);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
