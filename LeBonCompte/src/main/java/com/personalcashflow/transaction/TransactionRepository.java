@@ -54,6 +54,10 @@ public interface TransactionRepository
 
     boolean existsByRecurringTransactionIdAndDate(Long recurringTransactionId, LocalDate date);
 
+    /** Scoped to {@code importHash} prefix so this only ever returns Excel-backfilled placeholder rows. */
+    List<Transaction> findByAccountIdAndDateBetweenAndStatusAndImportHashStartingWith(
+            Long accountId, LocalDate from, LocalDate to, TransactionStatus status, String importHashPrefix);
+
     /** Sum of amounts for a status, for one account, across all dates (no month scoping). */
     @Query("""
             SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t

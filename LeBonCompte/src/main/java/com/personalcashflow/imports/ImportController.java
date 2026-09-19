@@ -1,6 +1,7 @@
 package com.personalcashflow.imports;
 
 import com.personalcashflow.imports.dto.ImportSummaryResponse;
+import com.personalcashflow.imports.dto.ReconciliationSummaryResponse;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,5 +31,10 @@ public class ImportController {
     @GetMapping
     public List<ImportSummaryResponse> history() {
         return importService.history();
+    }
+
+    @PostMapping("/reconcile-originals")
+    public ReconciliationSummaryResponse reconcileOriginals(@RequestParam MultipartFile file) {
+        return importService.reconcileOriginalLabels(file);
     }
 }

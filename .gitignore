@@ -6,5 +6,18 @@ exemple.ofx
 # Real personal budget history used locally by scripts/import-xlsx-history.js.
 compte_test.xlsx
 
+# Real personal bank export used to reconcile original labels onto the backfilled history.
+ofx_to_import.ofx
+
+# Raw per-table DB dumps of real personal data, appear at the repo root from local tooling
+# (sometimes with a numeric suffix, e.g. transaction_1.sql).
+/account*.sql
+/budget*.sql
+/category*.sql
+/flyway_schema_history*.sql
+/import_batch*.sql
+/recurring_transaction*.sql
+/transaction*.sql
+
 # Claude Code local machine/session settings — not meant to be shared.
 .claude/settings.local.json

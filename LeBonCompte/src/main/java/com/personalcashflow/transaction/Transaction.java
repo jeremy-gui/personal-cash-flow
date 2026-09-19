@@ -218,6 +218,19 @@ public class Transaction {
         this.label = label;
     }
 
+    /**
+     * Attaches the bank's real original data discovered later from a matching OFX row (e.g. a
+     * history backfilled from a spreadsheet, later reconciled against a real bank export). Never
+     * touches {@code date}/{@code label}/{@code amount} - those are the record everyone already
+     * sees and reasons about.
+     */
+    public void enrichOriginal(LocalDate originalDate, String originalLabel, String importHash, String rawImportData) {
+        this.originalDate = originalDate;
+        this.originalLabel = originalLabel;
+        this.importHash = importHash;
+        this.rawImportData = rawImportData;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
