@@ -116,6 +116,22 @@
   cursor: default;
 }
 
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  color: var(--ink);
+}
+
+.sort-indicator {
+  display: inline-block;
+  width: 0.7em;
+  color: var(--blue);
+  font-size: 0.7em;
+}
+
 .icon-cell {
   text-align: center;
 }

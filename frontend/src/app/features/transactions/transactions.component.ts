@@ -57,6 +57,38 @@ function sameAmount(a: number, b: number): boolean {
   return Math.round(a * 100) === Math.round(b * 100);
 }
 
+type SortTable = 'previsionnelle' | 'pointee';
+type SortColumn = 'date' | 'label' | 'category' | 'type' | 'amount';
+type SortDirection = 'asc' | 'desc';
+
+interface SortState {
+  column: SortColumn;
+  direction: SortDirection;
+}
+
+function compareByColumn(a: Transaction, b: Transaction, column: SortColumn): number {
+  switch (column) {
+    case 'date':
+      return a.date.localeCompare(b.date);
+    case 'label':
+      return a.label.localeCompare(b.label);
+    case 'category':
+      return (a.categoryName ?? '').localeCompare(b.categoryName ?? '');
+    case 'type':
+      return a.type.localeCompare(b.type);
+    case 'amount':
+      return a.amount - b.amount;
+  }
+}
+
+function sortTransactions(transactions: Transaction[], sort: SortState | null): Transaction[] {
+  if (!sort) {
+    return transactions;
+  }
+  const factor = sort.direction === 'asc' ? 1 : -1;
+  return [...transactions].sort((a, b) => factor * compareByColumn(a, b, sort.column));
+}
+
 @Component({
   selector: 'app-transactions',
   imports: [CommonModule, ReactiveFormsModule, MatchPickerComponent],
@@ -78,11 +110,19 @@ export class TransactionsComponent {
   protected readonly categories = signal<Category[]>([]);
   protected readonly categoryTree = computed(() => buildCategoryTree(this.categories()));
   protected readonly transactions = signal<Transaction[]>([]);
+  protected readonly previsionnelleSort = signal<SortState | null>(null);
+  protected readonly pointeeSort = signal<SortState | null>(null);
   protected readonly previsionnelleTransactions = computed(() =>
-    this.transactions().filter((t) => t.status === 'PREVISIONNELLE'),
+    sortTransactions(
+      this.transactions().filter((t) => t.status === 'PREVISIONNELLE'),
+      this.previsionnelleSort(),
+    ),
   );
   protected readonly pointeeTransactions = computed(() =>
-    this.transactions().filter((t) => t.status === 'POINTEE'),
+    sortTransactions(
+      this.transactions().filter((t) => t.status === 'POINTEE'),
+      this.pointeeSort(),
+    ),
   );
   protected readonly editingId = signal<number | null>(null);
   protected readonly pendingDeleteId = signal<number | null>(null);
@@ -295,6 +335,39 @@ export class TransactionsComponent {
    *  whose ngTemplateOutletContext variables aren't inferred by the template type checker. */
   protected typeLabel(type: TransactionType): string {
     return this.typeLabels[type];
+  }
+
+  private sortSignal(table: SortTable) {
+    return table === 'previsionnelle' ? this.previsionnelleSort : this.pointeeSort;
+  }
+
+  /** Cycles asc -> desc -> unsorted on repeated clicks of the same column. */
+  protected toggleSort(table: SortTable, column: SortColumn): void {
+    const sortSignal = this.sortSignal(table);
+    const current = sortSignal();
+    if (current?.column !== column) {
+      sortSignal.set({ column, direction: 'asc' });
+    } else if (current.direction === 'asc') {
+      sortSignal.set({ column, direction: 'desc' });
+    } else {
+      sortSignal.set(null);
+    }
+  }
+
+  protected sortIndicator(table: SortTable, column: SortColumn): string {
+    const current = this.sortSignal(table)();
+    if (current?.column !== column) {
+      return '';
+    }
+    return current.direction === 'asc' ? '▲' : '▼';
+  }
+
+  protected ariaSort(table: SortTable, column: SortColumn): 'ascending' | 'descending' | 'none' {
+    const current = this.sortSignal(table)();
+    if (current?.column !== column) {
+      return 'none';
+    }
+    return current.direction === 'asc' ? 'ascending' : 'descending';
   }
 
   protected hasOriginalDivergence(transaction: Transaction): boolean {
