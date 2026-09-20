@@ -26,6 +26,8 @@ export interface Transaction {
   source: TransactionSource;
   originalDate: string | null;
   originalLabel: string | null;
+  /** True once this pointee has already absorbed a previsionnelle via reconciliation. */
+  matched: boolean;
 }
 
 /**

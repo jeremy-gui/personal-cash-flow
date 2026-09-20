@@ -47,6 +47,7 @@ public class ReconciliationService {
 
         pointee.assignLabel(previsionnelle.getLabel());
         pointee.assignCategoryIfMissing(previsionnelle.getCategory());
+        pointee.markMatched();
         transactionRepository.delete(previsionnelle);
         return TransactionResponse.from(pointee);
     }

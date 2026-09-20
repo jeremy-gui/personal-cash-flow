@@ -20,7 +20,8 @@ public record TransactionResponse(
         TransactionStatus status,
         TransactionSource source,
         LocalDate originalDate,
-        String originalLabel) {
+        String originalLabel,
+        boolean matched) {
 
     public static TransactionResponse from(Transaction transaction) {
         var category = transaction.getCategory();
@@ -37,6 +38,7 @@ public record TransactionResponse(
                 transaction.getStatus(),
                 transaction.getSource(),
                 transaction.getOriginalDate(),
-                transaction.getOriginalLabel());
+                transaction.getOriginalLabel(),
+                transaction.isMatched());
     }
 }

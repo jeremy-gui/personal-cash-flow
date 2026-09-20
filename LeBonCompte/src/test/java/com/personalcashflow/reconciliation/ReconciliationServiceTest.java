@@ -126,6 +126,19 @@ class ReconciliationServiceTest {
     }
 
     @Test
+    void match_shouldMarkThePointeeAsMatched() {
+        Account account = accountWithId(10L, "Compte courant");
+        Transaction previsionnelle = transaction(1L, account, null, TransactionStatus.PREVISIONNELLE);
+        Transaction pointee = transaction(2L, account, null, TransactionStatus.POINTEE);
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelle));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(pointee));
+
+        reconciliationService.match(1L, 2L);
+
+        assertThat(pointee.isMatched()).isTrue();
+    }
+
+    @Test
     void match_whenPointeeAlreadyHasCategory_shouldNotOverwriteIt() {
         Account account = accountWithId(10L, "Compte courant");
         Category previsionnelleCategory = categoryWithId(5L, "Logement");

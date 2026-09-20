@@ -245,13 +245,14 @@ export class TransactionsComponent {
     });
   }
 
-  /** Candidates to reconcile with: same account, opposite status. */
+  /** Candidates to reconcile with: same account, opposite status, not already matched. */
   protected candidatesFor(transaction: Transaction): Transaction[] {
     return this.transactions().filter(
       (candidate) =>
         candidate.id !== transaction.id &&
         candidate.accountId === transaction.accountId &&
-        candidate.status !== transaction.status,
+        candidate.status !== transaction.status &&
+        !candidate.matched,
     );
   }
 

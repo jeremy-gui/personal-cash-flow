@@ -79,6 +79,10 @@ public class Transaction {
     @JoinColumn(name = "recurring_transaction_id")
     private RecurringTransaction recurringTransaction;
 
+    /** True once this pointee has absorbed a previsionnelle via reconciliation - see {@link #markMatched}. */
+    @Column(nullable = false)
+    private boolean matched;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -202,6 +206,10 @@ public class Transaction {
         return recurringTransaction;
     }
 
+    public boolean isMatched() {
+        return matched;
+    }
+
     /** Fills in the category from a reconciled counterpart, but never overwrites one already set. */
     public void assignCategoryIfMissing(Category category) {
         if (this.category == null) {
@@ -216,6 +224,11 @@ public class Transaction {
      */
     public void assignLabel(String label) {
         this.label = label;
+    }
+
+    /** Marks this pointee as having absorbed a previsionnelle, so it stops being offered as a rapprochement candidate. */
+    public void markMatched() {
+        this.matched = true;
     }
 
     /**
