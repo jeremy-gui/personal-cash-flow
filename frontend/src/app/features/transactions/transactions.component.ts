@@ -128,8 +128,14 @@ export class TransactionsComponent {
     this.previsionnelleTransactions().reduce((sum, t) => sum + t.amount, 0),
   );
   protected readonly pointeeTotal = computed(() => this.pointeeTransactions().reduce((sum, t) => sum + t.amount, 0));
+  protected readonly suggestedCategoryIds = computed(() =>
+    this.pointeeTransactions()
+      .filter((t) => t.categoryId !== null && !t.categoryConfirmed)
+      .map((t) => t.id),
+  );
   protected readonly editingId = signal<number | null>(null);
   protected readonly pendingDeleteId = signal<number | null>(null);
+  protected readonly pendingConfirmAllCategories = signal(false);
   protected readonly matchError = signal<string | null>(null);
 
   protected readonly month = signal(currentMonth());
@@ -205,6 +211,8 @@ export class TransactionsComponent {
       .subscribe((transactions) => this.transactions.set(transactions));
     // Re-fetch balances too, so the badge stays live as transactions are added/edited/deleted/matched.
     this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
+    // The suggested-categories count is about to change under it - don't leave a stale confirm prompt open.
+    this.pendingConfirmAllCategories.set(false);
   }
 
   protected onMonthChange(value: string): void {
@@ -410,6 +418,26 @@ export class TransactionsComponent {
   private formatDate(isoDate: string): string {
     const [year, month, day] = isoDate.split('-');
     return `${day}/${month}/${year}`;
+  }
+
+  /** Accepts a single auto-suggested category, making it permanent. */
+  protected confirmCategory(transaction: Transaction): void {
+    this.transactionService.confirmCategory(transaction.id).subscribe(() => this.reload());
+  }
+
+  protected requestConfirmAllCategories(): void {
+    this.pendingConfirmAllCategories.set(true);
+  }
+
+  protected cancelConfirmAllCategories(): void {
+    this.pendingConfirmAllCategories.set(false);
+  }
+
+  protected confirmAllCategories(): void {
+    this.transactionService.confirmCategories(this.suggestedCategoryIds()).subscribe(() => {
+      this.pendingConfirmAllCategories.set(false);
+      this.reload();
+    });
   }
 
   /** Merges the matched previsionnelle(s) into their pointee counterpart; the previsionnelle row(s) disappear. */

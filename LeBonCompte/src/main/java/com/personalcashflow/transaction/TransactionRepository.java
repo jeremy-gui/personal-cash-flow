@@ -98,4 +98,15 @@ public interface TransactionRepository
             @Param("status") TransactionStatus status,
             @Param("accountId") Long accountId,
             @Param("upTo") LocalDate upTo);
+
+    /** Every categorized pointée's bank label + category, for building the auto-categorization history of one account. */
+    @Query("""
+            SELECT t.originalLabel AS originalLabel, t.category.id AS categoryId FROM Transaction t
+            WHERE t.account.id = :accountId
+              AND t.status = :status
+              AND t.category IS NOT NULL
+              AND t.originalLabel IS NOT NULL
+            """)
+    List<LabelCategoryProjection> findCategoryHistoryByAccountIdAndStatus(
+            @Param("accountId") Long accountId, @Param("status") TransactionStatus status);
 }

@@ -70,7 +70,7 @@
 
 .col-date { width: 130px; }
 .col-label { width: auto; }
-.col-category { width: 120px; }
+.col-category { width: 150px; }
 .col-type { width: 56px; }
 .col-amount { width: 132px; }
 .col-match { width: 170px; }
@@ -121,6 +121,93 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Name on its own line, badge + confirm button on the line below - the name gets the column's
+   full width instead of fighting the badge/button for it and getting truncated too eagerly. */
+.category-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.category-cell > .truncate {
+  display: block;
+  max-width: 100%;
+}
+
+.category-suggestion-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.category-suggested {
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.suggested-badge {
+  flex-shrink: 0;
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+  border-radius: var(--radius-pill);
+  padding: 0 var(--space-2);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+.confirm-category {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.confirm-category svg {
+  width: 13px;
+  height: 13px;
+}
+
+.table-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.table-header h2 {
+  margin: 0;
+}
+
+.validate-all-categories {
+  font-size: 0.8rem;
+  padding: 6px var(--space-3);
+}
+
+.confirm-all-categories {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+}
+
+.confirm-all-categories button {
+  font-size: 0.8rem;
+  padding: 6px var(--space-3);
+}
+
+.confirm-all-categories button.confirm-all {
+  background: var(--blue);
+  color: #ffffff;
+  border-color: var(--blue);
+}
+
+.confirm-all-categories button.confirm-all:hover:not(:disabled) {
+  background: var(--blue-dark);
+  border-color: var(--blue-dark);
 }
 
 .label-row {

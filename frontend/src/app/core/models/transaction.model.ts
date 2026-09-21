@@ -28,6 +28,8 @@ export interface Transaction {
   originalLabel: string | null;
   /** True once this pointee has already absorbed a previsionnelle via reconciliation. */
   matched: boolean;
+  /** False while the category was auto-suggested from import history and not yet reviewed. */
+  categoryConfirmed: boolean;
 }
 
 /**

@@ -1,6 +1,7 @@
 package com.personalcashflow.transaction;
 
 import com.personalcashflow.recurring.RecurringTransactionService;
+import com.personalcashflow.transaction.dto.ConfirmCategoriesRequest;
 import com.personalcashflow.transaction.dto.TransactionRequest;
 import com.personalcashflow.transaction.dto.TransactionResponse;
 import jakarta.validation.Valid;
@@ -54,6 +55,18 @@ public class TransactionController {
     @PutMapping("/{id}")
     public TransactionResponse update(@PathVariable Long id, @Valid @RequestBody TransactionRequest request) {
         return TransactionResponse.from(transactionService.update(id, request));
+    }
+
+    @PostMapping("/{id}/confirm-category")
+    public TransactionResponse confirmCategory(@PathVariable Long id) {
+        return TransactionResponse.from(transactionService.confirmCategory(id));
+    }
+
+    @PostMapping("/confirm-categories")
+    public List<TransactionResponse> confirmCategories(@Valid @RequestBody ConfirmCategoriesRequest request) {
+        return transactionService.confirmCategories(request.ids()).stream()
+                .map(TransactionResponse::from)
+                .toList();
     }
 
     @DeleteMapping("/{id}")

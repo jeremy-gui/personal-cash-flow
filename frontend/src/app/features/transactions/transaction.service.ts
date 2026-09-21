@@ -48,4 +48,12 @@ export class TransactionService {
   match(id: number, matchWithIds: number[]): Observable<Transaction> {
     return this.http.post<Transaction>(`${this.baseUrl}/${id}/match`, { matchWithIds });
   }
+
+  confirmCategory(id: number): Observable<Transaction> {
+    return this.http.post<Transaction>(`${this.baseUrl}/${id}/confirm-category`, {});
+  }
+
+  confirmCategories(ids: number[]): Observable<Transaction[]> {
+    return this.http.post<Transaction[]>(`${this.baseUrl}/confirm-categories`, { ids });
+  }
 }

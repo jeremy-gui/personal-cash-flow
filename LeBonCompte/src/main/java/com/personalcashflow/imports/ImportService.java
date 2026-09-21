@@ -9,6 +9,7 @@ import com.personalcashflow.imports.dto.ReconciliationSummaryResponse.Unresolved
 import com.personalcashflow.imports.format.CsvBankFormat;
 import com.personalcashflow.imports.format.ImportedRow;
 import com.personalcashflow.imports.format.OfxBankFormat;
+import com.personalcashflow.transaction.CategorySuggestionService;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionRepository;
 import com.personalcashflow.transaction.TransactionStatus;
@@ -53,18 +54,21 @@ public class ImportService {
     private final AccountRepository accountRepository;
     private final OfxBankFormat ofxBankFormat;
     private final CsvBankFormat csvBankFormat;
+    private final CategorySuggestionService categorySuggestionService;
 
     public ImportService(
             ImportBatchRepository importBatchRepository,
             TransactionRepository transactionRepository,
             AccountRepository accountRepository,
             OfxBankFormat ofxBankFormat,
-            CsvBankFormat csvBankFormat) {
+            CsvBankFormat csvBankFormat,
+            CategorySuggestionService categorySuggestionService) {
         this.importBatchRepository = importBatchRepository;
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
         this.ofxBankFormat = ofxBankFormat;
         this.csvBankFormat = csvBankFormat;
+        this.categorySuggestionService = categorySuggestionService;
     }
 
     public ImportSummaryResponse importOfx(MultipartFile file) {
@@ -134,6 +138,7 @@ public class ImportService {
             toCreate.add(Transaction.imported(
                     row.date(), row.label(), row.amount(), account, type, row.fitid(), row.rawRecord()));
         }
+        categorySuggestionService.suggestCategories(accountId, toCreate);
         transactionRepository.saveAll(toCreate);
 
         ImportBatch batch = new ImportBatch(account, filename, parsedRows.size(), toCreate.size(), skippedCount);

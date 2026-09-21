@@ -162,6 +162,64 @@ class TransactionServiceTest {
     }
 
     @Test
+    void update_shouldMarkCategoryAsConfirmed() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
+        Transaction transaction = Transaction.imported(
+                LocalDate.of(2026, 9, 5), "CARREFOUR", BigDecimal.TEN, account,
+                TransactionType.DEPENSE, "hash", "raw");
+        transaction.suggestCategory(new Category("Courses", null));
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+
+        TransactionRequest request = new TransactionRequest(
+                LocalDate.of(2026, 9, 6), "Courses", BigDecimal.valueOf(80), 1L, null,
+                TransactionType.DEPENSE);
+
+        Transaction updated = transactionService.update(1L, request);
+
+        assertThat(updated.isCategoryConfirmed()).isTrue();
+    }
+
+    @Test
+    void confirmCategory_shouldMarkTheCategoryAsConfirmed() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
+        Transaction transaction = Transaction.imported(
+                LocalDate.of(2026, 9, 5), "CARREFOUR", BigDecimal.TEN, account,
+                TransactionType.DEPENSE, "hash", "raw");
+        transaction.suggestCategory(new Category("Courses", null));
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
+
+        Transaction confirmed = transactionService.confirmCategory(1L);
+
+        assertThat(confirmed.isCategoryConfirmed()).isTrue();
+    }
+
+    @Test
+    void confirmCategory_whenTransactionMissing_shouldThrowTransactionNotFoundException() {
+        when(transactionRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> transactionService.confirmCategory(99L))
+                .isInstanceOf(TransactionNotFoundException.class);
+    }
+
+    @Test
+    void confirmCategories_shouldConfirmEachGivenTransaction() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
+        Transaction first = Transaction.imported(
+                LocalDate.of(2026, 9, 5), "CARREFOUR", BigDecimal.TEN, account, TransactionType.DEPENSE, "h1", "r1");
+        Transaction second = Transaction.imported(
+                LocalDate.of(2026, 9, 6), "EDF", BigDecimal.TEN, account, TransactionType.DEPENSE, "h2", "r2");
+        first.suggestCategory(new Category("Courses", null));
+        second.suggestCategory(new Category("Logement", null));
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(first));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(second));
+
+        java.util.List<Transaction> confirmed = transactionService.confirmCategories(java.util.List.of(1L, 2L));
+
+        assertThat(confirmed).allMatch(Transaction::isCategoryConfirmed);
+    }
+
+    @Test
     void delete_whenTransactionMissing_shouldThrowTransactionNotFoundException() {
         when(transactionRepository.findById(42L)).thenReturn(Optional.empty());
 

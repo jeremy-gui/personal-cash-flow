@@ -101,6 +101,7 @@ class ReconciliationServiceTest {
         match(1L, 2L);
 
         assertThat(pointee.getCategory()).isEqualTo(category);
+        assertThat(pointee.isCategoryConfirmed()).isTrue();
     }
 
     @Test

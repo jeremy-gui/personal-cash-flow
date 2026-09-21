@@ -97,7 +97,22 @@
 </div>
 </div>
 
-<h2>Transactions importées</h2>
+<div class="table-header">
+  <h2>Transactions importées</h2>
+  @if (suggestedCategoryIds().length > 0) {
+    @if (pendingConfirmAllCategories()) {
+      <span class="confirm-all-categories">
+        Confirmer {{ suggestedCategoryIds().length }} catégorie(s) suggérée(s) ?
+        <button type="button" class="confirm-all" (click)="confirmAllCategories()">Confirmer</button>
+        <button type="button" (click)="cancelConfirmAllCategories()">Annuler</button>
+      </span>
+    } @else {
+      <button type="button" class="validate-all-categories" (click)="requestConfirmAllCategories()">
+        Valider les catégories suggérées ({{ suggestedCategoryIds().length }})
+      </button>
+    }
+  }
+</div>
 <div class="card table-card">
 <div class="table-scroll">
 <table class="transactions-table">
@@ -250,7 +265,27 @@
           }
         </div>
       </td>
-      <td class="truncate" [title]="transaction.categoryName ?? ''">{{ transaction.categoryName ?? '—' }}</td>
+      <td [title]="transaction.categoryName ?? ''">
+        <div class="category-cell">
+          <span class="truncate" [class.category-suggested]="!transaction.categoryConfirmed">{{ transaction.categoryName ?? '—' }}</span>
+          @if (transaction.categoryName && !transaction.categoryConfirmed) {
+            <div class="category-suggestion-actions">
+              <span class="suggested-badge">suggéré</span>
+              <button
+                type="button"
+                class="icon-button confirm-category"
+                title="Confirmer cette catégorie"
+                aria-label="Confirmer cette catégorie"
+                (click)="confirmCategory(transaction)"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </button>
+            </div>
+          }
+        </div>
+      </td>
       <td class="icon-cell" [title]="typeLabel(transaction.type)">
         @if (transaction.type === 'REVENU') {
           <svg class="icon positive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

@@ -83,6 +83,14 @@ public class Transaction {
     @Column(nullable = false)
     private boolean matched;
 
+    /**
+     * False only while {@link #category} was auto-suggested from import history and hasn't been
+     * reviewed yet - see {@link #suggestCategory} and {@link #confirmCategory}. Defaults true so a
+     * manual/recurring/reconciled category is never mistaken for a lingering suggestion.
+     */
+    @Column(name = "category_confirmed", nullable = false)
+    private boolean categoryConfirmed = true;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -210,11 +218,29 @@ public class Transaction {
         return matched;
     }
 
+    public boolean isCategoryConfirmed() {
+        return categoryConfirmed;
+    }
+
     /** Fills in the category from a reconciled counterpart, but never overwrites one already set. */
     public void assignCategoryIfMissing(Category category) {
         if (this.category == null) {
             this.category = category;
+            this.categoryConfirmed = true;
         }
+    }
+
+    /** Fills in a category guessed from this account's import history - never overwrites one already set. */
+    public void suggestCategory(Category category) {
+        if (this.category == null) {
+            this.category = category;
+            this.categoryConfirmed = false;
+        }
+    }
+
+    /** Marks a suggested category as reviewed and accepted. */
+    public void confirmCategory() {
+        this.categoryConfirmed = true;
     }
 
     /**
@@ -262,5 +288,7 @@ public class Transaction {
         this.account = account;
         this.category = category;
         this.type = type;
+        // A deliberate edit always counts as review, whether it keeps a suggested category or changes it.
+        this.categoryConfirmed = true;
     }
 }

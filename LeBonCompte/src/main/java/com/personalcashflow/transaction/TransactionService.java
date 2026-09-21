@@ -111,6 +111,16 @@ public class TransactionService {
         return new DeletedTransaction(recurringTransactionId, date);
     }
 
+    public Transaction confirmCategory(Long id) {
+        Transaction transaction = findById(id);
+        transaction.confirmCategory();
+        return transaction;
+    }
+
+    public List<Transaction> confirmCategories(List<Long> ids) {
+        return ids.stream().map(this::confirmCategory).toList();
+    }
+
     private static BigDecimal signedAmount(TransactionRequest request) {
         return request.type() == TransactionType.DEPENSE
                 ? request.amount().negate()
