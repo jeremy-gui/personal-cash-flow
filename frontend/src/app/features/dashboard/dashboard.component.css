@@ -22,6 +22,14 @@
   font-size: 0.85rem;
 }
 
+.month-status-header {
+  margin-top: var(--space-6);
+}
+
+.month-status-header h2 {
+  margin: 0;
+}
+
 .month-nav {
   display: flex;
   align-items: center;

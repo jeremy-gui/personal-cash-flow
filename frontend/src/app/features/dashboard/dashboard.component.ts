@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, formatDate } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { Dashboard } from '../../core/models/dashboard.model';
@@ -34,6 +34,12 @@ export class DashboardComponent {
   private readonly accountService = inject(AccountService);
 
   protected readonly month = signal(currentMonth());
+  protected readonly monthLabel = computed(() => {
+    const [year, monthNum] = this.month().split('-').map(Number);
+    return formatDate(new Date(year, monthNum - 1, 1), 'MMMM yyyy', 'fr-FR');
+  });
+  /** "de " or "d'" - avril/août/octobre need the elision, the rest don't. */
+  protected readonly monthLabelPrefix = computed(() => (/^[aeiou]/i.test(this.monthLabel()) ? "d'" : 'de '));
   protected readonly dashboard = signal<Dashboard | null>(null);
   protected readonly dashboardError = signal<string | null>(null);
   protected readonly recentTransactions = signal<Transaction[]>([]);

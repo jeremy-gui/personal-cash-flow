@@ -66,10 +66,18 @@ public class DashboardService {
 
         BigDecimal soldeActuel = defaultAccount.getInitialBalance()
                 .add(transactionRepository.sumByStatus(TransactionStatus.POINTEE, accountId));
+        // Paired with soldeActuel in the hero card, so it's a "right now" figure too: always the
+        // real current month, independent of whichever month is being browsed below.
+        LocalDate currentMonthEnd = YearMonth.now().atEndOfMonth();
         BigDecimal previsionnelFinDeMois = soldeActuel
-                .add(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, accountId, to));
+                .add(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, accountId, currentMonthEnd));
         BigDecimal soldeReelFinDeMois = defaultAccount.getInitialBalance()
                 .add(transactionRepository.sumByStatusUpToDate(TransactionStatus.POINTEE, accountId, to));
+        // The same projection, but for whichever month is being browsed - shown under "État du mois de ...".
+        // Built from soldeReelFinDeMois (pointées up to `to` only), not soldeActuel: for a past month,
+        // soldeActuel would wrongly pull in pointées that happened after that month too.
+        BigDecimal previsionnelFinDeMoisSelectionne = soldeReelFinDeMois
+                .add(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, accountId, to));
 
         return new DashboardResponse(
                 month,
@@ -79,6 +87,7 @@ public class DashboardService {
                 soldeReelFinDeMois,
                 soldeActuel,
                 previsionnelFinDeMois,
+                previsionnelFinDeMoisSelectionne,
                 depensesParCategorie,
                 budgetsParCategorie,
                 previsionnellesNonPointees);

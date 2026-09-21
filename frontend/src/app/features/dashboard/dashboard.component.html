@@ -1,21 +1,5 @@
 <div class="page-header">
   <h1>Dashboard</h1>
-  <label class="month-picker">
-    Mois
-    <div class="month-nav">
-      <button type="button" class="icon-button" title="Mois précédent" aria-label="Mois précédent" (click)="shiftMonth(-1)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </button>
-      <input type="month" [value]="month()" (change)="onMonthChange($any($event.target).value)" />
-      <button type="button" class="icon-button" title="Mois suivant" aria-label="Mois suivant" (click)="shiftMonth(1)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
-      </button>
-    </div>
-  </label>
 </div>
 
 @if (dashboardError(); as err) {
@@ -31,6 +15,26 @@
       <span class="hero-label">Prévisionnel fin de mois</span>
       <span class="hero-value hero-value-secondary">{{ data.previsionnelFinDeMois | number: '1.2-2' }} €</span>
     </div>
+  </div>
+
+  <div class="page-header month-status-header">
+    <h2>État du mois {{ monthLabelPrefix() }}{{ monthLabel() }}</h2>
+    <label class="month-picker">
+      Mois
+      <div class="month-nav">
+        <button type="button" class="icon-button" title="Mois précédent" aria-label="Mois précédent" (click)="shiftMonth(-1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <input type="month" [value]="month()" (change)="onMonthChange($any($event.target).value)" />
+        <button type="button" class="icon-button" title="Mois suivant" aria-label="Mois suivant" (click)="shiftMonth(1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
+    </label>
   </div>
 
   <div class="kpi-row">
@@ -73,13 +77,13 @@
         }
       </span>
       <div class="kpi-text">
-        <span class="kpi-label">Solde net du mois</span>
+        <span class="kpi-label">Revenus - dépenses</span>
         <span class="kpi-value">{{ data.soldeNet | number: '1.2-2' }} €</span>
       </div>
     </div>
     <div class="kpi-card">
-      <span class="kpi-icon" [class.kpi-icon-positive]="data.soldeReelFinDeMois >= 0" [class.kpi-icon-negative]="data.soldeReelFinDeMois < 0">
-        @if (data.soldeReelFinDeMois >= 0) {
+      <span class="kpi-icon" [class.kpi-icon-positive]="data.previsionnelFinDeMoisSelectionne >= 0" [class.kpi-icon-negative]="data.previsionnelFinDeMoisSelectionne < 0">
+        @if (data.previsionnelFinDeMoisSelectionne >= 0) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="12" y1="19" x2="12" y2="5"></line>
             <polyline points="6 11 12 5 18 11"></polyline>
@@ -92,8 +96,8 @@
         }
       </span>
       <div class="kpi-text">
-        <span class="kpi-label">Solde réel fin de mois</span>
-        <span class="kpi-value">{{ data.soldeReelFinDeMois | number: '1.2-2' }} €</span>
+        <span class="kpi-label">Solde prévisionnel fin de mois</span>
+        <span class="kpi-value">{{ data.previsionnelFinDeMoisSelectionne | number: '1.2-2' }} €</span>
       </div>
     </div>
   </div>

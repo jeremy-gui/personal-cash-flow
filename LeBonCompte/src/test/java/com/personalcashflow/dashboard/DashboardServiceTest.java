@@ -16,6 +16,7 @@ import com.personalcashflow.transaction.TransactionType;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -59,14 +60,18 @@ class DashboardServiceTest {
     }
 
     private void stubCommon(BigDecimal initialBalance) {
+        stubCommon(initialBalance, "2026-09", FROM, TO);
+    }
+
+    private void stubCommon(BigDecimal initialBalance, String month, LocalDate from, LocalDate to) {
         when(accountRepository.findByIsDefaultTrue()).thenReturn(Optional.of(defaultAccount(initialBalance)));
-        when(transactionRepository.sumByTypeAndDateRange(TransactionType.REVENU, ACCOUNT_ID, FROM, TO))
+        when(transactionRepository.sumByTypeAndDateRange(TransactionType.REVENU, ACCOUNT_ID, from, to))
                 .thenReturn(BigDecimal.valueOf(2850));
-        when(transactionRepository.sumByTypeAndDateRange(TransactionType.DEPENSE, ACCOUNT_ID, FROM, TO))
+        when(transactionRepository.sumByTypeAndDateRange(TransactionType.DEPENSE, ACCOUNT_ID, from, to))
                 .thenReturn(BigDecimal.valueOf(-177.80));
-        when(transactionRepository.sumDepenseGroupedByCategory(ACCOUNT_ID, FROM, TO)).thenReturn(List.of());
-        when(budgetService.findAllForMonth("2026-09")).thenReturn(List.of());
-        when(transactionService.search("2026-09", ACCOUNT_ID, null, TransactionStatus.PREVISIONNELLE, null))
+        when(transactionRepository.sumDepenseGroupedByCategory(ACCOUNT_ID, from, to)).thenReturn(List.of());
+        when(budgetService.findAllForMonth(month)).thenReturn(List.of());
+        when(transactionService.search(month, ACCOUNT_ID, null, TransactionStatus.PREVISIONNELLE, null))
                 .thenReturn(List.of());
     }
 
@@ -88,6 +93,9 @@ class DashboardServiceTest {
 
     @Test
     void getDashboard_shouldComputeSoldeActuelPrevisionnelFinDeMoisAndSoldeReelFinDeMois() {
+        // Requests the current month itself, so previsionnelFinDeMois is pinned to "now" via
+        // soldeActuel while previsionnelFinDeMoisSelectionne is built from soldeReelFinDeMois -
+        // stubbed to differ here on purpose to prove they're independent bases.
         stubCommon(BigDecimal.valueOf(1000));
         when(transactionRepository.sumByStatus(TransactionStatus.POINTEE, ACCOUNT_ID))
                 .thenReturn(BigDecimal.valueOf(-142.30));
@@ -101,6 +109,53 @@ class DashboardServiceTest {
         assertThat(response.soldeActuel()).isEqualByComparingTo(BigDecimal.valueOf(857.70));
         assertThat(response.previsionnelFinDeMois()).isEqualByComparingTo(BigDecimal.valueOf(2857.70));
         assertThat(response.soldeReelFinDeMois()).isEqualByComparingTo(BigDecimal.valueOf(700));
+        assertThat(response.previsionnelFinDeMoisSelectionne()).isEqualByComparingTo(BigDecimal.valueOf(2700));
+    }
+
+    @Test
+    void getDashboard_previsionnelFinDeMoisSelectionne_forPastMonth_shouldIgnoreLaterPointeeTransactions() {
+        YearMonth pastMonth = YearMonth.now().minusMonths(2);
+        LocalDate pastFrom = pastMonth.atDay(1);
+        LocalDate pastTo = pastMonth.atEndOfMonth();
+        stubCommon(BigDecimal.valueOf(1000), pastMonth.toString(), pastFrom, pastTo);
+        // soldeActuel pulls in everything pointée up to today, including months after pastMonth -
+        // it must NOT leak into a past month's projection.
+        when(transactionRepository.sumByStatus(TransactionStatus.POINTEE, ACCOUNT_ID))
+                .thenReturn(BigDecimal.valueOf(5000));
+        when(transactionRepository.sumByStatusUpToDate(
+                        TransactionStatus.PREVISIONNELLE, ACCOUNT_ID, YearMonth.now().atEndOfMonth()))
+                .thenReturn(BigDecimal.ZERO);
+        when(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, ACCOUNT_ID, pastTo))
+                .thenReturn(BigDecimal.valueOf(50));
+        when(transactionRepository.sumByStatusUpToDate(TransactionStatus.POINTEE, ACCOUNT_ID, pastTo))
+                .thenReturn(BigDecimal.valueOf(200));
+
+        DashboardResponse response = dashboardService.getDashboard(pastMonth.toString());
+
+        assertThat(response.soldeReelFinDeMois()).isEqualByComparingTo(BigDecimal.valueOf(1200));
+        assertThat(response.previsionnelFinDeMoisSelectionne()).isEqualByComparingTo(BigDecimal.valueOf(1250));
+    }
+
+    @Test
+    void getDashboard_previsionnelFinDeMois_staysOnCurrentMonthWhenBrowsingAnotherMonth() {
+        YearMonth otherMonth = YearMonth.now().plusMonths(2);
+        LocalDate otherFrom = otherMonth.atDay(1);
+        LocalDate otherTo = otherMonth.atEndOfMonth();
+        stubCommon(BigDecimal.valueOf(1000), otherMonth.toString(), otherFrom, otherTo);
+        when(transactionRepository.sumByStatus(TransactionStatus.POINTEE, ACCOUNT_ID))
+                .thenReturn(BigDecimal.ZERO);
+        when(transactionRepository.sumByStatusUpToDate(
+                        TransactionStatus.PREVISIONNELLE, ACCOUNT_ID, YearMonth.now().atEndOfMonth()))
+                .thenReturn(BigDecimal.valueOf(100));
+        when(transactionRepository.sumByStatusUpToDate(TransactionStatus.PREVISIONNELLE, ACCOUNT_ID, otherTo))
+                .thenReturn(BigDecimal.valueOf(9000));
+        when(transactionRepository.sumByStatusUpToDate(TransactionStatus.POINTEE, ACCOUNT_ID, otherTo))
+                .thenReturn(BigDecimal.ZERO);
+
+        DashboardResponse response = dashboardService.getDashboard(otherMonth.toString());
+
+        assertThat(response.previsionnelFinDeMois()).isEqualByComparingTo(BigDecimal.valueOf(1100));
+        assertThat(response.previsionnelFinDeMoisSelectionne()).isEqualByComparingTo(BigDecimal.valueOf(10000));
     }
 
     @Test

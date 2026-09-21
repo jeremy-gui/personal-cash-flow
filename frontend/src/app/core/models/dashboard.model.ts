@@ -15,6 +15,7 @@ export interface Dashboard {
   soldeReelFinDeMois: number;
   soldeActuel: number;
   previsionnelFinDeMois: number;
+  previsionnelFinDeMoisSelectionne: number;
   depensesParCategorie: CategoryAmount[];
   budgetsParCategorie: Budget[];
   previsionnellesNonPointees: Transaction[];
