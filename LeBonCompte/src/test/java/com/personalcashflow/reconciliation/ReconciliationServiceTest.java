@@ -2,6 +2,7 @@ package com.personalcashflow.reconciliation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,6 +18,7 @@ import com.personalcashflow.transaction.dto.TransactionResponse;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +37,7 @@ class ReconciliationServiceTest {
 
     @Test
     void match_withSameTransaction_shouldThrowInvalidMatch() {
-        assertThatThrownBy(() -> reconciliationService.match(1L, 1L))
+        assertThatThrownBy(() -> match(1L, 1L))
                 .isInstanceOf(InvalidMatchException.class);
     }
 
@@ -43,7 +45,7 @@ class ReconciliationServiceTest {
     void match_whenTransactionMissing_shouldThrowNotFound() {
         when(transactionRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> reconciliationService.match(1L, 2L))
+        assertThatThrownBy(() -> match(1L, 2L))
                 .isInstanceOf(TransactionNotFoundException.class);
     }
 
@@ -56,7 +58,7 @@ class ReconciliationServiceTest {
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(a));
         when(transactionRepository.findById(2L)).thenReturn(Optional.of(b));
 
-        assertThatThrownBy(() -> reconciliationService.match(1L, 2L))
+        assertThatThrownBy(() -> match(1L, 2L))
                 .isInstanceOf(InvalidMatchException.class);
     }
 
@@ -68,7 +70,7 @@ class ReconciliationServiceTest {
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(a));
         when(transactionRepository.findById(2L)).thenReturn(Optional.of(b));
 
-        assertThatThrownBy(() -> reconciliationService.match(1L, 2L))
+        assertThatThrownBy(() -> match(1L, 2L))
                 .isInstanceOf(InvalidMatchException.class);
     }
 
@@ -80,7 +82,7 @@ class ReconciliationServiceTest {
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelle));
         when(transactionRepository.findById(2L)).thenReturn(Optional.of(pointee));
 
-        TransactionResponse response = reconciliationService.match(1L, 2L);
+        TransactionResponse response = match(1L, 2L);
 
         verify(transactionRepository).delete(previsionnelle);
         assertThat(response.id()).isEqualTo(pointee.getId());
@@ -96,7 +98,7 @@ class ReconciliationServiceTest {
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelle));
         when(transactionRepository.findById(2L)).thenReturn(Optional.of(pointee));
 
-        reconciliationService.match(1L, 2L);
+        match(1L, 2L);
 
         assertThat(pointee.getCategory()).isEqualTo(category);
     }
@@ -117,7 +119,7 @@ class ReconciliationServiceTest {
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelle));
         when(transactionRepository.findById(2L)).thenReturn(Optional.of(pointee));
 
-        reconciliationService.match(1L, 2L);
+        match(1L, 2L);
 
         assertThat(pointee.getLabel()).isEqualTo("Loyer");
         assertThat(pointee.getRawImportData()).contains("PRLV LOYER");
@@ -133,7 +135,7 @@ class ReconciliationServiceTest {
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelle));
         when(transactionRepository.findById(2L)).thenReturn(Optional.of(pointee));
 
-        reconciliationService.match(1L, 2L);
+        match(1L, 2L);
 
         assertThat(pointee.isMatched()).isTrue();
     }
@@ -148,9 +150,121 @@ class ReconciliationServiceTest {
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelle));
         when(transactionRepository.findById(2L)).thenReturn(Optional.of(pointee));
 
-        reconciliationService.match(1L, 2L);
+        match(1L, 2L);
 
         assertThat(pointee.getCategory()).isEqualTo(pointeeCategory);
+    }
+
+    @Test
+    void match_whenPointeeAlreadyMatched_shouldThrowInvalidMatchAndNotOverwriteLabel() {
+        Account account = accountWithId(10L, "Compte courant");
+        Transaction previsionnelle = transaction(1L, account, null, TransactionStatus.PREVISIONNELLE, "Nouveau libellé");
+        Transaction pointee = transaction(2L, account, null, TransactionStatus.POINTEE, "Libellé déjà rapproché");
+        pointee.markMatched();
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelle));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(pointee));
+
+        assertThatThrownBy(() -> match(1L, 2L)).isInstanceOf(InvalidMatchException.class);
+
+        assertThat(pointee.getLabel()).isEqualTo("Libellé déjà rapproché");
+        verify(transactionRepository, never()).delete(previsionnelle);
+    }
+
+    @Test
+    void match_withSeveralPrevisionnelles_shouldConcatenateLabelsAndDeleteAll() {
+        Account account = accountWithId(10L, "Compte courant");
+        Category category = categoryWithId(5L, "Provision");
+        Transaction taxeFonciere = transaction(1L, account, category, TransactionStatus.PREVISIONNELLE, "provision taxe foncière");
+        Transaction chargesCopro = transaction(2L, account, category, TransactionStatus.PREVISIONNELLE, "provision charges copro");
+        Transaction pointee = transaction(3L, account, null, TransactionStatus.POINTEE, "VIREMENT POUR");
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(taxeFonciere));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(chargesCopro));
+        when(transactionRepository.findById(3L)).thenReturn(Optional.of(pointee));
+
+        TransactionResponse response = reconciliationService.match(3L, List.of(1L, 2L));
+
+        assertThat(response.id()).isEqualTo(pointee.getId());
+        assertThat(pointee.getLabel()).isEqualTo("provision taxe foncière + provision charges copro");
+        assertThat(pointee.getCategory()).isEqualTo(category);
+        assertThat(pointee.isMatched()).isTrue();
+        verify(transactionRepository).delete(taxeFonciere);
+        verify(transactionRepository).delete(chargesCopro);
+    }
+
+    @Test
+    void match_withSeveralPrevisionnelles_whenIdIsNotThePointee_shouldThrowInvalidMatch() {
+        Account account = accountWithId(10L, "Compte courant");
+        Transaction previsionnelleA = transaction(1L, account, null, TransactionStatus.PREVISIONNELLE);
+        Transaction previsionnelleB = transaction(2L, account, null, TransactionStatus.PREVISIONNELLE);
+        Transaction pointee = transaction(3L, account, null, TransactionStatus.POINTEE);
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelleA));
+
+        assertThatThrownBy(() -> reconciliationService.match(1L, List.of(2L, 3L)))
+                .isInstanceOf(InvalidMatchException.class);
+    }
+
+    @Test
+    void match_withSeveralPrevisionnelles_whenOneIsNotPrevisionnelle_shouldThrowInvalidMatch() {
+        Account account = accountWithId(10L, "Compte courant");
+        Transaction previsionnelle = transaction(1L, account, null, TransactionStatus.PREVISIONNELLE);
+        Transaction otherPointee = transaction(2L, account, null, TransactionStatus.POINTEE);
+        Transaction pointee = transaction(3L, account, null, TransactionStatus.POINTEE);
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelle));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(otherPointee));
+        when(transactionRepository.findById(3L)).thenReturn(Optional.of(pointee));
+
+        assertThatThrownBy(() -> reconciliationService.match(3L, List.of(1L, 2L)))
+                .isInstanceOf(InvalidMatchException.class);
+    }
+
+    @Test
+    void match_withSeveralPrevisionnelles_whenAccountsDiffer_shouldThrowInvalidMatch() {
+        Account accountA = accountWithId(10L, "Compte A");
+        Account accountB = accountWithId(20L, "Compte B");
+        Transaction previsionnelleA = transaction(1L, accountA, null, TransactionStatus.PREVISIONNELLE);
+        Transaction previsionnelleB = transaction(2L, accountB, null, TransactionStatus.PREVISIONNELLE);
+        Transaction pointee = transaction(3L, accountA, null, TransactionStatus.POINTEE);
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelleA));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(previsionnelleB));
+        when(transactionRepository.findById(3L)).thenReturn(Optional.of(pointee));
+
+        assertThatThrownBy(() -> reconciliationService.match(3L, List.of(1L, 2L)))
+                .isInstanceOf(InvalidMatchException.class);
+    }
+
+    @Test
+    void match_withSeveralPrevisionnelles_whenCategoriesDiffer_shouldThrowInvalidMatch() {
+        Account account = accountWithId(10L, "Compte courant");
+        Category categoryA = categoryWithId(5L, "Logement");
+        Category categoryB = categoryWithId(6L, "Loisirs");
+        Transaction previsionnelleA = transaction(1L, account, categoryA, TransactionStatus.PREVISIONNELLE);
+        Transaction previsionnelleB = transaction(2L, account, categoryB, TransactionStatus.PREVISIONNELLE);
+        Transaction pointee = transaction(3L, account, null, TransactionStatus.POINTEE);
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelleA));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(previsionnelleB));
+        when(transactionRepository.findById(3L)).thenReturn(Optional.of(pointee));
+
+        assertThatThrownBy(() -> reconciliationService.match(3L, List.of(1L, 2L)))
+                .isInstanceOf(InvalidMatchException.class);
+    }
+
+    @Test
+    void match_withSeveralPrevisionnelles_whenOneHasNoCategory_shouldThrowInvalidMatch() {
+        Account account = accountWithId(10L, "Compte courant");
+        Category category = categoryWithId(5L, "Logement");
+        Transaction previsionnelleA = transaction(1L, account, category, TransactionStatus.PREVISIONNELLE);
+        Transaction previsionnelleB = transaction(2L, account, null, TransactionStatus.PREVISIONNELLE);
+        Transaction pointee = transaction(3L, account, null, TransactionStatus.POINTEE);
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelleA));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(previsionnelleB));
+        when(transactionRepository.findById(3L)).thenReturn(Optional.of(pointee));
+
+        assertThatThrownBy(() -> reconciliationService.match(3L, List.of(1L, 2L)))
+                .isInstanceOf(InvalidMatchException.class);
+    }
+
+    private TransactionResponse match(Long id, Long matchWithId) {
+        return reconciliationService.match(id, List.of(matchWithId));
     }
 
     private static Transaction transaction(Long id, Account account, Category category, TransactionStatus status) {

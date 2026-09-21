@@ -38,7 +38,11 @@ function matchesSearch(candidate: Transaction, term: string): boolean {
 export class MatchPickerComponent {
   candidates = input.required<Transaction[]>();
   suggested = input<Transaction | null>(null);
-  matched = output<number>();
+  /** When true, several candidates can be picked at once (a pointee absorbing several previsionnelles). */
+  multi = input(false);
+  /** The row's own amount - used in multi mode to warn when the selection doesn't sum up to it. */
+  targetAmount = input(0);
+  matched = output<number[]>();
 
   protected readonly searchTerm = signal('');
   protected readonly expanded = signal(false);
@@ -67,6 +71,19 @@ export class MatchPickerComponent {
     () => this.candidates().find((candidate) => candidate.id === this.committedId()) ?? null,
   );
 
+  /** Multi mode: selectedIds IS the deliberate selection - explicit selectionMode rules out the
+   *  open-menu auto-highlight that made committedId necessary for single-select. */
+  protected readonly selectedTotal = computed(() => {
+    const ids = new Set(this.selectedIds());
+    return this.candidates()
+      .filter((candidate) => ids.has(candidate.id))
+      .reduce((sum, candidate) => sum + candidate.amount, 0);
+  });
+
+  protected readonly amountMismatch = computed(
+    () => this.selectedIds().length > 0 && Math.round(this.selectedTotal() * 100) !== Math.round(this.targetAmount() * 100),
+  );
+
   protected readonly filteredCandidates = computed(() => {
     const term = this.searchTerm();
     const candidates = this.candidates();
@@ -92,16 +109,31 @@ export class MatchPickerComponent {
     this.expanded.set(true);
   }
 
-  /** Fired on an explicit click/Enter on an option - promotes the live highlight into the confirmed pick. */
+  /**
+   * Fired on an explicit click/Enter on an option - promotes the live highlight into the
+   * confirmed pick. In multi mode the popup stays open so several options can be picked in a
+   * row; selectedIds already reflects the deliberate choice there (see `selectedTotal`).
+   */
   protected closePopup(): void {
+    if (this.multi()) {
+      return;
+    }
     this.committedId.set(this.selectedIds()[0] ?? null);
     this.expanded.set(false);
   }
 
   protected confirm(): void {
+    if (this.multi()) {
+      const ids = this.selectedIds();
+      if (ids.length > 0) {
+        this.matched.emit(ids);
+        this.expanded.set(false);
+      }
+      return;
+    }
     const id = this.committedId();
     if (id !== null) {
-      this.matched.emit(id);
+      this.matched.emit([id]);
     }
   }
 }

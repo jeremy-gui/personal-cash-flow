@@ -21,6 +21,6 @@ public class ReconciliationController {
 
     @PostMapping
     public TransactionResponse match(@PathVariable Long id, @Valid @RequestBody MatchRequest request) {
-        return reconciliationService.match(id, request.matchWithId());
+        return reconciliationService.match(id, request.matchWithIds());
     }
 }

@@ -45,7 +45,7 @@ export class TransactionService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  match(id: number, matchWithId: number): Observable<Transaction> {
-    return this.http.post<Transaction>(`${this.baseUrl}/${id}/match`, { matchWithId });
+  match(id: number, matchWithIds: number[]): Observable<Transaction> {
+    return this.http.post<Transaction>(`${this.baseUrl}/${id}/match`, { matchWithIds });
   }
 }

@@ -391,15 +391,20 @@ export class TransactionsComponent {
     return `${day}/${month}/${year}`;
   }
 
-  /** Merges the previsionnelle into its pointee counterpart; the previsionnelle row disappears. */
-  protected match(transaction: Transaction, matchWithId: number | null): void {
-    if (matchWithId === null) {
+  /** Merges the matched previsionnelle(s) into their pointee counterpart; the previsionnelle row(s) disappear. */
+  protected match(transaction: Transaction, matchWithIds: number[]): void {
+    if (matchWithIds.length === 0) {
       return;
     }
     this.matchError.set(null);
-    this.transactionService.match(transaction.id, matchWithId).subscribe({
+    this.transactionService.match(transaction.id, matchWithIds).subscribe({
       next: () => this.reload(),
-      error: (err: HttpErrorResponse) => this.matchError.set(err.error?.message ?? 'Une erreur est survenue.'),
+      error: (err: HttpErrorResponse) => {
+        this.matchError.set(err.error?.message ?? 'Une erreur est survenue.');
+        // The request can fail after the backend already committed (e.g. a dropped connection) -
+        // reload so a stale, already-matched pointee doesn't look selectable for a retry.
+        this.reload();
+      },
     });
   }
 }

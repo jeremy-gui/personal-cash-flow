@@ -275,6 +275,8 @@
         <app-match-picker
           [candidates]="candidatesFor(transaction)"
           [suggested]="suggestedMatchFor(transaction)"
+          [multi]="transaction.status === 'POINTEE'"
+          [targetAmount]="transaction.amount"
           (matched)="match(transaction, $event)"
         />
       </td>

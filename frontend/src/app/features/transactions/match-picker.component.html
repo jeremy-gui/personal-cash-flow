@@ -3,7 +3,18 @@
 } @else {
   <div class="match-picker" [class.has-selection]="selectedCandidate()">
     <div class="match-selection">
-      @if (selectedCandidate(); as selected) {
+      @if (multi()) {
+        @if (selectedIds().length > 0) {
+          <span class="selection-text">
+            {{ selectedIds().length }} sélectionnée{{ selectedIds().length > 1 ? 's' : '' }} ({{ selectedTotal() | number: '1.2-2' }} €)
+          </span>
+          @if (amountMismatch()) {
+            <span class="mismatch-warning" title="Le total ne correspond pas au montant de cette ligne">!</span>
+          }
+        } @else {
+          <span class="no-candidate">Aucune sélection</span>
+        }
+      } @else if (selectedCandidate(); as selected) {
         <button type="button" class="selection-validate" title="Cliquer pour valider ce rapprochement" (click)="confirm()">
           @if (isSuggested(selected)) {
             <span class="suggested-badge">suggéré</span>
@@ -31,7 +42,7 @@
         class="icon-button"
         title="Rapprocher"
         aria-label="Rapprocher"
-        [disabled]="committedId() === null"
+        [disabled]="multi() ? selectedIds().length === 0 : committedId() === null"
         (click)="confirm()"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -47,6 +58,8 @@
         ngListbox
         #listbox="ngListbox"
         [(value)]="selectedIds"
+        [multi]="multi()"
+        [selectionMode]="multi() ? 'explicit' : 'follow'"
         [activeDescendant]="listbox.activeDescendant()"
         class="match-dropdown"
         [style.top.px]="popupPosition()?.top"

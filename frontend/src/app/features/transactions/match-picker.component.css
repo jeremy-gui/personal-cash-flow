@@ -44,6 +44,12 @@
   text-decoration: underline;
 }
 
+.mismatch-warning {
+  flex-shrink: 0;
+  color: var(--red);
+  font-weight: 700;
+}
+
 .suggested-badge {
   flex-shrink: 0;
   color: var(--blue-dark);
