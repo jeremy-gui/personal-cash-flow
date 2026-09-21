@@ -30,6 +30,8 @@ export interface Transaction {
   matched: boolean;
   /** False while the category was auto-suggested from import history and not yet reviewed. */
   categoryConfirmed: boolean;
+  /** False while the label was auto-suggested from import history and not yet reviewed. */
+  labelConfirmed: boolean;
 }
 
 /**

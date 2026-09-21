@@ -7,6 +7,7 @@ import com.personalcashflow.category.Category;
 import com.personalcashflow.category.CategoryNotFoundException;
 import com.personalcashflow.category.CategoryRepository;
 import com.personalcashflow.transaction.dto.TransactionRequest;
+import com.personalcashflow.transaction.dto.TransactionResponse;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -111,14 +112,31 @@ public class TransactionService {
         return new DeletedTransaction(recurringTransactionId, date);
     }
 
-    public Transaction confirmCategory(Long id) {
+    /**
+     * Builds the response here, still inside the transaction: {@code open-in-view} is disabled,
+     * so returning the bare entity and mapping it to a response in the controller (as most other
+     * endpoints do) would try to lazily load its account association after the session has
+     * already closed. {@link com.personalcashflow.reconciliation.ReconciliationService} follows
+     * the same rule for the same reason.
+     */
+    public TransactionResponse confirmCategory(Long id) {
         Transaction transaction = findById(id);
         transaction.confirmCategory();
-        return transaction;
+        return TransactionResponse.from(transaction);
     }
 
-    public List<Transaction> confirmCategories(List<Long> ids) {
+    public List<TransactionResponse> confirmCategories(List<Long> ids) {
         return ids.stream().map(this::confirmCategory).toList();
+    }
+
+    public TransactionResponse confirmLabel(Long id) {
+        Transaction transaction = findById(id);
+        transaction.confirmLabel();
+        return TransactionResponse.from(transaction);
+    }
+
+    public List<TransactionResponse> confirmLabels(List<Long> ids) {
+        return ids.stream().map(this::confirmLabel).toList();
     }
 
     private static BigDecimal signedAmount(TransactionRequest request) {

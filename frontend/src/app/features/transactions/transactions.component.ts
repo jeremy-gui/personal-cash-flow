@@ -133,9 +133,15 @@ export class TransactionsComponent {
       .filter((t) => t.categoryId !== null && !t.categoryConfirmed)
       .map((t) => t.id),
   );
+  protected readonly suggestedLabelIds = computed(() =>
+    this.pointeeTransactions()
+      .filter((t) => !t.labelConfirmed)
+      .map((t) => t.id),
+  );
   protected readonly editingId = signal<number | null>(null);
   protected readonly pendingDeleteId = signal<number | null>(null);
   protected readonly pendingConfirmAllCategories = signal(false);
+  protected readonly pendingConfirmAllLabels = signal(false);
   protected readonly matchError = signal<string | null>(null);
 
   protected readonly month = signal(currentMonth());
@@ -211,8 +217,9 @@ export class TransactionsComponent {
       .subscribe((transactions) => this.transactions.set(transactions));
     // Re-fetch balances too, so the badge stays live as transactions are added/edited/deleted/matched.
     this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
-    // The suggested-categories count is about to change under it - don't leave a stale confirm prompt open.
+    // The suggested-categories/labels counts are about to change under them - don't leave a stale confirm prompt open.
     this.pendingConfirmAllCategories.set(false);
+    this.pendingConfirmAllLabels.set(false);
   }
 
   protected onMonthChange(value: string): void {
@@ -429,7 +436,11 @@ export class TransactionsComponent {
 
   /** Accepts a single auto-suggested category, making it permanent. */
   protected confirmCategory(transaction: Transaction): void {
-    this.transactionService.confirmCategory(transaction.id).subscribe(() => this.reload());
+    this.matchError.set(null);
+    this.transactionService.confirmCategory(transaction.id).subscribe({
+      next: () => this.reload(),
+      error: (err: HttpErrorResponse) => this.matchError.set(err.error?.message ?? 'Une erreur est survenue.'),
+    });
   }
 
   protected requestConfirmAllCategories(): void {
@@ -441,9 +452,41 @@ export class TransactionsComponent {
   }
 
   protected confirmAllCategories(): void {
-    this.transactionService.confirmCategories(this.suggestedCategoryIds()).subscribe(() => {
-      this.pendingConfirmAllCategories.set(false);
-      this.reload();
+    this.matchError.set(null);
+    this.transactionService.confirmCategories(this.suggestedCategoryIds()).subscribe({
+      next: () => {
+        this.pendingConfirmAllCategories.set(false);
+        this.reload();
+      },
+      error: (err: HttpErrorResponse) => this.matchError.set(err.error?.message ?? 'Une erreur est survenue.'),
+    });
+  }
+
+  /** Accepts a single auto-suggested label, making it permanent. */
+  protected confirmLabel(transaction: Transaction): void {
+    this.matchError.set(null);
+    this.transactionService.confirmLabel(transaction.id).subscribe({
+      next: () => this.reload(),
+      error: (err: HttpErrorResponse) => this.matchError.set(err.error?.message ?? 'Une erreur est survenue.'),
+    });
+  }
+
+  protected requestConfirmAllLabels(): void {
+    this.pendingConfirmAllLabels.set(true);
+  }
+
+  protected cancelConfirmAllLabels(): void {
+    this.pendingConfirmAllLabels.set(false);
+  }
+
+  protected confirmAllLabels(): void {
+    this.matchError.set(null);
+    this.transactionService.confirmLabels(this.suggestedLabelIds()).subscribe({
+      next: () => {
+        this.pendingConfirmAllLabels.set(false);
+        this.reload();
+      },
+      error: (err: HttpErrorResponse) => this.matchError.set(err.error?.message ?? 'Une erreur est survenue.'),
     });
   }
 

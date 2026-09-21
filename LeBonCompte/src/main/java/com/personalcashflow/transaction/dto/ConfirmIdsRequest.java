@@ -4,5 +4,6 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
-public record ConfirmCategoriesRequest(@NotEmpty List<@NotNull Long> ids) {
+/** Shared shape for the bulk confirm-categories and confirm-labels endpoints. */
+public record ConfirmIdsRequest(@NotEmpty List<@NotNull Long> ids) {
 }

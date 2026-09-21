@@ -16,7 +16,7 @@ import com.personalcashflow.imports.dto.ImportSummaryResponse;
 import com.personalcashflow.imports.dto.ReconciliationSummaryResponse;
 import com.personalcashflow.imports.format.DefaultCsvBankFormat;
 import com.personalcashflow.imports.format.OfxBankFormat;
-import com.personalcashflow.transaction.CategorySuggestionService;
+import com.personalcashflow.transaction.ImportSuggestionService;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionRepository;
 import com.personalcashflow.transaction.TransactionStatus;
@@ -48,12 +48,12 @@ class ImportServiceTest {
     private AccountRepository accountRepository;
 
     @Mock
-    private CategorySuggestionService categorySuggestionService;
+    private ImportSuggestionService importSuggestionService;
 
     private ImportService service() {
         return new ImportService(
                 importBatchRepository, transactionRepository, accountRepository,
-                new OfxBankFormat(), new DefaultCsvBankFormat(), categorySuggestionService);
+                new OfxBankFormat(), new DefaultCsvBankFormat(), importSuggestionService);
     }
 
     private static String ofxDocument(String... stmttrns) {
@@ -272,7 +272,7 @@ class ImportServiceTest {
     }
 
     @Test
-    void importCsv_shouldOfferNewlyCreatedRowsToCategorySuggestionBeforeSaving() {
+    void importCsv_shouldOfferNewlyCreatedRowsToImportSuggestionBeforeSaving() {
         Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, "123");
         setId(account, 1L);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
@@ -285,7 +285,7 @@ class ImportServiceTest {
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<Transaction>> captor = ArgumentCaptor.forClass(List.class);
-        verify(categorySuggestionService).suggestCategories(eq(1L), captor.capture());
+        verify(importSuggestionService).suggest(eq(1L), captor.capture());
         assertThat(captor.getValue()).hasSize(1);
         verify(transactionRepository).saveAll(captor.getValue());
     }

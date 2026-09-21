@@ -22,7 +22,8 @@ public record TransactionResponse(
         LocalDate originalDate,
         String originalLabel,
         boolean matched,
-        boolean categoryConfirmed) {
+        boolean categoryConfirmed,
+        boolean labelConfirmed) {
 
     public static TransactionResponse from(Transaction transaction) {
         var category = transaction.getCategory();
@@ -41,6 +42,7 @@ public record TransactionResponse(
                 transaction.getOriginalDate(),
                 transaction.getOriginalLabel(),
                 transaction.isMatched(),
-                transaction.isCategoryConfirmed());
+                transaction.isCategoryConfirmed(),
+                transaction.isLabelConfirmed());
     }
 }

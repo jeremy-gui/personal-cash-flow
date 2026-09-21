@@ -56,4 +56,12 @@ export class TransactionService {
   confirmCategories(ids: number[]): Observable<Transaction[]> {
     return this.http.post<Transaction[]>(`${this.baseUrl}/confirm-categories`, { ids });
   }
+
+  confirmLabel(id: number): Observable<Transaction> {
+    return this.http.post<Transaction>(`${this.baseUrl}/${id}/confirm-label`, {});
+  }
+
+  confirmLabels(ids: number[]): Observable<Transaction[]> {
+    return this.http.post<Transaction[]>(`${this.baseUrl}/confirm-labels`, { ids });
+  }
 }

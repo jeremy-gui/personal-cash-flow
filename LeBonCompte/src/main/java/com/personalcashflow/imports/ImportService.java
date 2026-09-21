@@ -9,7 +9,7 @@ import com.personalcashflow.imports.dto.ReconciliationSummaryResponse.Unresolved
 import com.personalcashflow.imports.format.CsvBankFormat;
 import com.personalcashflow.imports.format.ImportedRow;
 import com.personalcashflow.imports.format.OfxBankFormat;
-import com.personalcashflow.transaction.CategorySuggestionService;
+import com.personalcashflow.transaction.ImportSuggestionService;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionRepository;
 import com.personalcashflow.transaction.TransactionStatus;
@@ -54,7 +54,7 @@ public class ImportService {
     private final AccountRepository accountRepository;
     private final OfxBankFormat ofxBankFormat;
     private final CsvBankFormat csvBankFormat;
-    private final CategorySuggestionService categorySuggestionService;
+    private final ImportSuggestionService importSuggestionService;
 
     public ImportService(
             ImportBatchRepository importBatchRepository,
@@ -62,13 +62,13 @@ public class ImportService {
             AccountRepository accountRepository,
             OfxBankFormat ofxBankFormat,
             CsvBankFormat csvBankFormat,
-            CategorySuggestionService categorySuggestionService) {
+            ImportSuggestionService importSuggestionService) {
         this.importBatchRepository = importBatchRepository;
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
         this.ofxBankFormat = ofxBankFormat;
         this.csvBankFormat = csvBankFormat;
-        this.categorySuggestionService = categorySuggestionService;
+        this.importSuggestionService = importSuggestionService;
     }
 
     public ImportSummaryResponse importOfx(MultipartFile file) {
@@ -138,7 +138,7 @@ public class ImportService {
             toCreate.add(Transaction.imported(
                     row.date(), row.label(), row.amount(), account, type, row.fitid(), row.rawRecord()));
         }
-        categorySuggestionService.suggestCategories(accountId, toCreate);
+        importSuggestionService.suggest(accountId, toCreate);
         transactionRepository.saveAll(toCreate);
 
         ImportBatch batch = new ImportBatch(account, filename, parsedRows.size(), toCreate.size(), skippedCount);

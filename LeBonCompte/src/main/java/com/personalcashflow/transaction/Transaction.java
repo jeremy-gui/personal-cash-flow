@@ -91,6 +91,14 @@ public class Transaction {
     @Column(name = "category_confirmed", nullable = false)
     private boolean categoryConfirmed = true;
 
+    /**
+     * False only while {@link #label} was auto-suggested from import history and hasn't been
+     * reviewed yet - see {@link #suggestLabel} and {@link #confirmLabel}. Defaults true so a
+     * manual/reconciled label is never mistaken for a lingering suggestion.
+     */
+    @Column(name = "label_confirmed", nullable = false)
+    private boolean labelConfirmed = true;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -222,6 +230,10 @@ public class Transaction {
         return categoryConfirmed;
     }
 
+    public boolean isLabelConfirmed() {
+        return labelConfirmed;
+    }
+
     /** Fills in the category from a reconciled counterpart, but never overwrites one already set. */
     public void assignCategoryIfMissing(Category category) {
         if (this.category == null) {
@@ -250,6 +262,23 @@ public class Transaction {
      */
     public void assignLabel(String label) {
         this.label = label;
+        this.labelConfirmed = true;
+    }
+
+    /**
+     * Fills in a friendlier label guessed from this account's import history - never overwrites a
+     * label already customized away from the bank's raw wording (by the user or an earlier suggestion).
+     */
+    public void suggestLabel(String label) {
+        if (this.label.equals(this.originalLabel) && !label.equals(this.label)) {
+            this.label = label;
+            this.labelConfirmed = false;
+        }
+    }
+
+    /** Marks a suggested label as reviewed and accepted. */
+    public void confirmLabel() {
+        this.labelConfirmed = true;
     }
 
     /** Marks this pointee as having absorbed a previsionnelle, so it stops being offered as a rapprochement candidate. */
@@ -288,7 +317,8 @@ public class Transaction {
         this.account = account;
         this.category = category;
         this.type = type;
-        // A deliberate edit always counts as review, whether it keeps a suggested category or changes it.
+        // A deliberate edit always counts as review, whether it keeps a suggested value or changes it.
         this.categoryConfirmed = true;
+        this.labelConfirmed = true;
     }
 }

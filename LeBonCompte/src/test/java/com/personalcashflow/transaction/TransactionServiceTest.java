@@ -15,6 +15,7 @@ import com.personalcashflow.category.CategoryNotFoundException;
 import com.personalcashflow.category.CategoryRepository;
 import com.personalcashflow.recurring.RecurringTransaction;
 import com.personalcashflow.transaction.dto.TransactionRequest;
+import com.personalcashflow.transaction.dto.TransactionResponse;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -162,12 +163,13 @@ class TransactionServiceTest {
     }
 
     @Test
-    void update_shouldMarkCategoryAsConfirmed() {
+    void update_shouldMarkCategoryAndLabelAsConfirmed() {
         Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
         Transaction transaction = Transaction.imported(
                 LocalDate.of(2026, 9, 5), "CARREFOUR", BigDecimal.TEN, account,
                 TransactionType.DEPENSE, "hash", "raw");
         transaction.suggestCategory(new Category("Courses", null));
+        transaction.suggestLabel("carrefour");
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
@@ -178,6 +180,7 @@ class TransactionServiceTest {
         Transaction updated = transactionService.update(1L, request);
 
         assertThat(updated.isCategoryConfirmed()).isTrue();
+        assertThat(updated.isLabelConfirmed()).isTrue();
     }
 
     @Test
@@ -189,9 +192,9 @@ class TransactionServiceTest {
         transaction.suggestCategory(new Category("Courses", null));
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
 
-        Transaction confirmed = transactionService.confirmCategory(1L);
+        var confirmed = transactionService.confirmCategory(1L);
 
-        assertThat(confirmed.isCategoryConfirmed()).isTrue();
+        assertThat(confirmed.categoryConfirmed()).isTrue();
     }
 
     @Test
@@ -214,9 +217,48 @@ class TransactionServiceTest {
         when(transactionRepository.findById(1L)).thenReturn(Optional.of(first));
         when(transactionRepository.findById(2L)).thenReturn(Optional.of(second));
 
-        java.util.List<Transaction> confirmed = transactionService.confirmCategories(java.util.List.of(1L, 2L));
+        var confirmed = transactionService.confirmCategories(java.util.List.of(1L, 2L));
 
-        assertThat(confirmed).allMatch(Transaction::isCategoryConfirmed);
+        assertThat(confirmed).allMatch(TransactionResponse::categoryConfirmed);
+    }
+
+    @Test
+    void confirmLabel_shouldMarkTheLabelAsConfirmed() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
+        Transaction transaction = Transaction.imported(
+                LocalDate.of(2026, 9, 5), "ACHAT CB CARREFOUR 05.09.26", BigDecimal.TEN, account,
+                TransactionType.DEPENSE, "hash", "raw");
+        transaction.suggestLabel("carrefour");
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(transaction));
+
+        var confirmed = transactionService.confirmLabel(1L);
+
+        assertThat(confirmed.labelConfirmed()).isTrue();
+    }
+
+    @Test
+    void confirmLabel_whenTransactionMissing_shouldThrowTransactionNotFoundException() {
+        when(transactionRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> transactionService.confirmLabel(99L))
+                .isInstanceOf(TransactionNotFoundException.class);
+    }
+
+    @Test
+    void confirmLabels_shouldConfirmEachGivenTransaction() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, null);
+        Transaction first = Transaction.imported(
+                LocalDate.of(2026, 9, 5), "ACHAT CB CARREFOUR 05.09.26", BigDecimal.TEN, account, TransactionType.DEPENSE, "h1", "r1");
+        Transaction second = Transaction.imported(
+                LocalDate.of(2026, 9, 6), "PRELEVEMENT DE EDF", BigDecimal.TEN, account, TransactionType.DEPENSE, "h2", "r2");
+        first.suggestLabel("carrefour");
+        second.suggestLabel("EDF");
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(first));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(second));
+
+        var confirmed = transactionService.confirmLabels(java.util.List.of(1L, 2L));
+
+        assertThat(confirmed).allMatch(TransactionResponse::labelConfirmed);
     }
 
     @Test

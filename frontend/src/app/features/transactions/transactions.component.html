@@ -99,19 +99,34 @@
 
 <div class="table-header">
   <h2>Transactions importées</h2>
-  @if (suggestedCategoryIds().length > 0) {
-    @if (pendingConfirmAllCategories()) {
-      <span class="confirm-all-categories">
-        Confirmer {{ suggestedCategoryIds().length }} catégorie(s) suggérée(s) ?
-        <button type="button" class="confirm-all" (click)="confirmAllCategories()">Confirmer</button>
-        <button type="button" (click)="cancelConfirmAllCategories()">Annuler</button>
-      </span>
-    } @else {
-      <button type="button" class="validate-all-categories" (click)="requestConfirmAllCategories()">
-        Valider les catégories suggérées ({{ suggestedCategoryIds().length }})
-      </button>
+  <div class="suggestion-actions">
+    @if (suggestedLabelIds().length > 0) {
+      @if (pendingConfirmAllLabels()) {
+        <span class="confirm-all-categories">
+          Confirmer {{ suggestedLabelIds().length }} libellé(s) suggéré(s) ?
+          <button type="button" class="confirm-all" (click)="confirmAllLabels()">Confirmer</button>
+          <button type="button" (click)="cancelConfirmAllLabels()">Annuler</button>
+        </span>
+      } @else {
+        <button type="button" class="validate-all-categories" (click)="requestConfirmAllLabels()">
+          Valider les libellés suggérés ({{ suggestedLabelIds().length }})
+        </button>
+      }
     }
-  }
+    @if (suggestedCategoryIds().length > 0) {
+      @if (pendingConfirmAllCategories()) {
+        <span class="confirm-all-categories">
+          Confirmer {{ suggestedCategoryIds().length }} catégorie(s) suggérée(s) ?
+          <button type="button" class="confirm-all" (click)="confirmAllCategories()">Confirmer</button>
+          <button type="button" (click)="cancelConfirmAllCategories()">Annuler</button>
+        </span>
+      } @else {
+        <button type="button" class="validate-all-categories" (click)="requestConfirmAllCategories()">
+          Valider les catégories suggérées ({{ suggestedCategoryIds().length }})
+        </button>
+      }
+    }
+  </div>
 </div>
 <div class="card table-card">
 <div class="table-scroll">
@@ -254,14 +269,33 @@
   } @else {
     <tr>
       <td>{{ transaction.date | date: 'dd/MM/yyyy' }}</td>
-      <td [title]="hasOriginalDivergence(transaction) ? originalTooltip(transaction) : transaction.label">
-        <div class="label-row">
-          <span class="label-text">{{ transaction.label }}</span>
-          @if (hasOriginalDivergence(transaction)) {
-            <svg class="icon original-marker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-            </svg>
+      <td [title]="(hasOriginalDivergence(transaction) && transaction.labelConfirmed) ? originalTooltip(transaction) : transaction.label">
+        <div class="label-cell">
+          <div class="label-row">
+            <span class="label-text">{{ transaction.label }}</span>
+            @if (hasOriginalDivergence(transaction) && transaction.labelConfirmed) {
+              <svg class="icon original-marker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9"></path>
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+              </svg>
+            }
+            @if (!transaction.labelConfirmed) {
+              <span class="suggested-badge">suggéré</span>
+              <button
+                type="button"
+                class="icon-button confirm-category"
+                title="Confirmer ce libellé"
+                aria-label="Confirmer ce libellé"
+                (click)="confirmLabel(transaction)"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </button>
+            }
+          </div>
+          @if (!transaction.labelConfirmed) {
+            <span class="original-name-suggestion">({{ transaction.originalLabel }})</span>
           }
         </div>
       </td>

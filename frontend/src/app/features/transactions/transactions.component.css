@@ -182,6 +182,13 @@
   margin: 0;
 }
 
+.suggestion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .validate-all-categories {
   font-size: 0.8rem;
   padding: 6px var(--space-3);
@@ -210,9 +217,18 @@
   border-color: var(--blue-dark);
 }
 
+/* Same reasoning as .category-cell: the suggestion row goes on its own line below the name,
+   rather than fighting it for horizontal space and getting truncated too eagerly. */
+.label-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .label-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
@@ -220,6 +236,18 @@
   min-width: 0;
   white-space: normal;
   overflow-wrap: break-word;
+}
+
+/* The bank's raw wording can run much longer than the friendly name above it - let it wrap
+   instead of forcing the row wider than the column (which would bleed into Catégorie). */
+.original-name-suggestion {
+  display: block;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: break-word;
+  font-style: italic;
+  color: var(--ink-faint);
+  font-size: 0.85em;
 }
 
 .icon.original-marker {
