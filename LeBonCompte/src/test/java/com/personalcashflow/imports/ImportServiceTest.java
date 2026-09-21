@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -115,12 +114,35 @@ class ImportServiceTest {
         assertThat(summary.rowCount()).isEqualTo(3);
         assertThat(summary.createdCount()).isEqualTo(2);
         assertThat(summary.skippedCount()).isEqualTo(1);
-        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
-        verify(transactionRepository, times(2)).save(captor.capture());
-        Transaction first = captor.getAllValues().get(0);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Transaction>> captor = ArgumentCaptor.forClass(List.class);
+        verify(transactionRepository).saveAll(captor.capture());
+        Transaction first = captor.getValue().get(0);
         assertThat(first.getOriginalDate()).isEqualTo(LocalDate.of(2026, 9, 5));
         assertThat(first.getOriginalLabel()).isEqualTo("CARREFOUR");
         assertThat(first.getImportHash()).isEqualTo("FIT001");
+    }
+
+    @Test
+    void importOfx_withTwoRowsSharingAmountDateAndLabel_shouldCreateBothWhenFitidsDiffer() {
+        // a real bank export: two genuinely separate transactions can share amount/date/label,
+        // but each still gets its own unique FITID from the bank.
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, "123");
+        setId(account, 1L);
+        when(accountRepository.findByAccountNumber("123")).thenReturn(Optional.of(account));
+        when(transactionRepository.existsByAccountIdAndImportHash(any(), any())).thenReturn(false);
+        when(importBatchRepository.save(any(ImportBatch.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        String ofx = ofxDocument(
+                stmttrn("POS", "20260905", "-20.00", "FIT001", "CARREFOUR"),
+                stmttrn("POS", "20260905", "-20.00", "FIT002", "CARREFOUR"));
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "releve.ofx", "application/x-ofx", ofx.getBytes(StandardCharsets.US_ASCII));
+
+        ImportSummaryResponse summary = service().importOfx(file);
+
+        assertThat(summary.createdCount()).isEqualTo(2);
+        assertThat(summary.skippedCount()).isZero();
     }
 
     @Test
@@ -143,7 +165,7 @@ class ImportServiceTest {
 
         assertThat(summary.createdCount()).isZero();
         assertThat(summary.skippedCount()).isEqualTo(1);
-        verify(transactionRepository, never()).save(any());
+        verify(transactionRepository).saveAll(List.of());
     }
 
     @Test
@@ -156,7 +178,7 @@ class ImportServiceTest {
 
         assertThatThrownBy(() -> service().importOfx(file))
                 .isInstanceOf(ImportTooOldException.class);
-        verify(transactionRepository, never()).save(any());
+        verify(transactionRepository, never()).saveAll(any());
         verify(accountRepository, never()).findByAccountNumber(any());
     }
 
@@ -186,7 +208,7 @@ class ImportServiceTest {
 
         assertThatThrownBy(() -> service().importOfx(file))
                 .isInstanceOf(UnmatchedOfxAccountException.class);
-        verify(transactionRepository, never()).save(any());
+        verify(transactionRepository, never()).saveAll(any());
     }
 
     @Test
@@ -195,7 +217,7 @@ class ImportServiceTest {
 
         assertThatThrownBy(() -> service().importOfx(file))
                 .isInstanceOf(EmptyImportFileException.class);
-        verify(transactionRepository, never()).save(any());
+        verify(transactionRepository, never()).saveAll(any());
     }
 
     private static String csvDocument(String... dataLines) {
@@ -224,10 +246,32 @@ class ImportServiceTest {
         setId(account, 1L);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(transactionRepository.existsByAccountIdAndImportHash(any(), any())).thenReturn(false);
-        // second row is a duplicate of the first (same date/label/amount -> same derived hash):
-        // not-yet-imported on the first check, already-imported (i.e. just saved) on the second.
-        when(transactionRepository.existsByAccountIdAndImportHash(1L, "2026-09-05|carrefour|-81.24"))
-                .thenReturn(false, true);
+        when(importBatchRepository.save(any(ImportBatch.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MockMultipartFile file = csvFile(csvDocument(
+                "05/09/2026;\"CARREFOUR\";-81,24",
+                "07/09/2026;\"SALAIRE\";2850,00"));
+
+        ImportSummaryResponse summary = service().importCsv(1L, file);
+
+        assertThat(summary.rowCount()).isEqualTo(2);
+        assertThat(summary.createdCount()).isEqualTo(2);
+        assertThat(summary.skippedCount()).isZero();
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Transaction>> captor = ArgumentCaptor.forClass(List.class);
+        verify(transactionRepository).saveAll(captor.capture());
+        Transaction first = captor.getValue().get(0);
+        assertThat(first.getOriginalDate()).isEqualTo(LocalDate.of(2026, 9, 5));
+        assertThat(first.getOriginalLabel()).isEqualTo("CARREFOUR");
+        assertThat(first.getImportHash()).isEqualTo("2026-09-05|carrefour|-81.24");
+    }
+
+    @Test
+    void importCsv_withTwoIdenticalRowsInTheSameFile_shouldCreateBothWithDistinctHashes() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, "123");
+        setId(account, 1L);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(transactionRepository.existsByAccountIdAndImportHash(any(), any())).thenReturn(false);
         when(importBatchRepository.save(any(ImportBatch.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         MockMultipartFile file = csvFile(csvDocument(
@@ -238,14 +282,34 @@ class ImportServiceTest {
         ImportSummaryResponse summary = service().importCsv(1L, file);
 
         assertThat(summary.rowCount()).isEqualTo(3);
-        assertThat(summary.createdCount()).isEqualTo(2);
-        assertThat(summary.skippedCount()).isEqualTo(1);
-        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
-        verify(transactionRepository, times(2)).save(captor.capture());
-        Transaction first = captor.getAllValues().get(0);
-        assertThat(first.getOriginalDate()).isEqualTo(LocalDate.of(2026, 9, 5));
-        assertThat(first.getOriginalLabel()).isEqualTo("CARREFOUR");
-        assertThat(first.getImportHash()).isEqualTo("2026-09-05|carrefour|-81.24");
+        assertThat(summary.createdCount()).isEqualTo(3);
+        assertThat(summary.skippedCount()).isZero();
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Transaction>> captor = ArgumentCaptor.forClass(List.class);
+        verify(transactionRepository).saveAll(captor.capture());
+        List<Transaction> saved = captor.getValue();
+        assertThat(saved).extracting(Transaction::getImportHash).containsExactlyInAnyOrder(
+                "2026-09-05|carrefour|-81.24", "2026-09-05|carrefour|-81.24|2", "2026-09-07|salaire|2850");
+    }
+
+    @Test
+    void importCsv_reimportingFileWithIdenticalRows_shouldSkipBothAsAlreadyImported() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, "123");
+        setId(account, 1L);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(transactionRepository.existsByAccountIdAndImportHash(1L, "2026-09-05|carrefour|-81.24")).thenReturn(true);
+        when(transactionRepository.existsByAccountIdAndImportHash(1L, "2026-09-05|carrefour|-81.24|2")).thenReturn(true);
+        when(importBatchRepository.save(any(ImportBatch.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MockMultipartFile file = csvFile(csvDocument(
+                "05/09/2026;\"CARREFOUR\";-81,24",
+                "05/09/2026;\"CARREFOUR\";-81,24"));
+
+        ImportSummaryResponse summary = service().importCsv(1L, file);
+
+        assertThat(summary.createdCount()).isZero();
+        assertThat(summary.skippedCount()).isEqualTo(2);
+        verify(transactionRepository).saveAll(List.of());
     }
 
     @Test
@@ -266,7 +330,7 @@ class ImportServiceTest {
 
         assertThat(summary.createdCount()).isZero();
         assertThat(summary.skippedCount()).isEqualTo(1);
-        verify(transactionRepository, never()).save(any());
+        verify(transactionRepository).saveAll(List.of());
     }
 
     @Test
@@ -275,7 +339,7 @@ class ImportServiceTest {
 
         assertThatThrownBy(() -> service().importCsv(1L, file))
                 .isInstanceOf(ImportTooOldException.class);
-        verify(transactionRepository, never()).save(any());
+        verify(transactionRepository, never()).saveAll(any());
         verify(accountRepository, never()).findById(any());
     }
 
@@ -286,7 +350,7 @@ class ImportServiceTest {
 
         assertThatThrownBy(() -> service().importCsv(99L, file))
                 .isInstanceOf(AccountNotFoundException.class);
-        verify(transactionRepository, never()).save(any());
+        verify(transactionRepository, never()).saveAll(any());
     }
 
     @Test
@@ -295,7 +359,7 @@ class ImportServiceTest {
 
         assertThatThrownBy(() -> service().importCsv(1L, file))
                 .isInstanceOf(EmptyImportFileException.class);
-        verify(transactionRepository, never()).save(any());
+        verify(transactionRepository, never()).saveAll(any());
     }
 
     @Test

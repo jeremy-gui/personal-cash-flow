@@ -76,35 +76,7 @@ public class ImportService {
         rejectIfTooOld(statement.rows());
         Account account = accountRepository.findByAccountNumber(statement.accountNumber())
                 .orElseThrow(() -> new UnmatchedOfxAccountException(statement.accountNumber()));
-        Long accountId = account.getId();
-
-        List<Optional<ImportedRow>> parsedRows = statement.rows();
-        int rowCount = parsedRows.size();
-        int createdCount = 0;
-        int skippedCount = 0;
-
-        for (Optional<ImportedRow> parsed : parsedRows) {
-            if (parsed.isEmpty()) {
-                skippedCount++;
-                continue;
-            }
-
-            ImportedRow row = parsed.get();
-            if (isDuplicate(accountId, row)) {
-                skippedCount++;
-                continue;
-            }
-
-            TransactionType type = row.amount().signum() < 0 ? TransactionType.DEPENSE : TransactionType.REVENU;
-            Transaction transaction = Transaction.imported(
-                    row.date(), row.label(), row.amount(), account, type, row.fitid(), row.rawRecord());
-            transactionRepository.save(transaction);
-            createdCount++;
-        }
-
-        ImportBatch batch = new ImportBatch(account, file.getOriginalFilename(), rowCount, createdCount, skippedCount);
-        importBatchRepository.save(batch);
-        return ImportSummaryResponse.from(batch);
+        return processImport(account, file.getOriginalFilename(), statement.rows());
     }
 
     /**
@@ -129,9 +101,22 @@ public class ImportService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AccountNotFoundException(accountId));
 
-        int rowCount = parsedRows.size();
-        int createdCount = 0;
+        List<Optional<ImportedRow>> dedupedRows = disambiguateRepeatedRows(parsedRows);
+        return processImport(account, file.getOriginalFilename(), dedupedRows);
+    }
+
+    /**
+     * Classifies every row against the database as it was *before* this import (no row is saved
+     * until every row has been checked), then bulk-saves the new ones. Checking and saving one row
+     * at a time would let a later row's duplicate check see an earlier row from this same import -
+     * Hibernate auto-flushes a pending save before the next query in the same transaction - wrongly
+     * treating two genuinely separate rows (e.g. two same-day, same-amount purchases) as duplicates
+     * of each other.
+     */
+    private ImportSummaryResponse processImport(Account account, String filename, List<Optional<ImportedRow>> parsedRows) {
+        Long accountId = account.getId();
         int skippedCount = 0;
+        List<Transaction> toCreate = new ArrayList<>();
 
         for (Optional<ImportedRow> parsed : parsedRows) {
             if (parsed.isEmpty()) {
@@ -146,13 +131,12 @@ public class ImportService {
             }
 
             TransactionType type = row.amount().signum() < 0 ? TransactionType.DEPENSE : TransactionType.REVENU;
-            Transaction transaction = Transaction.imported(
-                    row.date(), row.label(), row.amount(), account, type, row.fitid(), row.rawRecord());
-            transactionRepository.save(transaction);
-            createdCount++;
+            toCreate.add(Transaction.imported(
+                    row.date(), row.label(), row.amount(), account, type, row.fitid(), row.rawRecord()));
         }
+        transactionRepository.saveAll(toCreate);
 
-        ImportBatch batch = new ImportBatch(account, file.getOriginalFilename(), rowCount, createdCount, skippedCount);
+        ImportBatch batch = new ImportBatch(account, filename, parsedRows.size(), toCreate.size(), skippedCount);
         importBatchRepository.save(batch);
         return ImportSummaryResponse.from(batch);
     }
@@ -169,6 +153,30 @@ public class ImportService {
         }
         return transactionRepository.existsSimilarByAccountAmountOriginalDateAndLabelPrefix(
                 accountId, row.amount(), row.date(), escapeLike(row.label()));
+    }
+
+    /**
+     * A CSV row's hash is derived purely from its own date/label/amount (no bank-assigned FITID
+     * like OFX has), so two rows sharing all three would otherwise hash identically and collide on
+     * the account+hash unique constraint. Only the second and later occurrence of a given hash gets
+     * a suffix, so re-importing the same file later reproduces the same hashes and stays idempotent.
+     */
+    private static List<Optional<ImportedRow>> disambiguateRepeatedRows(List<Optional<ImportedRow>> rows) {
+        Map<String, Integer> seen = new HashMap<>();
+        List<Optional<ImportedRow>> result = new ArrayList<>(rows.size());
+        for (Optional<ImportedRow> parsed : rows) {
+            if (parsed.isEmpty()) {
+                result.add(parsed);
+                continue;
+            }
+            ImportedRow row = parsed.get();
+            int occurrence = seen.merge(row.fitid(), 1, Integer::sum);
+            result.add(occurrence == 1
+                    ? parsed
+                    : Optional.of(new ImportedRow(
+                            row.date(), row.label(), row.amount(), row.fitid() + "|" + occurrence, row.rawRecord())));
+        }
+        return result;
     }
 
     private static String escapeLike(String value) {
