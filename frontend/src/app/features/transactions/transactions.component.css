@@ -12,6 +12,18 @@
   padding: var(--space-2) 0;
 }
 
+/* The section title ("Transactions prévisionnelles"/"Transactions importées") sticks right below
+   .page-header, and the table's own header row sticks right below that - each one only for as
+   long as its own section is on screen, so scrolling from one table into the next swaps which
+   title/header pair is pinned. */
+.sticky-title {
+  position: sticky;
+  top: 121px;
+  z-index: 4;
+  margin: 0 0 var(--space-3) 0;
+  background: var(--bg);
+}
+
 .balance-badge {
   padding: 6px var(--space-4);
   border-radius: var(--radius-pill);
@@ -47,15 +59,22 @@
   margin-bottom: var(--space-4);
 }
 
-.table-scroll {
-  overflow-x: auto;
-}
-
+/* No overflow-x here on purpose: any non-visible overflow-x forces overflow-y to compute as
+   auto too, which would make this element the sticky positioning context for the <th> below
+   instead of the viewport (a well-known CSS gotcha), breaking the page-level sticky handoff. On
+   narrow viewports the table now overflows the page horizontally instead of just this wrapper. */
 .transactions-table {
   table-layout: fixed;
   width: 100%;
   min-width: 900px;
   font-size: 13px;
+}
+
+.transactions-table thead th {
+  position: sticky;
+  top: 144px;
+  z-index: 3;
+  background: var(--surface);
 }
 
 .transactions-table th:first-child,
@@ -285,6 +304,10 @@
 .total-row td {
   border-top: 2px solid var(--border);
   font-weight: 600;
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  background: var(--surface);
 }
 
 .icon {
