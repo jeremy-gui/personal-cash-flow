@@ -7,6 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.personalcashflow.account.dto.AccountRequest;
+import com.personalcashflow.transaction.TransactionRepository;
+import com.personalcashflow.transaction.TransactionStatus;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -22,11 +24,25 @@ class AccountServiceTest {
     @Mock
     private AccountRepository accountRepository;
 
+    @Mock
+    private TransactionRepository transactionRepository;
+
     private AccountService accountService;
 
     @BeforeEach
     void setUp() {
-        accountService = new AccountService(accountRepository);
+        accountService = new AccountService(accountRepository, transactionRepository);
+    }
+
+    @Test
+    void balance_shouldAddInitialBalanceAndPointeeSum() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.valueOf(1000), null);
+        setId(account, 1L);
+        when(transactionRepository.sumByStatus(TransactionStatus.POINTEE, 1L)).thenReturn(BigDecimal.valueOf(-142.30));
+
+        BigDecimal balance = accountService.balance(account);
+
+        assertThat(balance).isEqualByComparingTo(BigDecimal.valueOf(857.70));
     }
 
     @Test

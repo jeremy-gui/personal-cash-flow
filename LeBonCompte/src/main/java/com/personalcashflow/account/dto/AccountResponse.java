@@ -10,15 +10,17 @@ public record AccountResponse(
         AccountType type,
         BigDecimal initialBalance,
         String accountNumber,
-        boolean isDefault) {
+        boolean isDefault,
+        BigDecimal balance) {
 
-    public static AccountResponse from(Account account) {
+    public static AccountResponse from(Account account, BigDecimal balance) {
         return new AccountResponse(
                 account.getId(),
                 account.getName(),
                 account.getType(),
                 account.getInitialBalance(),
                 account.getAccountNumber(),
-                account.isDefault());
+                account.isDefault(),
+                balance);
     }
 }

@@ -1,4 +1,9 @@
-<h1>Transactions</h1>
+<div class="page-header">
+  <h1>Transactions</h1>
+  <span class="balance-badge" [class.negative]="bankBalance() < 0" [class.positive]="bankBalance() >= 0">
+    {{ bankBalanceLabel() }} : {{ bankBalance() | number: '1.2-2' }} €
+  </span>
+</div>
 
 <div class="card filters">
   <label>
@@ -44,15 +49,6 @@
     </select>
   </label>
 
-  <label>
-    Statut
-    <select (change)="onFilterStatusChange($any($event.target).value)">
-      <option value="">Tous</option>
-      @for (status of statuses; track status) {
-        <option [value]="status">{{ statusLabels[status] }}</option>
-      }
-    </select>
-  </label>
 
   <label>
     Type

@@ -138,6 +138,25 @@ export class TransactionsComponent {
   protected readonly filterStatus = signal<TransactionStatus | null>(null);
   protected readonly filterType = signal<TransactionType | null>(null);
 
+  /** The real bank balance (initial + pointées): the filtered account's, or the sum of all when "Tous" is selected. */
+  protected readonly bankBalance = computed(() => {
+    const id = this.filterAccountId();
+    const accounts = this.accounts();
+    if (id === null) {
+      return accounts.reduce((sum, account) => sum + account.balance, 0);
+    }
+    return accounts.find((account) => account.id === id)?.balance ?? 0;
+  });
+
+  protected readonly bankBalanceLabel = computed(() => {
+    const id = this.filterAccountId();
+    if (id === null) {
+      return 'Solde total';
+    }
+    const name = this.accounts().find((account) => account.id === id)?.name;
+    return name ? `Solde ${name}` : 'Solde';
+  });
+
   protected readonly form = this.fb.nonNullable.group({
     date: [this.today(), Validators.required],
     label: ['', Validators.required],
@@ -184,6 +203,8 @@ export class TransactionsComponent {
         type: this.filterType(),
       })
       .subscribe((transactions) => this.transactions.set(transactions));
+    // Re-fetch balances too, so the badge stays live as transactions are added/edited/deleted/matched.
+    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
   }
 
   protected onMonthChange(value: string): void {

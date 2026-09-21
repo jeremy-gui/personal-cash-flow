@@ -1,6 +1,9 @@
 package com.personalcashflow.account;
 
 import com.personalcashflow.account.dto.AccountRequest;
+import com.personalcashflow.transaction.TransactionRepository;
+import com.personalcashflow.transaction.TransactionStatus;
+import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,9 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountService {
 
     private final AccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
 
-    public AccountService(AccountRepository accountRepository) {
+    public AccountService(AccountRepository accountRepository, TransactionRepository transactionRepository) {
         this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -24,6 +29,13 @@ public class AccountService {
     public Account findById(Long id) {
         return accountRepository.findById(id)
                 .orElseThrow(() -> new AccountNotFoundException(id));
+    }
+
+    /** The account's real current balance: initial balance plus every pointée transaction. */
+    @Transactional(readOnly = true)
+    public BigDecimal balance(Account account) {
+        return account.getInitialBalance()
+                .add(transactionRepository.sumByStatus(TransactionStatus.POINTEE, account.getId()));
     }
 
     public Account create(AccountRequest request) {

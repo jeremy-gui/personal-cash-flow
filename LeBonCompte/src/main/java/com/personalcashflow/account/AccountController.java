@@ -28,23 +28,28 @@ public class AccountController {
 
     @GetMapping
     public List<AccountResponse> findAll() {
-        return accountService.findAll().stream().map(AccountResponse::from).toList();
+        return accountService.findAll().stream()
+                .map(account -> AccountResponse.from(account, accountService.balance(account)))
+                .toList();
     }
 
     @GetMapping("/{id}")
     public AccountResponse findById(@PathVariable Long id) {
-        return AccountResponse.from(accountService.findById(id));
+        Account account = accountService.findById(id);
+        return AccountResponse.from(account, accountService.balance(account));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public AccountResponse create(@Valid @RequestBody AccountRequest request) {
-        return AccountResponse.from(accountService.create(request));
+        Account account = accountService.create(request);
+        return AccountResponse.from(account, accountService.balance(account));
     }
 
     @PutMapping("/{id}")
     public AccountResponse update(@PathVariable Long id, @Valid @RequestBody AccountRequest request) {
-        return AccountResponse.from(accountService.update(id, request));
+        Account account = accountService.update(id, request);
+        return AccountResponse.from(account, accountService.balance(account));
     }
 
     @DeleteMapping("/{id}")

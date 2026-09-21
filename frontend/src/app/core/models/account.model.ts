@@ -14,6 +14,7 @@ export interface Account {
   initialBalance: number;
   accountNumber: string | null;
   isDefault: boolean;
+  balance: number;
 }
 
 export interface AccountRequest {

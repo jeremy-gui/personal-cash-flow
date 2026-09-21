@@ -1,3 +1,34 @@
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  position: sticky;
+  /* Matches the topbar's own rendered height, so this row sticks right below it. */
+  top: 69px;
+  z-index: 5;
+  background: var(--bg);
+  padding: var(--space-2) 0;
+}
+
+.balance-badge {
+  padding: 6px var(--space-4);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.balance-badge.positive {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.balance-badge.negative {
+  color: var(--red);
+  background: var(--red-soft);
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;
