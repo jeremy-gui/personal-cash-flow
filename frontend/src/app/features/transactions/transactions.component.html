@@ -94,6 +94,9 @@
       </tr>
     }
   </tbody>
+  <tfoot>
+    <ng-container [ngTemplateOutlet]="totalRow" [ngTemplateOutletContext]="{ $implicit: previsionnelleTotal() }"></ng-container>
+  </tfoot>
 </table>
 </div>
 </div>
@@ -123,9 +126,21 @@
       </tr>
     }
   </tbody>
+  <tfoot>
+    <ng-container [ngTemplateOutlet]="totalRow" [ngTemplateOutletContext]="{ $implicit: pointeeTotal() }"></ng-container>
+  </tfoot>
 </table>
 </div>
 </div>
+
+<ng-template #totalRow let-total>
+  <tr class="total-row">
+    <td colspan="4">Total</td>
+    <td [class.negative]="total < 0" [class.positive]="total >= 0">{{ total | number: '1.2-2' }} €</td>
+    <td></td>
+    <td></td>
+  </tr>
+</ng-template>
 
 <ng-template #headerRow let-table="table">
   <tr>

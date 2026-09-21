@@ -124,6 +124,10 @@ export class TransactionsComponent {
       this.pointeeSort(),
     ),
   );
+  protected readonly previsionnelleTotal = computed(() =>
+    this.previsionnelleTransactions().reduce((sum, t) => sum + t.amount, 0),
+  );
+  protected readonly pointeeTotal = computed(() => this.pointeeTransactions().reduce((sum, t) => sum + t.amount, 0));
   protected readonly editingId = signal<number | null>(null);
   protected readonly pendingDeleteId = signal<number | null>(null);
   protected readonly matchError = signal<string | null>(null);

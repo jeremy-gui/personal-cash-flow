@@ -136,6 +136,11 @@
   text-align: center;
 }
 
+.total-row td {
+  border-top: 2px solid var(--border);
+  font-weight: 600;
+}
+
 .icon {
   width: 16px;
   height: 16px;
