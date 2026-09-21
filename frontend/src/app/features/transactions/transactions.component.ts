@@ -318,8 +318,15 @@ export class TransactionsComponent {
     });
   }
 
-  /** Candidates to reconcile with: same account, opposite status, not already matched. */
+  /**
+   * Candidates to reconcile with: same account, opposite status, not already matched. A pointee
+   * that already absorbed a previsionnelle (transaction.matched) is done - it never gets more
+   * candidates offered, since a second match would just be rejected by the backend anyway.
+   */
   protected candidatesFor(transaction: Transaction): Transaction[] {
+    if (transaction.matched) {
+      return [];
+    }
     return this.transactions().filter(
       (candidate) =>
         candidate.id !== transaction.id &&
