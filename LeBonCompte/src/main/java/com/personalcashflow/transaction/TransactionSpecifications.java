@@ -24,7 +24,7 @@ final class TransactionSpecifications {
             LocalDate from,
             LocalDate to,
             Long accountId,
-            Long categoryId,
+            List<Long> categoryIds,
             TransactionStatus status,
             TransactionType type) {
         return (root, query, cb) -> {
@@ -44,8 +44,8 @@ final class TransactionSpecifications {
             if (accountId != null) {
                 predicates.add(cb.equal(accountJoin.get("id"), accountId));
             }
-            if (categoryId != null) {
-                predicates.add(cb.equal(categoryJoin.get("id"), categoryId));
+            if (categoryIds != null) {
+                predicates.add(categoryJoin.get("id").in(categoryIds));
             }
             if (status != null) {
                 predicates.add(cb.equal(root.get("status"), status));

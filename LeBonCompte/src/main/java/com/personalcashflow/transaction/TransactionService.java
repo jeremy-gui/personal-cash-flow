@@ -10,6 +10,9 @@ import com.personalcashflow.transaction.dto.TransactionRequest;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,8 +38,21 @@ public class TransactionService {
     public List<Transaction> search(
             String month, Long accountId, Long categoryId, TransactionStatus status, TransactionType type) {
         LocalDate[] range = monthRange(month);
+        List<Long> categoryIds = categoryId != null ? categoryAndDescendantIds(categoryId) : null;
         return transactionRepository.findAll(
-                TransactionSpecifications.matching(range[0], range[1], accountId, categoryId, status, type));
+                TransactionSpecifications.matching(range[0], range[1], accountId, categoryIds, status, type));
+    }
+
+    /** Selecting a parent category should also surface transactions filed under any of its descendants. */
+    List<Long> categoryAndDescendantIds(Long categoryId) {
+        List<Long> ids = new ArrayList<>();
+        Deque<Long> toVisit = new ArrayDeque<>(List.of(categoryId));
+        while (!toVisit.isEmpty()) {
+            Long current = toVisit.poll();
+            ids.add(current);
+            categoryRepository.findByParentId(current).forEach(child -> toVisit.add(child.getId()));
+        }
+        return ids;
     }
 
     /** Package-private for direct unit testing of the "YYYY-MM" to [firstDay, lastDay] parsing. */

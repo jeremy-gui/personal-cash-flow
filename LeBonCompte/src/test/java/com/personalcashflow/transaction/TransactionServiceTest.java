@@ -201,6 +201,43 @@ class TransactionServiceTest {
         assertThat(deleted.date()).isEqualTo(LocalDate.of(2026, 9, 1));
     }
 
+    @Test
+    void categoryAndDescendantIds_shouldIncludeSelfAndAllDescendants() {
+        Category child1 = new Category("Courses", null);
+        Category child2 = new Category("Boulangerie", null);
+        Category grandchild = new Category("Bio", null);
+        setCategoryId(child1, 2L);
+        setCategoryId(child2, 3L);
+        setCategoryId(grandchild, 4L);
+        when(categoryRepository.findByParentId(1L)).thenReturn(java.util.List.of(child1, child2));
+        when(categoryRepository.findByParentId(2L)).thenReturn(java.util.List.of(grandchild));
+        when(categoryRepository.findByParentId(3L)).thenReturn(java.util.List.of());
+        when(categoryRepository.findByParentId(4L)).thenReturn(java.util.List.of());
+
+        java.util.List<Long> ids = transactionService.categoryAndDescendantIds(1L);
+
+        assertThat(ids).containsExactlyInAnyOrder(1L, 2L, 3L, 4L);
+    }
+
+    @Test
+    void categoryAndDescendantIds_withLeafCategory_shouldReturnOnlyItself() {
+        when(categoryRepository.findByParentId(5L)).thenReturn(java.util.List.of());
+
+        java.util.List<Long> ids = transactionService.categoryAndDescendantIds(5L);
+
+        assertThat(ids).containsExactly(5L);
+    }
+
+    private static void setCategoryId(Category category, Long id) {
+        try {
+            Field field = Category.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(category, id);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private static void setId(RecurringTransaction recurring, Long id) {
         try {
             Field field = RecurringTransaction.class.getDeclaredField("id");
