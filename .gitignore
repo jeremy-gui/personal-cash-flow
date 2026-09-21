@@ -19,5 +19,8 @@ ofx_to_import.ofx
 /recurring_transaction*.sql
 /transaction*.sql
 
+# Full database backups (pg_dump) — contain all real personal financial data.
+/backups/
+
 # Claude Code local machine/session settings — not meant to be shared.
 .claude/settings.local.json

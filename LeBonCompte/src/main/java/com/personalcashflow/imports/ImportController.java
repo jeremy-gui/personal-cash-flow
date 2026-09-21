@@ -28,6 +28,12 @@ public class ImportController {
         return importService.importOfx(file);
     }
 
+    @PostMapping("/csv")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ImportSummaryResponse importCsv(@RequestParam Long accountId, @RequestParam MultipartFile file) {
+        return importService.importCsv(accountId, file);
+    }
+
     @GetMapping
     public List<ImportSummaryResponse> history() {
         return importService.history();

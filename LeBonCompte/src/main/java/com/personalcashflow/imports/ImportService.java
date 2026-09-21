@@ -1,19 +1,24 @@
 package com.personalcashflow.imports;
 
 import com.personalcashflow.account.Account;
+import com.personalcashflow.account.AccountNotFoundException;
 import com.personalcashflow.account.AccountRepository;
 import com.personalcashflow.imports.dto.ImportSummaryResponse;
 import com.personalcashflow.imports.dto.ReconciliationSummaryResponse;
 import com.personalcashflow.imports.dto.ReconciliationSummaryResponse.UnresolvedRow;
+import com.personalcashflow.imports.format.CsvBankFormat;
 import com.personalcashflow.imports.format.ImportedRow;
 import com.personalcashflow.imports.format.OfxBankFormat;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionRepository;
 import com.personalcashflow.transaction.TransactionStatus;
 import com.personalcashflow.transaction.TransactionType;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -47,16 +52,19 @@ public class ImportService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final OfxBankFormat ofxBankFormat;
+    private final CsvBankFormat csvBankFormat;
 
     public ImportService(
             ImportBatchRepository importBatchRepository,
             TransactionRepository transactionRepository,
             AccountRepository accountRepository,
-            OfxBankFormat ofxBankFormat) {
+            OfxBankFormat ofxBankFormat,
+            CsvBankFormat csvBankFormat) {
         this.importBatchRepository = importBatchRepository;
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
         this.ofxBankFormat = ofxBankFormat;
+        this.csvBankFormat = csvBankFormat;
     }
 
     public ImportSummaryResponse importOfx(MultipartFile file) {
@@ -82,7 +90,7 @@ public class ImportService {
             }
 
             ImportedRow row = parsed.get();
-            if (transactionRepository.existsByAccountIdAndImportHash(accountId, row.fitid())) {
+            if (isDuplicate(accountId, row)) {
                 skippedCount++;
                 continue;
             }
@@ -97,6 +105,74 @@ public class ImportService {
         ImportBatch batch = new ImportBatch(account, file.getOriginalFilename(), rowCount, createdCount, skippedCount);
         importBatchRepository.save(batch);
         return ImportSummaryResponse.from(batch);
+    }
+
+    /**
+     * A CSV export has no equivalent of OFX's ACCTID, so the account is chosen explicitly rather
+     * than auto-matched.
+     */
+    public ImportSummaryResponse importCsv(Long accountId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new EmptyImportFileException();
+        }
+
+        List<String> lines = readLines(file, csvBankFormat.charset());
+        List<String> dataLines = lines.size() > csvBankFormat.headerLineCount()
+                ? lines.subList(csvBankFormat.headerLineCount(), lines.size())
+                : List.of();
+        List<Optional<ImportedRow>> parsedRows = dataLines.stream()
+                .filter(line -> !line.isBlank())
+                .map(csvBankFormat::parseLine)
+                .toList();
+        rejectIfTooOld(parsedRows);
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccountNotFoundException(accountId));
+
+        int rowCount = parsedRows.size();
+        int createdCount = 0;
+        int skippedCount = 0;
+
+        for (Optional<ImportedRow> parsed : parsedRows) {
+            if (parsed.isEmpty()) {
+                skippedCount++;
+                continue;
+            }
+
+            ImportedRow row = parsed.get();
+            if (isDuplicate(accountId, row)) {
+                skippedCount++;
+                continue;
+            }
+
+            TransactionType type = row.amount().signum() < 0 ? TransactionType.DEPENSE : TransactionType.REVENU;
+            Transaction transaction = Transaction.imported(
+                    row.date(), row.label(), row.amount(), account, type, row.fitid(), row.rawRecord());
+            transactionRepository.save(transaction);
+            createdCount++;
+        }
+
+        ImportBatch batch = new ImportBatch(account, file.getOriginalFilename(), rowCount, createdCount, skippedCount);
+        importBatchRepository.save(batch);
+        return ImportSummaryResponse.from(batch);
+    }
+
+    /**
+     * True if this row's own FITID/hash was already imported, or - catching the case where the same
+     * real transaction came in through a different format with an unrelated hash - a transaction on
+     * this account already has the same amount, the same original date, and an original label that's
+     * a prefix of this one's (or vice versa).
+     */
+    private boolean isDuplicate(Long accountId, ImportedRow row) {
+        if (transactionRepository.existsByAccountIdAndImportHash(accountId, row.fitid())) {
+            return true;
+        }
+        return transactionRepository.existsSimilarByAccountAmountOriginalDateAndLabelPrefix(
+                accountId, row.amount(), row.date(), escapeLike(row.label()));
+    }
+
+    private static String escapeLike(String value) {
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     @Transactional(readOnly = true)
@@ -240,13 +316,21 @@ public class ImportService {
                 .flatMap(Optional::stream)
                 .anyMatch(row -> row.date().isBefore(EARLIEST_IMPORTABLE_DATE));
         if (hasOldRow) {
-            throw new OfxTooOldException(EARLIEST_IMPORTABLE_DATE);
+            throw new ImportTooOldException(EARLIEST_IMPORTABLE_DATE);
         }
     }
 
     private OfxBankFormat.ParsedStatement parse(MultipartFile file) {
         try (var inputStream = file.getInputStream()) {
             return ofxBankFormat.parse(inputStream);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read uploaded file", e);
+        }
+    }
+
+    private static List<String> readLines(MultipartFile file, Charset charset) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), charset))) {
+            return reader.lines().toList();
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to read uploaded file", e);
         }

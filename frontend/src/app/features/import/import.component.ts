@@ -18,13 +18,18 @@ export class ImportComponent {
 
   protected readonly accounts = signal<Account[]>([]);
   protected readonly selectedFile = signal<File | null>(null);
+  protected readonly selectedCsvFile = signal<File | null>(null);
+  protected readonly csvAccountId = signal<number | null>(null);
   protected readonly history = signal<ImportSummary[]>([]);
   protected readonly lastResult = signal<ImportSummary | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly uploading = signal(false);
 
   constructor() {
-    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
+    this.accountService.list().subscribe((accounts) => {
+      this.accounts.set(accounts);
+      this.csvAccountId.set(accounts.find((a) => a.isDefault)?.id ?? null);
+    });
     this.reloadHistory();
   }
 
@@ -51,6 +56,39 @@ export class ImportComponent {
         this.lastResult.set(result);
         this.uploading.set(false);
         this.selectedFile.set(null);
+        this.reloadHistory();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.errorMessage.set(err.error?.message ?? 'Une erreur est survenue.');
+        this.uploading.set(false);
+      },
+    });
+  }
+
+  protected onCsvFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.selectedCsvFile.set(input.files?.[0] ?? null);
+  }
+
+  protected onCsvAccountChange(value: string): void {
+    this.csvAccountId.set(value ? Number(value) : null);
+  }
+
+  protected uploadCsv(): void {
+    const file = this.selectedCsvFile();
+    const accountId = this.csvAccountId();
+    if (file === null || accountId === null) {
+      return;
+    }
+    this.errorMessage.set(null);
+    this.lastResult.set(null);
+    this.uploading.set(true);
+
+    this.importService.uploadCsv(accountId, file).subscribe({
+      next: (result) => {
+        this.lastResult.set(result);
+        this.uploading.set(false);
+        this.selectedCsvFile.set(null);
         this.reloadHistory();
       },
       error: (err: HttpErrorResponse) => {

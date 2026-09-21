@@ -11,8 +11,10 @@ import static org.mockito.Mockito.when;
 import com.personalcashflow.account.Account;
 import com.personalcashflow.account.AccountRepository;
 import com.personalcashflow.account.AccountType;
+import com.personalcashflow.account.AccountNotFoundException;
 import com.personalcashflow.imports.dto.ImportSummaryResponse;
 import com.personalcashflow.imports.dto.ReconciliationSummaryResponse;
+import com.personalcashflow.imports.format.DefaultCsvBankFormat;
 import com.personalcashflow.imports.format.OfxBankFormat;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionRepository;
@@ -20,6 +22,7 @@ import com.personalcashflow.transaction.TransactionStatus;
 import com.personalcashflow.transaction.TransactionType;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
@@ -44,7 +47,9 @@ class ImportServiceTest {
     private AccountRepository accountRepository;
 
     private ImportService service() {
-        return new ImportService(importBatchRepository, transactionRepository, accountRepository, new OfxBankFormat());
+        return new ImportService(
+                importBatchRepository, transactionRepository, accountRepository,
+                new OfxBankFormat(), new DefaultCsvBankFormat());
     }
 
     private static String ofxDocument(String... stmttrns) {
@@ -119,7 +124,30 @@ class ImportServiceTest {
     }
 
     @Test
-    void importOfx_withRowBeforeSeptember2026_shouldThrowOfxTooOldExceptionAndSaveNothing() {
+    void importOfx_withSameAmountDateAndLabelPrefixAsAnExistingRow_shouldSkipAsDuplicate() {
+        // no FITID overlap at all - the hash check alone would not catch this
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, "123");
+        setId(account, 1L);
+        when(accountRepository.findByAccountNumber("123")).thenReturn(Optional.of(account));
+        when(transactionRepository.existsByAccountIdAndImportHash(any(), any())).thenReturn(false);
+        when(transactionRepository.existsSimilarByAccountAmountOriginalDateAndLabelPrefix(
+                        1L, new BigDecimal("-81.24"), LocalDate.of(2026, 9, 5), "CARREFOUR"))
+                .thenReturn(true);
+        when(importBatchRepository.save(any(ImportBatch.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        String ofx = ofxDocument(stmttrn("POS", "20260905", "-81.24", "NEWFIT99", "CARREFOUR"));
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "releve.ofx", "application/x-ofx", ofx.getBytes(StandardCharsets.US_ASCII));
+
+        ImportSummaryResponse summary = service().importOfx(file);
+
+        assertThat(summary.createdCount()).isZero();
+        assertThat(summary.skippedCount()).isEqualTo(1);
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void importOfx_withRowBeforeSeptember2026_shouldThrowImportTooOldExceptionAndSaveNothing() {
         String ofx = ofxDocument(
                 stmttrn("POS", "20260905", "-81.24", "FIT001", "CARREFOUR"),
                 stmttrn("POS", "20260831", "-12.00", "FIT002", "BOULANGERIE"));
@@ -127,7 +155,7 @@ class ImportServiceTest {
                 "file", "releve.ofx", "application/x-ofx", ofx.getBytes(StandardCharsets.US_ASCII));
 
         assertThatThrownBy(() -> service().importOfx(file))
-                .isInstanceOf(OfxTooOldException.class);
+                .isInstanceOf(ImportTooOldException.class);
         verify(transactionRepository, never()).save(any());
         verify(accountRepository, never()).findByAccountNumber(any());
     }
@@ -168,6 +196,123 @@ class ImportServiceTest {
         assertThatThrownBy(() -> service().importOfx(file))
                 .isInstanceOf(EmptyImportFileException.class);
         verify(transactionRepository, never()).save(any());
+    }
+
+    private static String csvDocument(String... dataLines) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Compte;123456\r\n")
+                .append("Du;01/09/2026\r\n")
+                .append("Au;30/09/2026\r\n")
+                .append("Solde;1000,00\r\n")
+                .append("Devise;EUR\r\n")
+                .append("\r\n")
+                .append("Date;Libelle;Montant(EUROS)\r\n");
+        for (String line : dataLines) {
+            sb.append(line).append("\r\n");
+        }
+        return sb.toString();
+    }
+
+    private static MockMultipartFile csvFile(String content) {
+        return new MockMultipartFile(
+                "file", "releve.csv", "text/csv", content.getBytes(Charset.forName("windows-1252")));
+    }
+
+    @Test
+    void importCsv_withNewRows_shouldCreateTransactionsAndSkipDuplicates() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, "123");
+        setId(account, 1L);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(transactionRepository.existsByAccountIdAndImportHash(any(), any())).thenReturn(false);
+        // second row is a duplicate of the first (same date/label/amount -> same derived hash):
+        // not-yet-imported on the first check, already-imported (i.e. just saved) on the second.
+        when(transactionRepository.existsByAccountIdAndImportHash(1L, "2026-09-05|carrefour|-81.24"))
+                .thenReturn(false, true);
+        when(importBatchRepository.save(any(ImportBatch.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MockMultipartFile file = csvFile(csvDocument(
+                "05/09/2026;\"CARREFOUR\";-81,24",
+                "05/09/2026;\"CARREFOUR\";-81,24",
+                "07/09/2026;\"SALAIRE\";2850,00"));
+
+        ImportSummaryResponse summary = service().importCsv(1L, file);
+
+        assertThat(summary.rowCount()).isEqualTo(3);
+        assertThat(summary.createdCount()).isEqualTo(2);
+        assertThat(summary.skippedCount()).isEqualTo(1);
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository, times(2)).save(captor.capture());
+        Transaction first = captor.getAllValues().get(0);
+        assertThat(first.getOriginalDate()).isEqualTo(LocalDate.of(2026, 9, 5));
+        assertThat(first.getOriginalLabel()).isEqualTo("CARREFOUR");
+        assertThat(first.getImportHash()).isEqualTo("2026-09-05|carrefour|-81.24");
+    }
+
+    @Test
+    void importCsv_withSameAmountDateAndLabelPrefixAsAnExistingRow_shouldSkipAsDuplicate() {
+        // e.g. the same real purchase already imported via OFX, whose FITID-based hash is unrelated
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, "123");
+        setId(account, 1L);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(transactionRepository.existsByAccountIdAndImportHash(any(), any())).thenReturn(false);
+        when(transactionRepository.existsSimilarByAccountAmountOriginalDateAndLabelPrefix(
+                        1L, new BigDecimal("-81.24"), LocalDate.of(2026, 9, 5), "CARREFOUR"))
+                .thenReturn(true);
+        when(importBatchRepository.save(any(ImportBatch.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MockMultipartFile file = csvFile(csvDocument("05/09/2026;\"CARREFOUR\";-81,24"));
+
+        ImportSummaryResponse summary = service().importCsv(1L, file);
+
+        assertThat(summary.createdCount()).isZero();
+        assertThat(summary.skippedCount()).isEqualTo(1);
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void importCsv_withRowBeforeSeptember2026_shouldThrowImportTooOldExceptionAndSaveNothing() {
+        MockMultipartFile file = csvFile(csvDocument("31/08/2026;\"BOULANGERIE\";-12,00"));
+
+        assertThatThrownBy(() -> service().importCsv(1L, file))
+                .isInstanceOf(ImportTooOldException.class);
+        verify(transactionRepository, never()).save(any());
+        verify(accountRepository, never()).findById(any());
+    }
+
+    @Test
+    void importCsv_whenAccountMissing_shouldThrowAccountNotFoundException() {
+        when(accountRepository.findById(99L)).thenReturn(Optional.empty());
+        MockMultipartFile file = csvFile(csvDocument("05/09/2026;\"CARREFOUR\";-81,24"));
+
+        assertThatThrownBy(() -> service().importCsv(99L, file))
+                .isInstanceOf(AccountNotFoundException.class);
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void importCsv_withEmptyFile_shouldThrowEmptyImportFileException() {
+        MockMultipartFile file = new MockMultipartFile("file", "releve.csv", "text/csv", new byte[0]);
+
+        assertThatThrownBy(() -> service().importCsv(1L, file))
+                .isInstanceOf(EmptyImportFileException.class);
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void importCsv_withMalformedLine_shouldSkipIt() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, "123");
+        setId(account, 1L);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(transactionRepository.existsByAccountIdAndImportHash(any(), any())).thenReturn(false);
+        when(importBatchRepository.save(any(ImportBatch.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MockMultipartFile file = csvFile(csvDocument("not;a;valid;csv;line", "05/09/2026;\"CARREFOUR\";-81,24"));
+
+        ImportSummaryResponse summary = service().importCsv(1L, file);
+
+        assertThat(summary.rowCount()).isEqualTo(2);
+        assertThat(summary.createdCount()).isEqualTo(1);
+        assertThat(summary.skippedCount()).isEqualTo(1);
     }
 
     private static Transaction candidate(LocalDate date, String label, String amount) {

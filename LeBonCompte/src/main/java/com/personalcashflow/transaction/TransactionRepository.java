@@ -52,6 +52,27 @@ public interface TransactionRepository
 
     boolean existsByAccountIdAndImportHash(Long accountId, String importHash);
 
+    /**
+     * Catches near-duplicates the import hash misses - e.g. the same real transaction imported once
+     * via OFX and once via CSV, whose hashes have nothing in common - by amount + original date, with
+     * either original label being a prefix of the other (OFX and CSV truncate the bank's own wording
+     * differently). {@code label} must already have '%', '_' and '\' escaped by the caller: only that
+     * side of the comparison can be escaped safely, the other compares against a stored column value.
+     */
+    @Query("""
+            SELECT COUNT(t) > 0 FROM Transaction t
+            WHERE t.account.id = :accountId
+              AND t.amount = :amount
+              AND t.originalDate = :originalDate
+              AND (t.originalLabel LIKE CONCAT(:label, '%') ESCAPE '\\'
+                   OR :label LIKE CONCAT(t.originalLabel, '%'))
+            """)
+    boolean existsSimilarByAccountAmountOriginalDateAndLabelPrefix(
+            @Param("accountId") Long accountId,
+            @Param("amount") BigDecimal amount,
+            @Param("originalDate") LocalDate originalDate,
+            @Param("label") String label);
+
     boolean existsByRecurringTransactionIdAndDate(Long recurringTransactionId, LocalDate date);
 
     /** Scoped to {@code importHash} prefix so this only ever returns Excel-backfilled placeholder rows. */
