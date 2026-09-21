@@ -135,7 +135,10 @@
           @for (budget of data.budgetsParCategorie; track budget.id) {
             <li>
               <div class="budget-mini-head">
-                <span>{{ budget.categoryName }}</span>
+                <span class="budget-mini-name">
+                  <span class="dot" [style.background]="budgetColor(budget.categoryName)"></span>
+                  {{ budget.categoryName }}
+                </span>
                 <span class="budget-mini-amounts">{{ budget.spent | number: '1.2-2' }} € / {{ budget.amount | number: '1.2-2' }} €</span>
               </div>
               <div class="progress-track">
@@ -143,8 +146,12 @@
                   class="progress-fill"
                   [class.over-budget]="budget.percentageConsumed > 100"
                   [style.width.%]="budget.percentageConsumed > 100 ? 100 : budget.percentageConsumed"
+                  [style.background]="budget.percentageConsumed > 100 ? null : budgetColor(budget.categoryName)"
                 ></div>
               </div>
+              <span class="budget-mini-remaining" [class.negative]="budget.remaining < 0">
+                Reste : {{ budget.remaining | number: '1.2-2' }} €
+              </span>
             </li>
           }
         </ul>

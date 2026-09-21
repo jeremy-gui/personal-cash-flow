@@ -75,6 +75,13 @@ export class DashboardComponent {
     return `conic-gradient(${stops})`;
   });
 
+  /** Keeps "Budgets par catégorie" in the same colors as the "Dépenses par catégorie" donut. */
+  private readonly categoryColorMap = computed(() => {
+    const map = new Map<string, string>();
+    this.categoryDonutSegments().forEach((s) => map.set(s.categoryName, s.color));
+    return map;
+  });
+
   constructor() {
     this.accountService.list().subscribe((accounts) => {
       this.defaultAccountId = accounts.find((a) => a.isDefault)?.id ?? null;
@@ -113,7 +120,16 @@ export class DashboardComponent {
   }
 
   protected categoryColor(transaction: Transaction): string {
-    const key = transaction.categoryName ?? transaction.label;
+    return this.hashColor(transaction.categoryName ?? transaction.label);
+  }
+
+  /** A budget's category may have no spending yet, so it won't be in the donut - fall back to
+   *  the same hash-based color used for uncategorized transactions rather than leaving it blank. */
+  protected budgetColor(categoryName: string): string {
+    return this.categoryColorMap().get(categoryName) ?? this.hashColor(categoryName);
+  }
+
+  private hashColor(key: string): string {
     let hash = 0;
     for (let i = 0; i < key.length; i++) {
       hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
