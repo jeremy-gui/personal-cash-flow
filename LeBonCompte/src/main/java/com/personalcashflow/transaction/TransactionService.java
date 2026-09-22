@@ -74,28 +74,73 @@ public class TransactionService {
     public Transaction create(TransactionRequest request) {
         Account account = resolveAccount(request.accountId());
         Category category = resolveCategory(request.categoryId());
+        Account transferAccount = resolveTransferAccount(request);
         Transaction transaction = Transaction.manual(
                 request.date(),
                 request.label(),
                 signedAmount(request),
                 account,
                 category,
-                request.type());
-        return transactionRepository.save(transaction);
+                request.type(),
+                transferAccount);
+        transactionRepository.save(transaction);
+        syncTransferMirror(transaction);
+        return transaction;
     }
 
     public Transaction update(Long id, TransactionRequest request) {
         Transaction transaction = findById(id);
         Account account = resolveAccount(request.accountId());
         Category category = resolveCategory(request.categoryId());
+        Account transferAccount = resolveTransferAccount(request);
         transaction.update(
                 request.date(),
                 request.label(),
                 signedAmount(request),
                 account,
                 category,
-                request.type());
+                request.type(),
+                transferAccount);
+        syncTransferMirror(transaction);
         return transaction;
+    }
+
+    /**
+     * Creates, updates or removes the mirror row on {@link Transaction#getTransferAccount()} so a
+     * TRANSFERT always has both legs recorded. Not a transfer (any more) -> any existing mirror is
+     * dropped. Already has one -> keep it in sync (also handles the target account changing: the
+     * old mirror belongs to the wrong account, so it's dropped and rebuilt against the new one).
+     */
+    private void syncTransferMirror(Transaction transaction) {
+        if (transaction.getType() != TransactionType.TRANSFERT || transaction.getTransferAccount() == null) {
+            removeMirrorIfPresent(transaction);
+            return;
+        }
+        Transaction mirror = transaction.getLinkedTransaction();
+        if (mirror != null && mirror.getAccount().getId().equals(transaction.getTransferAccount().getId())) {
+            mirror.mirrorFrom(transaction);
+            return;
+        }
+        removeMirrorIfPresent(transaction);
+        Transaction newMirror = Transaction.mirrorOf(transaction);
+        transactionRepository.save(newMirror);
+        transaction.linkTo(newMirror);
+        newMirror.linkTo(transaction);
+    }
+
+    private void removeMirrorIfPresent(Transaction transaction) {
+        Transaction mirror = transaction.getLinkedTransaction();
+        if (mirror != null) {
+            transaction.unlink();
+            transactionRepository.delete(mirror);
+        }
+    }
+
+    private Account resolveTransferAccount(TransactionRequest request) {
+        if (request.type() != TransactionType.TRANSFERT || request.transferAccountId() == null) {
+            return null;
+        }
+        return resolveAccount(request.transferAccountId());
     }
 
     /** Recurring-generated instance info, if any, so a caller can tell the recurrence to skip regenerating it. */
@@ -108,6 +153,7 @@ public class TransactionService {
                 ? transaction.getRecurringTransaction().getId()
                 : null;
         LocalDate date = transaction.getDate();
+        removeMirrorIfPresent(transaction);
         transactionRepository.delete(transaction);
         return new DeletedTransaction(recurringTransactionId, date);
     }
@@ -139,10 +185,12 @@ public class TransactionService {
         return ids.stream().map(this::confirmLabel).toList();
     }
 
+    /** DEPENSE is always negative and REVENU always positive; TRANSFERT has no inherent direction
+     *  so {@code outgoing} decides (true = leaves this account, like a DEPENSE). */
     private static BigDecimal signedAmount(TransactionRequest request) {
-        return request.type() == TransactionType.DEPENSE
-                ? request.amount().negate()
-                : request.amount();
+        boolean negative = request.type() == TransactionType.DEPENSE
+                || (request.type() == TransactionType.TRANSFERT && request.outgoing());
+        return negative ? request.amount().negate() : request.amount();
     }
 
     private Account resolveAccount(Long accountId) {

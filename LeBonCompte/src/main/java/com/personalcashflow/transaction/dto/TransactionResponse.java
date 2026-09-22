@@ -23,10 +23,13 @@ public record TransactionResponse(
         String originalLabel,
         boolean matched,
         boolean categoryConfirmed,
-        boolean labelConfirmed) {
+        boolean labelConfirmed,
+        Long transferAccountId,
+        String transferAccountName) {
 
     public static TransactionResponse from(Transaction transaction) {
         var category = transaction.getCategory();
+        var transferAccount = transaction.getTransferAccount();
         return new TransactionResponse(
                 transaction.getId(),
                 transaction.getDate(),
@@ -43,6 +46,8 @@ public record TransactionResponse(
                 transaction.getOriginalLabel(),
                 transaction.isMatched(),
                 transaction.isCategoryConfirmed(),
-                transaction.isLabelConfirmed());
+                transaction.isLabelConfirmed(),
+                transferAccount != null ? transferAccount.getId() : null,
+                transferAccount != null ? transferAccount.getName() : null);
     }
 }

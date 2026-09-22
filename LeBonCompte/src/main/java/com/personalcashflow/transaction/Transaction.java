@@ -43,6 +43,20 @@ public class Transaction {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    /** The other account in a TRANSFERT pair; null for DEPENSE/REVENU. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transfer_account_id")
+    private Account transferAccount;
+
+    /**
+     * The mirror row on {@link #transferAccount} (opposite sign, same date/label/category/status),
+     * kept in sync by {@link com.personalcashflow.transaction.TransactionService}. Each side of a
+     * pair simply points at the other's id - this is not a bidirectional JPA relationship.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "linked_transaction_id")
+    private Transaction linkedTransaction;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private TransactionType type;
@@ -135,6 +149,40 @@ public class Transaction {
         return new Transaction(date, label, amount, account, category, type, TransactionStatus.PREVISIONNELLE);
     }
 
+    /** Same as {@link #manual}, with the other account of a TRANSFERT pair attached. */
+    public static Transaction manual(
+            LocalDate date,
+            String label,
+            BigDecimal amount,
+            Account account,
+            Category category,
+            TransactionType type,
+            Account transferAccount) {
+        Transaction transaction = manual(date, label, amount, account, category, type);
+        transaction.transferAccount = transferAccount;
+        return transaction;
+    }
+
+    /**
+     * The other leg of a transfer, auto-generated to mirror its counterpart: opposite sign, same
+     * date/label/category, and the same status (a POINTEE source produces a POINTEE mirror
+     * immediately - a deliberate, narrow exception to "POINTEE only via import/reconciliation",
+     * since the money really did move the moment the source side was pointée).
+     */
+    public static Transaction mirrorOf(Transaction source) {
+        Transaction mirror = new Transaction(
+                source.date,
+                source.label,
+                source.amount.negate(),
+                source.transferAccount,
+                source.category,
+                TransactionType.TRANSFERT,
+                source.status);
+        mirror.source = TransactionSource.TRANSFER;
+        mirror.transferAccount = source.account;
+        return mirror;
+    }
+
     public static Transaction imported(
             LocalDate date,
             String label,
@@ -188,6 +236,14 @@ public class Transaction {
 
     public Category getCategory() {
         return category;
+    }
+
+    public Account getTransferAccount() {
+        return transferAccount;
+    }
+
+    public Transaction getLinkedTransaction() {
+        return linkedTransaction;
     }
 
     public TransactionType getType() {
@@ -310,15 +366,38 @@ public class Transaction {
             BigDecimal amount,
             Account account,
             Category category,
-            TransactionType type) {
+            TransactionType type,
+            Account transferAccount) {
         this.date = date;
         this.label = label;
         this.amount = amount;
         this.account = account;
         this.category = category;
         this.type = type;
+        this.transferAccount = transferAccount;
         // A deliberate edit always counts as review, whether it keeps a suggested value or changes it.
         this.categoryConfirmed = true;
         this.labelConfirmed = true;
+    }
+
+    /** Points this row at its counterpart on the other side of a transfer. */
+    public void linkTo(Transaction linkedTransaction) {
+        this.linkedTransaction = linkedTransaction;
+    }
+
+    /** Drops the link to a counterpart, e.g. before deleting it or once this is no longer a transfer. */
+    public void unlink() {
+        this.linkedTransaction = null;
+    }
+
+    /** Keeps an existing mirror in sync after its counterpart ({@code source}) was edited. */
+    public void mirrorFrom(Transaction source) {
+        this.date = source.date;
+        this.label = source.label;
+        this.amount = source.amount.negate();
+        this.account = source.transferAccount;
+        this.category = source.category;
+        this.status = source.status;
+        this.transferAccount = source.account;
     }
 }

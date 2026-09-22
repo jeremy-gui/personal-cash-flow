@@ -1,5 +1,8 @@
 package com.personalcashflow.category;
 
+import com.personalcashflow.account.Account;
+import com.personalcashflow.account.AccountNotFoundException;
+import com.personalcashflow.account.AccountRepository;
 import com.personalcashflow.category.dto.CategoryRequest;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -10,9 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final AccountRepository accountRepository;
 
-    public CategoryService(CategoryRepository categoryRepository) {
+    public CategoryService(CategoryRepository categoryRepository, AccountRepository accountRepository) {
         this.categoryRepository = categoryRepository;
+        this.accountRepository = accountRepository;
     }
 
     @Transactional(readOnly = true)
@@ -28,7 +33,8 @@ public class CategoryService {
 
     public Category create(CategoryRequest request) {
         Category parent = resolveParent(request.parentId());
-        Category category = new Category(request.name(), parent);
+        Account defaultTransferAccount = resolveAccount(request.defaultTransferAccountId());
+        Category category = new Category(request.name(), parent, defaultTransferAccount);
         return categoryRepository.save(category);
     }
 
@@ -38,7 +44,8 @@ public class CategoryService {
             assertNoCycle(id, request.parentId());
         }
         Category parent = resolveParent(request.parentId());
-        category.update(request.name(), parent);
+        Account defaultTransferAccount = resolveAccount(request.defaultTransferAccountId());
+        category.update(request.name(), parent, defaultTransferAccount);
         return category;
     }
 
@@ -55,6 +62,14 @@ public class CategoryService {
             return null;
         }
         return findById(parentId);
+    }
+
+    private Account resolveAccount(Long accountId) {
+        if (accountId == null) {
+            return null;
+        }
+        return accountRepository.findById(accountId)
+                .orElseThrow(() -> new AccountNotFoundException(accountId));
     }
 
     private void assertNoCycle(Long categoryId, Long proposedParentId) {

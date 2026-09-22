@@ -176,6 +176,8 @@ export class TransactionsComponent {
     accountId: this.fb.control<number | null>(null, Validators.required),
     categoryId: this.fb.control<number | null>(null),
     type: this.fb.nonNullable.control<TransactionType>('DEPENSE'),
+    transferAccountId: this.fb.control<number | null>(null),
+    outgoing: this.fb.nonNullable.control<boolean>(true),
   });
 
   /** Populated per-row when a transaction is being edited in-line in the table. */
@@ -186,6 +188,8 @@ export class TransactionsComponent {
     accountId: this.fb.control<number | null>(null, Validators.required),
     categoryId: this.fb.control<number | null>(null),
     type: this.fb.nonNullable.control<TransactionType>('DEPENSE'),
+    transferAccountId: this.fb.control<number | null>(null),
+    outgoing: this.fb.nonNullable.control<boolean>(true),
   });
 
   private defaultAccountId: number | null = null;
@@ -199,6 +203,21 @@ export class TransactionsComponent {
       this.reload();
     });
     this.categoryService.list().subscribe((categories) => this.categories.set(categories));
+    // Picking a category that has a configured default transfer account pre-fills type/compte
+    // cible - a suggestion only, the user can still change either field afterward.
+    this.form.controls.categoryId.valueChanges.subscribe((categoryId) =>
+      this.applyDefaultTransferAccount(this.form, categoryId),
+    );
+    this.editForm.controls.categoryId.valueChanges.subscribe((categoryId) =>
+      this.applyDefaultTransferAccount(this.editForm, categoryId),
+    );
+  }
+
+  private applyDefaultTransferAccount(form: typeof this.form, categoryId: number | null): void {
+    const account = this.categories().find((c) => c.id === categoryId)?.defaultTransferAccountId;
+    if (account != null) {
+      form.patchValue({ type: 'TRANSFERT', transferAccountId: account });
+    }
   }
 
   private today(): string {
@@ -256,14 +275,22 @@ export class TransactionsComponent {
   protected edit(transaction: Transaction): void {
     this.pendingDeleteId.set(null);
     this.editingId.set(transaction.id);
-    this.editForm.setValue({
-      date: transaction.date,
-      label: transaction.label,
-      amount: Math.abs(transaction.amount),
-      accountId: transaction.accountId,
-      categoryId: transaction.categoryId,
-      type: transaction.type,
-    });
+    // emitEvent: false - loading an existing (possibly TRANSFERT) transaction must not trigger
+    // the category valueChanges handler and clobber its real transferAccountId/type with a
+    // category's default.
+    this.editForm.setValue(
+      {
+        date: transaction.date,
+        label: transaction.label,
+        amount: Math.abs(transaction.amount),
+        accountId: transaction.accountId,
+        categoryId: transaction.categoryId,
+        type: transaction.type,
+        transferAccountId: transaction.transferAccountId,
+        outgoing: transaction.type !== 'TRANSFERT' || transaction.amount < 0,
+      },
+      { emitEvent: false },
+    );
   }
 
   protected cancelEdit(): void {
@@ -274,6 +301,10 @@ export class TransactionsComponent {
     this.editForm.controls.type.setValue(type);
   }
 
+  protected setEditOutgoing(outgoing: boolean): void {
+    this.editForm.controls.outgoing.setValue(outgoing);
+  }
+
   protected submit(): void {
     if (this.form.invalid) {
       return;
@@ -281,14 +312,19 @@ export class TransactionsComponent {
     const raw = this.form.getRawValue();
     const request: TransactionRequest = { ...raw, accountId: raw.accountId! };
     this.transactionService.create(request).subscribe(() => {
-      this.form.reset({
-        date: this.today(),
-        label: '',
-        amount: 0,
-        accountId: this.defaultAccountId,
-        categoryId: null,
-        type: 'DEPENSE',
-      });
+      this.form.reset(
+        {
+          date: this.today(),
+          label: '',
+          amount: 0,
+          accountId: this.defaultAccountId,
+          categoryId: null,
+          type: 'DEPENSE',
+          transferAccountId: null,
+          outgoing: true,
+        },
+        { emitEvent: false },
+      );
       this.reload();
     });
   }

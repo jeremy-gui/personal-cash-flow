@@ -2,11 +2,15 @@ export interface Category {
   id: number;
   name: string;
   parentId: number | null;
+  /** Pre-fills a transaction's target account when this category is picked and TRANSFERT is chosen. */
+  defaultTransferAccountId: number | null;
+  defaultTransferAccountName: string | null;
 }
 
 export interface CategoryRequest {
   name: string;
   parentId: number | null;
+  defaultTransferAccountId: number | null;
 }
 
 export interface CategoryTreeNode extends Category {

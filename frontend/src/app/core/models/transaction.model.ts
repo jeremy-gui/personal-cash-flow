@@ -1,10 +1,11 @@
-export type TransactionType = 'DEPENSE' | 'REVENU';
+export type TransactionType = 'DEPENSE' | 'REVENU' | 'TRANSFERT';
 export type TransactionStatus = 'PREVISIONNELLE' | 'POINTEE';
-export type TransactionSource = 'MANUAL' | 'IMPORT';
+export type TransactionSource = 'MANUAL' | 'IMPORT' | 'TRANSFER';
 
 export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   DEPENSE: 'Dépense',
   REVENU: 'Revenu',
+  TRANSFERT: 'Transfert',
 };
 
 export const TRANSACTION_STATUS_LABELS: Record<TransactionStatus, string> = {
@@ -32,12 +33,17 @@ export interface Transaction {
   categoryConfirmed: boolean;
   /** False while the label was auto-suggested from import history and not yet reviewed. */
   labelConfirmed: boolean;
+  /** The other account of a TRANSFERT pair; null for DEPENSE/REVENU. */
+  transferAccountId: number | null;
+  transferAccountName: string | null;
 }
 
 /**
- * amount is the positive magnitude entered by the user; the backend derives the sign from type.
+ * amount is the positive magnitude entered by the user; the backend derives the sign from type
+ * (DEPENSE/REVENU) or from outgoing (TRANSFERT only - true if money leaves this account).
+ * transferAccountId is required when type is TRANSFERT, ignored otherwise.
  * There is no status: manual entries are always PREVISIONNELLE. POINTEE only comes from a bank
- * import or from reconciling a previsionnelle against one.
+ * import, a reconciliation, or the mirror side of a transfer.
  */
 export interface TransactionRequest {
   date: string;
@@ -46,6 +52,8 @@ export interface TransactionRequest {
   accountId: number;
   categoryId: number | null;
   type: TransactionType;
+  transferAccountId: number | null;
+  outgoing: boolean;
 }
 
 export interface TransactionFilters {

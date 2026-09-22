@@ -208,32 +208,75 @@
         </select>
       </td>
       <td class="icon-cell type-toggle">
-        <button
-          type="button"
-          class="icon-toggle"
-          [class.active]="editForm.controls.type.value === 'REVENU'"
-          title="Revenu"
-          aria-label="Revenu"
-          (click)="setEditType('REVENU')"
-        >
-          <svg class="icon positive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="12" y1="19" x2="12" y2="5"></line>
-            <polyline points="6 11 12 5 18 11"></polyline>
-          </svg>
-        </button>
-        <button
-          type="button"
-          class="icon-toggle"
-          [class.active]="editForm.controls.type.value === 'DEPENSE'"
-          title="Dépense"
-          aria-label="Dépense"
-          (click)="setEditType('DEPENSE')"
-        >
-          <svg class="icon negative" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <polyline points="18 13 12 19 6 13"></polyline>
-          </svg>
-        </button>
+        <div class="type-toggle-row">
+          <button
+            type="button"
+            class="icon-toggle"
+            [class.active]="editForm.controls.type.value === 'REVENU'"
+            title="Revenu"
+            aria-label="Revenu"
+            (click)="setEditType('REVENU')"
+          >
+            <svg class="icon positive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="12" y1="19" x2="12" y2="5"></line>
+              <polyline points="6 11 12 5 18 11"></polyline>
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="icon-toggle"
+            [class.active]="editForm.controls.type.value === 'DEPENSE'"
+            title="Dépense"
+            aria-label="Dépense"
+            (click)="setEditType('DEPENSE')"
+          >
+            <svg class="icon negative" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <polyline points="18 13 12 19 6 13"></polyline>
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="icon-toggle transfer-toggle"
+            [class.active]="editForm.controls.type.value === 'TRANSFERT'"
+            title="Transfert"
+            aria-label="Transfert"
+            (click)="setEditType('TRANSFERT')"
+          >
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="17 1 21 5 17 9"></polyline>
+              <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+              <polyline points="7 23 3 19 7 15"></polyline>
+              <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>
+          </button>
+        </div>
+        @if (editForm.controls.type.value === 'TRANSFERT') {
+          <div class="transfer-fields">
+            <select [formControl]="editForm.controls.transferAccountId">
+              <option [ngValue]="null">Compte cible…</option>
+              @for (account of accounts(); track account.id) {
+                <option [ngValue]="account.id">{{ account.name }}</option>
+              }
+            </select>
+            <div class="direction-toggle">
+              <button
+                type="button"
+                class="direction-button"
+                [class.active]="editForm.controls.outgoing.value"
+                title="Sortant"
+                (click)="setEditOutgoing(true)"
+              >Sortant</button>
+              <button
+                type="button"
+                class="direction-button"
+                [class.active]="!editForm.controls.outgoing.value"
+                title="Entrant"
+                (click)="setEditOutgoing(false)"
+              >Entrant</button>
+            </div>
+          </div>
+        }
       </td>
       <td>
         <input type="number" step="0.01" min="0.01" class="amount-input" [formControl]="editForm.controls.amount" />
@@ -326,6 +369,13 @@
             <line x1="12" y1="19" x2="12" y2="5"></line>
             <polyline points="6 11 12 5 18 11"></polyline>
           </svg>
+        } @else if (transaction.type === 'TRANSFERT') {
+          <svg class="icon transfer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="17 1 21 5 17 9"></polyline>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+            <polyline points="7 23 3 19 7 15"></polyline>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+          </svg>
         } @else {
           <svg class="icon negative" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -334,7 +384,12 @@
         }
       </td>
       <td [class.negative]="transaction.amount < 0" [class.positive]="transaction.amount >= 0">
-        {{ transaction.amount | number: '1.2-2' }} €
+        <div class="amount-cell">
+          <span>{{ transaction.amount | number: '1.2-2' }} €</span>
+          @if (transaction.type === 'TRANSFERT' && transaction.transferAccountName) {
+            <span class="transfer-hint">{{ transaction.amount < 0 ? '→' : '←' }} {{ transaction.transferAccountName }}</span>
+          }
+        </div>
       </td>
       <td class="match-cell">
         <app-match-picker
@@ -414,6 +469,26 @@
       }
     </select>
   </label>
+
+  @if (form.controls.type.value === 'TRANSFERT') {
+    <label>
+      Compte cible
+      <select formControlName="transferAccountId">
+        <option [ngValue]="null">Sélectionner…</option>
+        @for (account of accounts(); track account.id) {
+          <option [ngValue]="account.id">{{ account.name }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      Sens
+      <select formControlName="outgoing">
+        <option [ngValue]="true">Sortant (quitte ce compte)</option>
+        <option [ngValue]="false">Entrant (arrive sur ce compte)</option>
+      </select>
+    </label>
+  }
 
   <label>
     Montant

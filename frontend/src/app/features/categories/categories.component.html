@@ -11,12 +11,18 @@
     <tr>
       <th>Nom</th>
       <th></th>
+      <th></th>
     </tr>
   </thead>
   <tbody>
     @for (category of tree(); track category.id) {
       <tr>
         <td [style.paddingLeft.px]="category.depth * 24 + 24">{{ category.name }}</td>
+        <td>
+          @if (category.defaultTransferAccountName) {
+            <span class="transfer-badge">→ {{ category.defaultTransferAccountName }}</span>
+          }
+        </td>
         <td class="actions">
           @if (pendingDeleteId() === category.id) {
             <button type="button" class="confirm-delete" (click)="confirmDelete(category.id)">Confirmer</button>
@@ -29,7 +35,7 @@
       </tr>
     } @empty {
       <tr>
-        <td colspan="2">Aucune catégorie pour l'instant.</td>
+        <td colspan="3">Aucune catégorie pour l'instant.</td>
       </tr>
     }
   </tbody>
@@ -52,6 +58,16 @@
       <option [ngValue]="null">Aucune (catégorie racine)</option>
       @for (option of parentOptions(); track option.id) {
         <option [ngValue]="option.id">{{ option.name }}</option>
+      }
+    </select>
+  </label>
+
+  <label>
+    Compte cible par défaut (virements)
+    <select formControlName="defaultTransferAccountId">
+      <option [ngValue]="null">Aucun</option>
+      @for (account of accounts(); track account.id) {
+        <option [ngValue]="account.id">{{ account.name }}</option>
       }
     </select>
   </label>

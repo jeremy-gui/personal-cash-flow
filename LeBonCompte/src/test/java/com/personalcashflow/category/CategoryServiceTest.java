@@ -6,8 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.personalcashflow.account.Account;
+import com.personalcashflow.account.AccountRepository;
+import com.personalcashflow.account.AccountType;
 import com.personalcashflow.category.dto.CategoryRequest;
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,12 +25,15 @@ class CategoryServiceTest {
     @Mock
     private CategoryRepository categoryRepository;
 
+    @Mock
+    private AccountRepository accountRepository;
+
     @InjectMocks
     private CategoryService categoryService;
 
     @Test
     void create_withoutParent_shouldSaveRootCategory() {
-        CategoryRequest request = new CategoryRequest("Loisirs", null);
+        CategoryRequest request = new CategoryRequest("Loisirs", null, null);
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Category created = categoryService.create(request);
@@ -41,9 +48,34 @@ class CategoryServiceTest {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(parent));
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Category created = categoryService.create(new CategoryRequest("Électricité", 1L));
+        Category created = categoryService.create(new CategoryRequest("Électricité", 1L, null));
 
         assertThat(created.getParent()).isEqualTo(parent);
+    }
+
+    @Test
+    void create_withDefaultTransferAccount_shouldResolveItFromRepository() {
+        Account account = new Account("LDDS", AccountType.LIVRET, BigDecimal.ZERO, null);
+        setAccountId(account, 7L);
+        when(accountRepository.findById(7L)).thenReturn(Optional.of(account));
+        when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Category created = categoryService.create(new CategoryRequest("Provision", null, 7L));
+
+        assertThat(created.getDefaultTransferAccount()).isEqualTo(account);
+    }
+
+    @Test
+    void update_shouldApplyDefaultTransferAccount() {
+        Category category = categoryWithId(1L, "Provision", null);
+        Account account = new Account("LDDS", AccountType.LIVRET, BigDecimal.ZERO, null);
+        setAccountId(account, 7L);
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(accountRepository.findById(7L)).thenReturn(Optional.of(account));
+
+        Category updated = categoryService.update(1L, new CategoryRequest("Provision", null, 7L));
+
+        assertThat(updated.getDefaultTransferAccount()).isEqualTo(account);
     }
 
     @Test
@@ -61,7 +93,7 @@ class CategoryServiceTest {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(root));
         when(categoryRepository.findById(2L)).thenReturn(Optional.of(child));
 
-        assertThatThrownBy(() -> categoryService.update(1L, new CategoryRequest("Logement", 2L)))
+        assertThatThrownBy(() -> categoryService.update(1L, new CategoryRequest("Logement", 2L, null)))
                 .isInstanceOf(CategoryCycleException.class);
     }
 
@@ -70,7 +102,7 @@ class CategoryServiceTest {
         Category category = categoryWithId(1L, "Logement", null);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
 
-        assertThatThrownBy(() -> categoryService.update(1L, new CategoryRequest("Logement", 1L)))
+        assertThatThrownBy(() -> categoryService.update(1L, new CategoryRequest("Logement", 1L, null)))
                 .isInstanceOf(CategoryCycleException.class);
     }
 
@@ -106,5 +138,15 @@ class CategoryServiceTest {
             throw new RuntimeException(e);
         }
         return category;
+    }
+
+    private static void setAccountId(Account account, Long id) {
+        try {
+            Field idField = Account.class.getDeclaredField("id");
+            idField.setAccessible(true);
+            idField.set(account, id);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

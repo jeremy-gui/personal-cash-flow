@@ -32,6 +32,8 @@ final class TransactionSpecifications {
             Join<Transaction, Account> accountJoin = (Join<Transaction, Account>) (Join) root.fetch("account", JoinType.INNER);
             @SuppressWarnings("unchecked")
             Join<Transaction, Category> categoryJoin = (Join<Transaction, Category>) (Join) root.fetch("category", JoinType.LEFT);
+            // transferAccountName is read in TransactionResponse.from() too, same reasoning as account/category.
+            root.fetch("transferAccount", JoinType.LEFT);
             query.orderBy(cb.desc(root.get("date")), cb.desc(root.get("id")));
 
             List<Predicate> predicates = new ArrayList<>();

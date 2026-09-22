@@ -2,11 +2,13 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Account } from '../../core/models/account.model';
 import {
   Category,
   buildCategoryTree,
   excludeSubtree,
 } from '../../core/models/category.model';
+import { AccountService } from '../accounts/account.service';
 import { CategoryService } from './category.service';
 
 @Component({
@@ -17,9 +19,11 @@ import { CategoryService } from './category.service';
 })
 export class CategoriesComponent {
   private readonly categoryService = inject(CategoryService);
+  private readonly accountService = inject(AccountService);
   private readonly fb = inject(FormBuilder);
 
   protected readonly categories = signal<Category[]>([]);
+  protected readonly accounts = signal<Account[]>([]);
   protected readonly editingId = signal<number | null>(null);
   protected readonly pendingDeleteId = signal<number | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
@@ -34,10 +38,12 @@ export class CategoriesComponent {
   protected readonly form = this.fb.nonNullable.group({
     name: ['', Validators.required],
     parentId: this.fb.control<number | null>(null),
+    defaultTransferAccountId: this.fb.control<number | null>(null),
   });
 
   constructor() {
     this.reload();
+    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
   }
 
   private reload(): void {
@@ -48,12 +54,16 @@ export class CategoriesComponent {
     this.pendingDeleteId.set(null);
     this.editingId.set(category.id);
     this.errorMessage.set(null);
-    this.form.setValue({ name: category.name, parentId: category.parentId });
+    this.form.setValue({
+      name: category.name,
+      parentId: category.parentId,
+      defaultTransferAccountId: category.defaultTransferAccountId,
+    });
   }
 
   protected cancelEdit(): void {
     this.editingId.set(null);
-    this.form.reset({ name: '', parentId: null });
+    this.form.reset({ name: '', parentId: null, defaultTransferAccountId: null });
   }
 
   protected submit(): void {

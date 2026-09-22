@@ -136,6 +136,14 @@
 }
 
 .type-toggle {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.type-toggle-row {
   display: flex;
   justify-content: center;
   gap: 4px;
@@ -164,6 +172,78 @@
   opacity: 1;
   border-color: currentColor;
   background: var(--bg);
+}
+
+.transfer-toggle.active {
+  color: var(--blue);
+}
+
+/* Floats as a popover instead of stretching the narrow .col-type column: anchored to
+   .type-toggle (position: relative), it overlaps the row below it rather than pushing/
+   overflowing into the adjacent Montant/Rapprochement columns. */
+.transfer-fields {
+  position: absolute;
+  top: 100%;
+  /* Anchored to the right edge, growing left: the type column sits near the right side of the
+     table, with the narrow Montant/Rapprochement/Actions columns beyond it - centering (or
+     growing right) pushed this off the viewport edge on typical window widths. */
+  right: 0;
+  z-index: 20;
+  margin-top: 4px;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.transfer-fields select {
+  width: 100%;
+  font-size: 0.75rem;
+  padding: 4px 6px;
+}
+
+.direction-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.direction-button {
+  flex: 1;
+  font-size: 0.7rem;
+  padding: 3px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink-faint);
+}
+
+.direction-button.active {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.icon.transfer {
+  color: var(--blue);
+}
+
+.amount-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.transfer-hint {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--ink-faint);
+  white-space: nowrap;
 }
 
 .truncate {

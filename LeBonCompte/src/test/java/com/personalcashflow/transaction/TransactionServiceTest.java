@@ -49,7 +49,7 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.of(2026, 9, 5), "Carrefour", BigDecimal.valueOf(80), 1L, null,
-                TransactionType.DEPENSE);
+                TransactionType.DEPENSE, null, false);
 
         Transaction created = transactionService.create(request);
 
@@ -64,7 +64,7 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.of(2026, 9, 5), "Carrefour", BigDecimal.valueOf(80), 1L, null,
-                TransactionType.DEPENSE);
+                TransactionType.DEPENSE, null, false);
 
         Transaction created = transactionService.create(request);
 
@@ -79,7 +79,7 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.of(2026, 9, 8), "Salaire", BigDecimal.valueOf(2850), 1L, null,
-                TransactionType.REVENU);
+                TransactionType.REVENU, null, false);
 
         Transaction created = transactionService.create(request);
 
@@ -92,7 +92,7 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.now(), "Test", BigDecimal.TEN, 99L, null,
-                TransactionType.DEPENSE);
+                TransactionType.DEPENSE, null, false);
 
         assertThatThrownBy(() -> transactionService.create(request))
                 .isInstanceOf(AccountNotFoundException.class);
@@ -106,10 +106,151 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.now(), "Test", BigDecimal.TEN, 1L, 99L,
-                TransactionType.DEPENSE);
+                TransactionType.DEPENSE, null, false);
 
         assertThatThrownBy(() -> transactionService.create(request))
                 .isInstanceOf(CategoryNotFoundException.class);
+    }
+
+    @Test
+    void create_withTransfertType_shouldCreateMirrorOnTargetAccount() {
+        Account source = accountWithId(1L, "Compte courant");
+        Account target = accountWithId(2L, "LDDS");
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(source));
+        when(accountRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TransactionRequest request = new TransactionRequest(
+                LocalDate.of(2026, 9, 5), "Provision", BigDecimal.valueOf(150), 1L, null,
+                TransactionType.TRANSFERT, 2L, true);
+
+        Transaction created = transactionService.create(request);
+        Transaction mirror = created.getLinkedTransaction();
+
+        assertThat(created.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(-150));
+        assertThat(mirror).isNotNull();
+        assertThat(mirror.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(150));
+        assertThat(mirror.getAccount()).isEqualTo(target);
+        assertThat(mirror.getTransferAccount()).isEqualTo(source);
+        assertThat(mirror.getSource()).isEqualTo(TransactionSource.TRANSFER);
+        assertThat(mirror.getStatus()).isEqualTo(created.getStatus());
+        assertThat(mirror.getLinkedTransaction()).isEqualTo(created);
+    }
+
+    @Test
+    void update_shouldPropagateChangesToExistingMirror() {
+        Account source = accountWithId(1L, "Compte courant");
+        Account target = accountWithId(2L, "LDDS");
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(source));
+        when(accountRepository.findById(2L)).thenReturn(Optional.of(target));
+        Transaction transaction = Transaction.manual(
+                LocalDate.of(2026, 9, 5), "Provision", BigDecimal.valueOf(-150), source, null,
+                TransactionType.TRANSFERT, target);
+        Transaction mirror = Transaction.mirrorOf(transaction);
+        transaction.linkTo(mirror);
+        mirror.linkTo(transaction);
+        when(transactionRepository.findById(10L)).thenReturn(Optional.of(transaction));
+
+        TransactionRequest request = new TransactionRequest(
+                LocalDate.of(2026, 9, 10), "Provision ajustée", BigDecimal.valueOf(200), 1L, null,
+                TransactionType.TRANSFERT, 2L, true);
+
+        transactionService.update(10L, request);
+
+        assertThat(mirror.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(200));
+        assertThat(mirror.getLabel()).isEqualTo("Provision ajustée");
+        assertThat(mirror.getDate()).isEqualTo(LocalDate.of(2026, 9, 10));
+    }
+
+    @Test
+    void update_whenTransferAccountChanges_shouldRebuildMirrorOnNewAccount() {
+        Account source = accountWithId(1L, "Compte courant");
+        Account oldTarget = accountWithId(2L, "LDDS");
+        Account newTarget = accountWithId(3L, "Livret A Louison");
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(source));
+        when(accountRepository.findById(3L)).thenReturn(Optional.of(newTarget));
+        Transaction transaction = Transaction.manual(
+                LocalDate.of(2026, 9, 5), "Épargne", BigDecimal.valueOf(-50), source, null,
+                TransactionType.TRANSFERT, oldTarget);
+        Transaction oldMirror = Transaction.mirrorOf(transaction);
+        transaction.linkTo(oldMirror);
+        oldMirror.linkTo(transaction);
+        when(transactionRepository.findById(10L)).thenReturn(Optional.of(transaction));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        TransactionRequest request = new TransactionRequest(
+                LocalDate.of(2026, 9, 5), "Épargne", BigDecimal.valueOf(50), 1L, null,
+                TransactionType.TRANSFERT, 3L, true);
+
+        transactionService.update(10L, request);
+
+        verify(transactionRepository).delete(oldMirror);
+        Transaction newMirror = transaction.getLinkedTransaction();
+        assertThat(newMirror).isNotSameAs(oldMirror);
+        assertThat(newMirror.getAccount()).isEqualTo(newTarget);
+    }
+
+    @Test
+    void update_whenTypeChangesAwayFromTransfert_shouldDeleteMirror() {
+        Account source = accountWithId(1L, "Compte courant");
+        Account target = accountWithId(2L, "LDDS");
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(source));
+        Transaction transaction = Transaction.manual(
+                LocalDate.of(2026, 9, 5), "Provision", BigDecimal.valueOf(-150), source, null,
+                TransactionType.TRANSFERT, target);
+        Transaction mirror = Transaction.mirrorOf(transaction);
+        transaction.linkTo(mirror);
+        mirror.linkTo(transaction);
+        when(transactionRepository.findById(10L)).thenReturn(Optional.of(transaction));
+
+        TransactionRequest request = new TransactionRequest(
+                LocalDate.of(2026, 9, 5), "Provision", BigDecimal.valueOf(150), 1L, null,
+                TransactionType.DEPENSE, null, false);
+
+        transactionService.update(10L, request);
+
+        verify(transactionRepository).delete(mirror);
+        assertThat(transaction.getLinkedTransaction()).isNull();
+    }
+
+    @Test
+    void update_whenTypeChangesToTransfert_shouldCreateMirror() {
+        Account source = accountWithId(1L, "Compte courant");
+        Account target = accountWithId(2L, "LDDS");
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(source));
+        when(accountRepository.findById(2L)).thenReturn(Optional.of(target));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Transaction transaction = Transaction.manual(
+                LocalDate.of(2026, 9, 5), "Provision", BigDecimal.valueOf(-150), source, null,
+                TransactionType.DEPENSE);
+        when(transactionRepository.findById(10L)).thenReturn(Optional.of(transaction));
+
+        TransactionRequest request = new TransactionRequest(
+                LocalDate.of(2026, 9, 5), "Provision", BigDecimal.valueOf(150), 1L, null,
+                TransactionType.TRANSFERT, 2L, true);
+
+        transactionService.update(10L, request);
+
+        assertThat(transaction.getLinkedTransaction()).isNotNull();
+        assertThat(transaction.getLinkedTransaction().getAccount()).isEqualTo(target);
+    }
+
+    @Test
+    void delete_whenTransactionHasMirror_shouldDeleteMirrorToo() {
+        Account source = accountWithId(1L, "Compte courant");
+        Account target = accountWithId(2L, "LDDS");
+        Transaction transaction = Transaction.manual(
+                LocalDate.of(2026, 9, 5), "Provision", BigDecimal.valueOf(-150), source, null,
+                TransactionType.TRANSFERT, target);
+        Transaction mirror = Transaction.mirrorOf(transaction);
+        transaction.linkTo(mirror);
+        mirror.linkTo(transaction);
+        when(transactionRepository.findById(10L)).thenReturn(Optional.of(transaction));
+
+        transactionService.delete(10L);
+
+        verify(transactionRepository).delete(mirror);
+        verify(transactionRepository).delete(transaction);
     }
 
     @Test
@@ -134,7 +275,7 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.of(2026, 9, 5), "Carrefour", BigDecimal.valueOf(80), 1L, null,
-                TransactionType.DEPENSE);
+                TransactionType.DEPENSE, null, false);
 
         Transaction created = transactionService.create(request);
 
@@ -153,7 +294,7 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.of(2026, 9, 6), "Courses", BigDecimal.valueOf(80), 1L, null,
-                TransactionType.DEPENSE);
+                TransactionType.DEPENSE, null, false);
 
         Transaction updated = transactionService.update(1L, request);
 
@@ -175,7 +316,7 @@ class TransactionServiceTest {
 
         TransactionRequest request = new TransactionRequest(
                 LocalDate.of(2026, 9, 6), "Courses", BigDecimal.valueOf(80), 1L, null,
-                TransactionType.DEPENSE);
+                TransactionType.DEPENSE, null, false);
 
         Transaction updated = transactionService.update(1L, request);
 
@@ -326,6 +467,18 @@ class TransactionServiceTest {
         java.util.List<Long> ids = transactionService.categoryAndDescendantIds(5L);
 
         assertThat(ids).containsExactly(5L);
+    }
+
+    private static Account accountWithId(Long id, String name) {
+        Account account = new Account(name, AccountType.LIVRET, BigDecimal.ZERO, null);
+        try {
+            Field field = Account.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(account, id);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+        return account;
     }
 
     private static void setCategoryId(Category category, Long id) {
