@@ -39,11 +39,17 @@ export class CategoriesComponent {
     name: ['', Validators.required],
     parentId: this.fb.control<number | null>(null),
     defaultTransferAccountId: this.fb.control<number | null>(null),
+    color: this.fb.control<string | null>(null),
   });
+
+  /** Mirrors the form's parentId control as a signal so the template can reactively hide the
+   *  color picker for subcategories (their color always follows their root, never editable). */
+  protected readonly formParentId = signal<number | null>(null);
 
   constructor() {
     this.reload();
     this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
+    this.form.controls.parentId.valueChanges.subscribe((parentId) => this.formParentId.set(parentId));
   }
 
   private reload(): void {
@@ -58,12 +64,13 @@ export class CategoriesComponent {
       name: category.name,
       parentId: category.parentId,
       defaultTransferAccountId: category.defaultTransferAccountId,
+      color: category.color,
     });
   }
 
   protected cancelEdit(): void {
     this.editingId.set(null);
-    this.form.reset({ name: '', parentId: null, defaultTransferAccountId: null });
+    this.form.reset({ name: '', parentId: null, defaultTransferAccountId: null, color: null });
   }
 
   protected submit(): void {

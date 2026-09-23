@@ -12,6 +12,9 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     List<Category> findByParentId(Long parentId);
 
+    /** Diversity is spread across root categories only - children inherit their root's color, so counting them too would waste hue spacing. */
+    long countByParentIdIsNull();
+
     /**
      * Overrides JpaRepository's default to fetch-join defaultTransferAccount: open-in-view is
      * disabled, so CategoryController maps entities to CategoryResponse (which reads

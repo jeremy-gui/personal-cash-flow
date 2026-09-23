@@ -1,9 +1,11 @@
 import { CommonModule, formatDate } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
+import { Category, categoryColor } from '../../core/models/category.model';
 import { Dashboard } from '../../core/models/dashboard.model';
 import { Transaction } from '../../core/models/transaction.model';
 import { AccountService } from '../accounts/account.service';
+import { CategoryService } from '../categories/category.service';
 import { TransactionService } from '../transactions/transaction.service';
 import { DashboardService } from './dashboard.service';
 
@@ -32,6 +34,9 @@ export class DashboardComponent {
   private readonly dashboardService = inject(DashboardService);
   private readonly transactionService = inject(TransactionService);
   private readonly accountService = inject(AccountService);
+  private readonly categoryService = inject(CategoryService);
+
+  protected readonly categories = signal<Category[]>([]);
 
   protected readonly month = signal(currentMonth());
   protected readonly monthLabel = computed(() => {
@@ -83,6 +88,7 @@ export class DashboardComponent {
   });
 
   constructor() {
+    this.categoryService.list().subscribe((categories) => this.categories.set(categories));
     this.accountService.list().subscribe((accounts) => {
       this.defaultAccountId = accounts.find((a) => a.isDefault)?.id ?? null;
       this.reload();
@@ -113,6 +119,10 @@ export class DashboardComponent {
     const [year, month] = this.month().split('-').map(Number);
     const date = new Date(year, month - 1 + delta, 1);
     this.onMonthChange(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  }
+
+  protected categoryColorFor(categoryId: number | null): string {
+    return categoryColor(this.categories(), categoryId);
   }
 
   protected categoryInitial(transaction: Transaction): string {

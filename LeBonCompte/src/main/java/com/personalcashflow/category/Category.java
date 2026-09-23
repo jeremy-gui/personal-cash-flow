@@ -22,6 +22,9 @@ public class Category {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false, length = 7)
+    private String color;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     private Category parent;
@@ -37,15 +40,16 @@ public class Category {
     protected Category() {
     }
 
+    /** Color-less: only for tests that never persist the category. */
     public Category(String name, Category parent) {
-        this.name = name;
-        this.parent = parent;
+        this(name, parent, null, null);
     }
 
-    public Category(String name, Category parent, Account defaultTransferAccount) {
+    public Category(String name, Category parent, Account defaultTransferAccount, String color) {
         this.name = name;
         this.parent = parent;
         this.defaultTransferAccount = defaultTransferAccount;
+        this.color = color;
     }
 
     public Long getId() {
@@ -56,6 +60,10 @@ public class Category {
         return name;
     }
 
+    public String getColor() {
+        return color;
+    }
+
     public Category getParent() {
         return parent;
     }
@@ -64,9 +72,15 @@ public class Category {
         return defaultTransferAccount;
     }
 
-    public void update(String name, Category parent, Account defaultTransferAccount) {
+    public void update(String name, Category parent, Account defaultTransferAccount, String color) {
         this.name = name;
         this.parent = parent;
         this.defaultTransferAccount = defaultTransferAccount;
+        this.color = color;
+    }
+
+    /** Used to cascade a root's color down to its descendants, without touching their other fields. */
+    void applyColor(String color) {
+        this.color = color;
     }
 }

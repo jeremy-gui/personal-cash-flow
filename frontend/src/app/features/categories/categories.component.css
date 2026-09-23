@@ -26,6 +26,36 @@
   gap: var(--space-2);
 }
 
+.category-badge {
+  display: inline-block;
+  color: #fff;
+  border-radius: var(--radius-pill);
+  padding: 3px var(--space-3);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.color-label {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.color-label input[type='color'] {
+  width: 40px;
+  height: 32px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.color-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  align-self: center;
+}
+
 .transfer-badge {
   color: var(--blue-dark);
   background: var(--blue-soft);

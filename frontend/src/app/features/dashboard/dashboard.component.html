@@ -204,7 +204,15 @@
               <td>{{ transaction.date | date: 'dd/MM/yyyy' }}</td>
               <td>{{ transaction.label }}</td>
               <td>{{ transaction.accountName }}</td>
-              <td>{{ transaction.categoryName ?? '—' }}</td>
+              <td>
+                @if (transaction.categoryName) {
+                  <span class="category-badge" [style.background]="categoryColorFor(transaction.categoryId)">
+                    {{ transaction.categoryName }}
+                  </span>
+                } @else {
+                  —
+                }
+              </td>
               <td [class.negative]="transaction.amount < 0" [class.positive]="transaction.amount >= 0">
                 {{ transaction.amount | number: '1.2-2' }} €
               </td>

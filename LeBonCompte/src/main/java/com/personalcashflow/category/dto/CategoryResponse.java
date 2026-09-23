@@ -3,7 +3,12 @@ package com.personalcashflow.category.dto;
 import com.personalcashflow.category.Category;
 
 public record CategoryResponse(
-        Long id, String name, Long parentId, Long defaultTransferAccountId, String defaultTransferAccountName) {
+        Long id,
+        String name,
+        String color,
+        Long parentId,
+        Long defaultTransferAccountId,
+        String defaultTransferAccountName) {
 
     public static CategoryResponse from(Category category) {
         Long parentId = category.getParent() != null ? category.getParent().getId() : null;
@@ -11,6 +16,7 @@ public record CategoryResponse(
         return new CategoryResponse(
                 category.getId(),
                 category.getName(),
+                category.getColor(),
                 parentId,
                 transferAccount != null ? transferAccount.getId() : null,
                 transferAccount != null ? transferAccount.getName() : null);

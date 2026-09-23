@@ -17,7 +17,9 @@
   <tbody>
     @for (category of tree(); track category.id) {
       <tr>
-        <td [style.paddingLeft.px]="category.depth * 24 + 24">{{ category.name }}</td>
+        <td [style.paddingLeft.px]="category.depth * 24 + 24">
+          <span class="category-badge" [style.background]="category.color">{{ category.name }}</span>
+        </td>
         <td>
           @if (category.defaultTransferAccountName) {
             <span class="transfer-badge">→ {{ category.defaultTransferAccountName }}</span>
@@ -71,6 +73,17 @@
       }
     </select>
   </label>
+
+  @if (editingId()) {
+    @if (formParentId() === null) {
+      <label class="color-label">
+        Couleur
+        <input type="color" formControlName="color" />
+      </label>
+    } @else {
+      <p class="color-hint">La couleur suit celle de la catégorie parente.</p>
+    }
+  }
 
   <div class="form-actions">
     <button type="submit" [disabled]="form.invalid">

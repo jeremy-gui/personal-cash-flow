@@ -1,6 +1,7 @@
 export interface Category {
   id: number;
   name: string;
+  color: string;
   parentId: number | null;
   /** Pre-fills a transaction's target account when this category is picked and TRANSFERT is chosen. */
   defaultTransferAccountId: number | null;
@@ -11,6 +12,19 @@ export interface CategoryRequest {
   name: string;
   parentId: number | null;
   defaultTransferAccountId: number | null;
+  /** Omit (null) to let the server auto-assign a diverse color. */
+  color: string | null;
+}
+
+const FALLBACK_CATEGORY_COLOR = '#94a3b8';
+
+/** Looks up a category's badge color by id, falling back to a neutral gray for an
+ *  uncategorized (null) or unknown id rather than leaving a table cell colorless. */
+export function categoryColor(categories: Category[], categoryId: number | null): string {
+  if (categoryId === null) {
+    return FALLBACK_CATEGORY_COLOR;
+  }
+  return categories.find((c) => c.id === categoryId)?.color ?? FALLBACK_CATEGORY_COLOR;
 }
 
 export interface CategoryTreeNode extends Category {

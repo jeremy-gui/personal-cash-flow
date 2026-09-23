@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Account } from '../../core/models/account.model';
-import { buildCategoryTree, Category } from '../../core/models/category.model';
+import { buildCategoryTree, Category, categoryColor } from '../../core/models/category.model';
 import {
   TRANSACTION_STATUS_LABELS,
   TRANSACTION_TYPE_LABELS,
@@ -418,6 +418,10 @@ export class TransactionsComponent {
    *  whose ngTemplateOutletContext variables aren't inferred by the template type checker. */
   protected typeLabel(type: TransactionType): string {
     return this.typeLabels[type];
+  }
+
+  protected categoryColor(categoryId: number | null): string {
+    return categoryColor(this.categories(), categoryId);
   }
 
   private sortSignal(table: SortTable) {
