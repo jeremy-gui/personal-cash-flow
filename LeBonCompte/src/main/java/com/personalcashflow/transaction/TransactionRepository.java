@@ -50,6 +50,72 @@ public interface TransactionRepository
     List<CategorySpendingProjection> sumDepenseGroupedByCategory(
             @Param("accountId") Long accountId, @Param("from") LocalDate from, @Param("to") LocalDate to);
 
+    /** Sum of amounts for a transaction type within a date range, across every account. */
+    @Query("""
+            SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t
+            WHERE t.type = :type
+              AND t.date >= :from
+              AND t.date <= :to
+            """)
+    BigDecimal sumByTypeAndDateRangeAllAccounts(
+            @Param("type") TransactionType type, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** DEPENSE totals (negative, or zero) grouped by category within a date range, across every account. */
+    @Query("""
+            SELECT c.id AS categoryId, c.name AS categoryName, SUM(t.amount) AS total
+            FROM Transaction t JOIN t.category c
+            WHERE t.type = com.personalcashflow.transaction.TransactionType.DEPENSE
+              AND t.date >= :from
+              AND t.date <= :to
+            GROUP BY c.id, c.name
+            ORDER BY SUM(t.amount) ASC
+            """)
+    List<CategorySpendingProjection> sumDepenseGroupedByCategoryAllAccounts(
+            @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /**
+     * Sum of TRANSFERT amounts landing on LIVRET-type accounts (positive legs only) - i.e. money
+     * that actually moved into savings within the period, across every account. A LIVRET account
+     * is itself the definition of "savings" here (see AccountType) - no category flag involved.
+     */
+    @Query("""
+            SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t
+            WHERE t.type = com.personalcashflow.transaction.TransactionType.TRANSFERT
+              AND t.account.type = com.personalcashflow.account.AccountType.LIVRET
+              AND t.amount > 0
+              AND t.date >= :from
+              AND t.date <= :to
+            """)
+    BigDecimal sumSavingsContributions(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** Same as {@link #sumSavingsContributions}, broken down by which LIVRET account received the money. */
+    @Query("""
+            SELECT t.account.id AS accountId, t.account.name AS accountName, SUM(t.amount) AS total
+            FROM Transaction t
+            WHERE t.type = com.personalcashflow.transaction.TransactionType.TRANSFERT
+              AND t.account.type = com.personalcashflow.account.AccountType.LIVRET
+              AND t.amount > 0
+              AND t.date >= :from
+              AND t.date <= :to
+            GROUP BY t.account.id, t.account.name
+            ORDER BY SUM(t.amount) DESC
+            """)
+    List<AccountAmountProjection> sumSavingsContributionsGroupedByAccount(
+            @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** DEPENSE totals (negative, or zero) grouped by category and calendar month within a date range, across every account. */
+    @Query("""
+            SELECT c.id AS categoryId, c.name AS categoryName, month(t.date) AS month, SUM(t.amount) AS total
+            FROM Transaction t JOIN t.category c
+            WHERE t.type = com.personalcashflow.transaction.TransactionType.DEPENSE
+              AND t.date >= :from
+              AND t.date <= :to
+            GROUP BY c.id, c.name, month(t.date)
+            ORDER BY month(t.date) ASC
+            """)
+    List<MonthlyCategorySpendingProjection> sumDepenseGroupedByMonthAndCategoryAllAccounts(
+            @Param("from") LocalDate from, @Param("to") LocalDate to);
+
     boolean existsByAccountIdAndImportHash(Long accountId, String importHash);
 
     /**

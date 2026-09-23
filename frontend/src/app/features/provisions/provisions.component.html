@@ -1,0 +1,155 @@
+<div class="page-header">
+  <h1>Provisions</h1>
+</div>
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
+
+<div class="provisions-list">
+  @for (provision of provisions(); track provision.id) {
+    <div class="card provision-card">
+      <div class="provision-header">
+        <span class="name">
+          {{ provision.name }}
+          @if (provision.atRisk) {
+            <span class="badge-risk">À risque</span>
+          }
+          @if (!provision.active) {
+            <span class="badge-inactive">Inactive</span>
+          }
+        </span>
+        <span class="amounts">
+          {{ provision.currentAmount | number: '1.2-2' }} € / {{ provision.targetAmount | number: '1.2-2' }} €
+        </span>
+      </div>
+      <div class="progress-bar">
+        <div
+          class="progress-fill"
+          [class.over-target]="provision.percentageComplete > 100"
+          [style.width.%]="provision.percentageComplete > 100 ? 100 : provision.percentageComplete"
+        ></div>
+      </div>
+      <div class="provision-footer">
+        <span>{{ provision.percentageComplete }} % atteint</span>
+        <span [class.negative]="provision.remaining > 0 && provision.atRisk">
+          Reste : {{ provision.remaining | number: '1.2-2' }} €
+        </span>
+        @if (provision.monthlyEffortNeeded !== null) {
+          <span>Effort mensuel : {{ provision.monthlyEffortNeeded | number: '1.2-2' }} €/mois</span>
+        }
+        @if (provision.targetDate) {
+          <span>Échéance : {{ provision.targetDate | date: 'dd/MM/yyyy' }}</span>
+        }
+        <span class="actions">
+          <button type="button" (click)="toggleExpanded(provision.id)">
+            {{ expandedId() === provision.id ? 'Masquer' : 'Contributions' }}
+          </button>
+          @if (pendingDeleteId() === provision.id) {
+            <button type="button" class="confirm-delete" (click)="confirmDelete(provision.id)">Confirmer</button>
+            <button type="button" (click)="cancelDelete()">Annuler</button>
+          } @else {
+            <button type="button" (click)="edit(provision)">Modifier</button>
+            <button type="button" (click)="requestDelete(provision.id)">Supprimer</button>
+          }
+        </span>
+      </div>
+
+      @if (expandedId() === provision.id) {
+        <div class="contributions-panel">
+          @if (contributionsError()) {
+            <p class="error">{{ contributionsError() }}</p>
+          }
+          <ul class="contributions-list">
+            @for (contribution of contributions(); track contribution.id) {
+              <li>
+                <span>{{ contribution.date | date: 'dd/MM/yyyy' }}</span>
+                <span class="contribution-amount">{{ contribution.amount | number: '1.2-2' }} €</span>
+                @if (pendingDeleteContributionId() === contribution.id) {
+                  <span class="actions">
+                    <button type="button" class="confirm-delete" (click)="confirmDeleteContribution(contribution.id)">Confirmer</button>
+                    <button type="button" (click)="cancelDeleteContribution()">Annuler</button>
+                  </span>
+                } @else {
+                  <button type="button" (click)="requestDeleteContribution(contribution.id)">Supprimer</button>
+                }
+              </li>
+            } @empty {
+              <li class="empty-hint">Aucune contribution.</li>
+            }
+          </ul>
+          <form [formGroup]="contributionForm" (ngSubmit)="submitContribution()" class="contribution-form">
+            <label>
+              Montant
+              <input type="number" step="0.01" min="0.01" formControlName="amount" />
+            </label>
+            <label>
+              Date
+              <input type="date" formControlName="date" />
+            </label>
+            <button type="submit" [disabled]="contributionForm.invalid">Ajouter</button>
+          </form>
+        </div>
+      }
+    </div>
+  } @empty {
+    <p>Aucune provision définie.</p>
+  }
+</div>
+
+<div class="card">
+  <h2>{{ editingId() ? 'Modifier la provision' : 'Ajouter une provision' }}</h2>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="provision-form">
+    <label>
+      Nom
+      <input type="text" formControlName="name" />
+    </label>
+
+    <label>
+      Montant cible
+      <input type="number" step="0.01" min="0.01" formControlName="targetAmount" />
+    </label>
+
+    <label>
+      Échéance (optionnel)
+      <input type="date" formControlName="targetDate" />
+    </label>
+
+    <label>
+      Catégorie (optionnel)
+      <select formControlName="categoryId">
+        <option [ngValue]="null">Aucune</option>
+        @for (category of categories(); track category.id) {
+          <option [ngValue]="category.id">{{ category.name }}</option>
+        }
+      </select>
+    </label>
+
+    <label>
+      Compte (optionnel)
+      <select formControlName="accountId">
+        <option [ngValue]="null">Aucun</option>
+        @for (account of accounts(); track account.id) {
+          <option [ngValue]="account.id">{{ account.name }}</option>
+        }
+      </select>
+    </label>
+
+    @if (editingId()) {
+      <label class="checkbox-label">
+        <input type="checkbox" formControlName="active" />
+        Active
+      </label>
+    }
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="form.invalid">
+        {{ editingId() ? 'Enregistrer' : 'Ajouter' }}
+      </button>
+      @if (editingId()) {
+        <button type="button" (click)="cancelEdit()">Annuler</button>
+      }
+    </div>
+  </form>
+</div>

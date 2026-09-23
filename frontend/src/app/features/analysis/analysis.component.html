@@ -1,0 +1,192 @@
+<div class="page-header">
+  <h1>Analyse financière</h1>
+  <label class="year-picker">
+    Année
+    <div class="year-nav">
+      <button type="button" class="icon-button" title="Année précédente" aria-label="Année précédente" (click)="onYearChange(-1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <span class="year-value">{{ year() }}</span>
+      <button type="button" class="icon-button" title="Année suivante" aria-label="Année suivante" (click)="onYearChange(1)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+  </label>
+</div>
+
+@if (error(); as err) {
+  <p class="error">{{ err }}</p>
+} @else if (analysis(); as data) {
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <span class="kpi-label">Revenus</span>
+      <span class="kpi-value">{{ data.totalRevenus | number: '1.2-2' }} €</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Dépenses</span>
+      <span class="kpi-value">{{ data.totalDepenses | number: '1.2-2' }} €</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Résultat</span>
+      <span class="kpi-value" [class.negative]="data.totalResultat < 0" [class.positive]="data.totalResultat >= 0">
+        {{ data.totalResultat | number: '1.2-2' }} €
+      </span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Épargne constituée</span>
+      <span class="kpi-value positive">{{ data.totalEpargne | number: '1.2-2' }} €</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Taux d'épargne</span>
+      <span class="kpi-value">{{ data.savingsRate | number: '1.1-1' }} %</span>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <h2 class="card-title">Résultat mensuel</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Mois</th>
+            <th>Revenus</th>
+            <th>Dépenses</th>
+            <th>Résultat</th>
+            <th>Épargne</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (result of monthlyResultsWithLabel(); track result.month) {
+            <tr>
+              <td>{{ result.label }}</td>
+              <td>{{ result.revenus | number: '1.2-2' }} €</td>
+              <td>{{ result.depenses | number: '1.2-2' }} €</td>
+              <td [class.negative]="result.resultat < 0" [class.positive]="result.resultat >= 0">
+                {{ result.resultat | number: '1.2-2' }} €
+              </td>
+              <td>{{ result.epargne | number: '1.2-2' }} €</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5">Aucune donnée pour cette année.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-row">
+    <div class="card">
+      <h2 class="card-title">Dépenses par catégorie</h2>
+      @if (categoryDonutSegments().length > 0) {
+        <div class="donut-block">
+          <div class="donut" [style.background]="categoryDonutGradient()">
+            <div class="donut-hole">
+              <span class="donut-total">{{ data.totalDepenses | number: '1.0-0' }} €</span>
+              <span class="donut-total-label">total</span>
+            </div>
+          </div>
+          <ul class="donut-legend">
+            @for (segment of categoryDonutSegments(); track segment.categoryName) {
+              <li>
+                <span class="dot" [style.background]="segment.color"></span>
+                <span class="legend-name">{{ segment.categoryName }}</span>
+                <span class="legend-amount">{{ segment.amount | number: '1.2-2' }} €</span>
+              </li>
+            }
+          </ul>
+        </div>
+      } @else {
+        <p class="empty-hint">Aucune dépense catégorisée cette année.</p>
+      }
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">Épargne par compte (année)</h2>
+      @if (data.epargneParCompte.length > 0) {
+        <ul class="donut-legend">
+          @for (account of data.epargneParCompte; track account.accountId) {
+            <li>
+              <span class="legend-name">{{ account.accountName }}</span>
+              <span class="legend-amount">{{ account.contributed | number: '1.2-2' }} €</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="empty-hint">Aucun versement vers un compte d'épargne cette année.</p>
+      }
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <h2 class="card-title">Catégories vs budget du mois courant</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Catégorie</th>
+            <th>Dépense annuelle</th>
+            <th>% des revenus</th>
+            <th>Budget du mois</th>
+            <th>Réel du mois</th>
+            <th>Écart</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (category of data.categoryBreakdown; track category.categoryId) {
+            <tr>
+              <td>
+                <span class="category-badge" [style.background]="categoryColor(category.categoryId)">
+                  {{ category.categoryName }}
+                </span>
+              </td>
+              <td>{{ category.amount | number: '1.2-2' }} €</td>
+              <td>{{ category.partOfRevenue | number: '1.1-1' }} %</td>
+              <td>{{ category.currentMonthBudget !== null ? (category.currentMonthBudget | number: '1.2-2') + ' €' : '—' }}</td>
+              <td>{{ category.currentMonthActual !== null ? (category.currentMonthActual | number: '1.2-2') + ' €' : '—' }}</td>
+              <td [class.negative]="(category.currentMonthEcart ?? 0) > 0" [class.positive]="category.currentMonthEcart !== null && category.currentMonthEcart <= 0">
+                {{ category.currentMonthEcart !== null ? (category.currentMonthEcart | number: '1.2-2') + ' €' : '—' }}
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6">Aucune dépense cette année.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="split-row">
+    <div class="card">
+      <h2 class="card-title">Patrimoine</h2>
+      <ul class="patrimoine-list">
+        @for (group of patrimoineByType(); track group.type) {
+          <li>
+            <span class="legend-name">{{ group.label }}</span>
+            <span class="legend-amount">{{ group.total | number: '1.2-2' }} €</span>
+          </li>
+        }
+      </ul>
+      <div class="patrimoine-total">
+        <span>Total</span>
+        <span>{{ patrimoineTotal() | number: '1.2-2' }} €</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">Argent disponible</h2>
+      <div class="disponible-value">{{ argentDisponible() | number: '1.2-2' }} €</div>
+      <p class="disponible-note">
+        Patrimoine ({{ patrimoineTotal() | number: '1.2-2' }} €) moins les provisions actives déjà affectées
+        ({{ provisionsActiveTotal() | number: '1.2-2' }} €). Indicatif, pas une donnée comptable.
+      </p>
+    </div>
+  </div>
+}

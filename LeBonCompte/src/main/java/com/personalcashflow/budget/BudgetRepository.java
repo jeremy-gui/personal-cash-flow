@@ -6,9 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface BudgetRepository extends JpaRepository<Budget, Long> {
 
-    List<Budget> findByStartMonthLessThanEqual(LocalDate month);
+    List<Budget> findByMonthLessThanEqual(LocalDate month);
 
-    boolean existsByCategoryId(Long categoryId);
+    boolean existsByCategoryIdAndMonth(Long categoryId, LocalDate month);
 
-    boolean existsByCategoryIdAndIdNot(Long categoryId, Long id);
+    boolean existsByCategoryIdAndMonthAndIdNot(Long categoryId, LocalDate month, Long id);
 }

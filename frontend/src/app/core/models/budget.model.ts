@@ -2,7 +2,7 @@ export interface Budget {
   id: number;
   categoryId: number;
   categoryName: string;
-  startMonth: string;
+  month: string;
   amount: number;
   spent: number;
   remaining: number;
