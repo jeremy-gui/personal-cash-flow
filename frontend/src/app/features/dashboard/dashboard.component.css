@@ -98,6 +98,30 @@
   line-height: 1.1;
 }
 
+.hero-accounts {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: var(--space-3) 0 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hero-accounts li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.hero-account-balance {
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
 .hero-value-secondary {
   font-size: 2rem;
   opacity: 0.92;

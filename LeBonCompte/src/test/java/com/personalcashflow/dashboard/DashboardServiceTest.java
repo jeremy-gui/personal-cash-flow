@@ -94,6 +94,12 @@ class DashboardServiceTest {
         assertThat(response.revenus()).isEqualByComparingTo(BigDecimal.valueOf(3000));
         assertThat(response.depenses()).isEqualByComparingTo(BigDecimal.valueOf(677.80));
         assertThat(response.soldeNet()).isEqualByComparingTo(BigDecimal.valueOf(2322.20));
+        // No category totals stubbed: the whole DEPENSE sum (not the transfers) is uncategorized.
+        assertThat(response.depensesParCategorie()).singleElement().satisfies(c -> {
+            assertThat(c.categoryId()).isNull();
+            assertThat(c.categoryName()).isEqualTo("Non catégorisées");
+            assertThat(c.amount()).isEqualByComparingTo(BigDecimal.valueOf(177.80));
+        });
     }
 
     @Test

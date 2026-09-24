@@ -13,6 +13,7 @@ import com.personalcashflow.transaction.dto.TransactionResponse;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,14 +50,24 @@ public class DashboardService {
         // and transfers counted by direction - incoming as revenus, outgoing as dépenses.
         BigDecimal revenus = transactionRepository.sumByTypeAndDateRange(TransactionType.REVENU, accountId, from, to)
                 .add(transactionRepository.sumTransfersByDirection(true, accountId, from, to));
-        BigDecimal depensesSigned = transactionRepository.sumByTypeAndDateRange(TransactionType.DEPENSE, accountId, from, to)
+        BigDecimal depenseOnlySigned = transactionRepository.sumByTypeAndDateRange(TransactionType.DEPENSE, accountId, from, to);
+        BigDecimal depensesSigned = depenseOnlySigned
                 .add(transactionRepository.sumTransfersByDirection(false, accountId, from, to));
         BigDecimal depenses = depensesSigned.negate();
         BigDecimal soldeNet = revenus.add(depensesSigned);
 
-        var depensesParCategorie = transactionRepository.sumDepenseGroupedByCategory(accountId, from, to).stream()
+        var depensesParCategorie = new ArrayList<>(transactionRepository.sumDepenseGroupedByCategory(accountId, from, to).stream()
                 .map(p -> new CategoryAmountResponse(p.getCategoryId(), p.getCategoryName(), p.getTotal().negate()))
-                .toList();
+                .toList());
+        // The grouped query joins on category, so uncategorized dépenses are whatever it left out.
+        // Transfers are deliberately not part of this breakdown.
+        BigDecimal categorized = depensesParCategorie.stream()
+                .map(CategoryAmountResponse::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal uncategorized = depenseOnlySigned.negate().subtract(categorized);
+        if (uncategorized.signum() > 0) {
+            depensesParCategorie.add(new CategoryAmountResponse(null, "Non catégorisées", uncategorized));
+        }
 
         // Budgets stay household-wide: Budget has no account relation.
         var budgetsParCategorie = budgetService.findAllForMonth(month);

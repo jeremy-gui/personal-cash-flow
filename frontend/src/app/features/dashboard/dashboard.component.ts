@@ -4,6 +4,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Category, categoryColor } from '../../core/models/category.model';
 import { Dashboard } from '../../core/models/dashboard.model';
 import { Transaction } from '../../core/models/transaction.model';
+import { Account } from '../../core/models/account.model';
 import { AccountService } from '../accounts/account.service';
 import { CategoryService } from '../categories/category.service';
 import { TransactionService } from '../transactions/transaction.service';
@@ -14,6 +15,7 @@ function currentMonth(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
+const UNCATEGORIZED_COLOR = '#cbd5e1';
 const DONUT_PALETTE = ['#2563eb', '#7c3aed', '#db2777', '#ea580c', '#0891b2', '#65a30d', '#ca8a04', '#64748b'];
 
 interface DonutSegment {
@@ -49,6 +51,8 @@ export class DashboardComponent {
   protected readonly dashboardError = signal<string | null>(null);
   protected readonly recentTransactions = signal<Transaction[]>([]);
   private defaultAccountId: number | null = null;
+  /** Every non-default account, shown in small under the default account's current balance. */
+  protected readonly otherAccounts = signal<Account[]>([]);
 
   protected readonly categoryDonutSegments = computed<DonutSegment[]>(() => {
     const spending = this.dashboard()?.depensesParCategorie ?? [];
@@ -66,7 +70,7 @@ export class DashboardComponent {
         amount: category.amount,
         start,
         end: cumulative,
-        color: DONUT_PALETTE[index % DONUT_PALETTE.length],
+        color: category.categoryId === null ? UNCATEGORIZED_COLOR : DONUT_PALETTE[index % DONUT_PALETTE.length],
       };
     });
   });
@@ -96,6 +100,7 @@ export class DashboardComponent {
     this.categoryService.list().subscribe((categories) => this.categories.set(categories));
     this.accountService.list().subscribe((accounts) => {
       this.defaultAccountId = accounts.find((a) => a.isDefault)?.id ?? null;
+      this.otherAccounts.set(accounts.filter((a) => !a.isDefault));
       this.reload();
     });
   }

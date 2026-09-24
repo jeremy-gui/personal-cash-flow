@@ -2,7 +2,8 @@ import { Budget } from './budget.model';
 import { Transaction } from './transaction.model';
 
 export interface CategoryAmount {
-  categoryId: number;
+  /** null for the "Non catégorisées" slice. */
+  categoryId: number | null;
   categoryName: string;
   amount: number;
 }
