@@ -120,8 +120,8 @@
       Catégorie (optionnel)
       <select formControlName="categoryId">
         <option [ngValue]="null">Aucune</option>
-        @for (category of categories(); track category.id) {
-          <option [ngValue]="category.id">{{ category.name }}</option>
+        @for (category of categoryTree(); track category.id) {
+          <option [ngValue]="category.id">{{ category.optionLabel }}</option>
         }
       </select>
     </label>

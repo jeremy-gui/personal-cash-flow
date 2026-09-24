@@ -1,32 +1,42 @@
 <div class="page-header">
   <h1>Transactions</h1>
-  <span class="balance-badge" [class.negative]="bankBalance() < 0" [class.positive]="bankBalance() >= 0">
-    {{ bankBalanceLabel() }} : {{ bankBalance() | number: '1.2-2' }} €
-  </span>
+  <div class="balances">
+    <span class="balance-badge" [class.negative]="bankBalance() < 0" [class.positive]="bankBalance() >= 0">
+      {{ bankBalanceLabel() }}&nbsp;: {{ bankBalance() | number: '1.2-2' }}&nbsp;€
+    </span>
+    @let prev = kpis().soldeApresPrevisionnel;
+    <span
+      class="balance-badge"
+      [class.negative]="prev < 0"
+      [class.positive]="prev >= 0"
+      title="Solde bancaire actuel, plus les transactions prévisionnelles du mois pas encore pointées"
+    >
+      Solde prévisionnel&nbsp;: {{ prev | number: '1.2-2' }}&nbsp;€
+    </span>
+  </div>
+  <div class="month-nav">
+    <button type="button" class="icon-button" title="Mois précédent" aria-label="Mois précédent" (click)="shiftMonth(-1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+    <input type="month" aria-label="Mois affiché" [value]="month()" (change)="onMonthChange($any($event.target).value)" />
+    <button type="button" class="icon-button" title="Mois suivant" aria-label="Mois suivant" (click)="shiftMonth(1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+  </div>
+  <button type="button" class="new-button" (click)="openAdd(null)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    Nouvelle prévisionnelle
+  </button>
 </div>
 
 <div class="card filters">
-  <label>
-    Mois
-    <div class="month-nav">
-      <button type="button" class="icon-button" title="Mois précédent" aria-label="Mois précédent" (click)="shiftMonth(-1)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </button>
-      <input
-        type="month"
-        [value]="month()"
-        (change)="onMonthChange($any($event.target).value)"
-      />
-      <button type="button" class="icon-button" title="Mois suivant" aria-label="Mois suivant" (click)="shiftMonth(1)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
-      </button>
-    </div>
-  </label>
-
   <label>
     Compte
     <select (change)="onFilterAccountChange($any($event.target).value)">
@@ -42,13 +52,10 @@
     <select (change)="onFilterCategoryChange($any($event.target).value)">
       <option value="">Toutes</option>
       @for (category of categoryTree(); track category.id) {
-        <option [value]="category.id">
-          {{ '  '.repeat(category.depth) }}{{ category.name }}
-        </option>
+        <option [value]="category.id">{{ category.optionLabel }}</option>
       }
     </select>
   </label>
-
 
   <label>
     Type
@@ -59,479 +66,359 @@
       }
     </select>
   </label>
+
+  <label>
+    Ordre des lignes
+    <select (change)="onSortChange($any($event.target).value)">
+      <option value="date-desc">Plus récentes d’abord</option>
+      <option value="date-asc">Plus anciennes d’abord</option>
+      <option value="amount-desc">Montants décroissants</option>
+    </select>
+  </label>
+
+  <div class="legend" aria-label="Légende">
+    <span><ng-container [ngTemplateOutlet]="statusIcon" [ngTemplateOutletContext]="{ $implicit: 'prev' }"></ng-container>Prévisionnelle</span>
+    <span><ng-container [ngTemplateOutlet]="statusIcon" [ngTemplateOutletContext]="{ $implicit: 'pt' }"></ng-container>Pointée</span>
+  </div>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><span class="k">Revenus du mois</span><span class="v in">+{{ kpis().revenus | number: '1.2-2' }}&nbsp;€</span></div>
+  <div class="kpi"><span class="k">Dépenses du mois</span><span class="v">{{ abs(kpis().depenses) | number: '1.2-2' }}&nbsp;€</span></div>
+  <div class="kpi">
+    <span class="k">Revenus - dépenses</span>
+    <span class="v" [class.in]="kpis().solde >= 0" [class.out]="kpis().solde < 0">{{ kpis().solde >= 0 ? '+' : '−' }}{{ abs(kpis().solde) | number: '1.2-2' }}&nbsp;€</span>
+  </div>
 </div>
 
 @if (matchError()) {
   <p class="error">{{ matchError() }}</p>
 }
 
-<h2 class="sticky-title">Transactions prévisionnelles</h2>
-<div class="card table-card">
-<div class="table-scroll">
-<table class="transactions-table">
-  <colgroup>
-    <col class="col-date" />
-    <col class="col-label" />
-    <col class="col-category" />
-    <col class="col-type" />
-    <col class="col-amount" />
-    <col class="col-match" />
-    <col class="col-actions" />
-  </colgroup>
-  <thead>
-    <ng-container [ngTemplateOutlet]="headerRow" [ngTemplateOutletContext]="{ table: 'previsionnelle' }"></ng-container>
-  </thead>
-  <tbody>
-    @for (transaction of previsionnelleTransactions(); track transaction.id) {
-      <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: transaction }"></ng-container>
-    } @empty {
-      <tr>
-        <td colspan="7">Aucune transaction prévisionnelle pour ce mois.</td>
-      </tr>
-    }
-  </tbody>
-  <tfoot>
-    <ng-container [ngTemplateOutlet]="totalRow" [ngTemplateOutletContext]="{ $implicit: previsionnelleTotal() }"></ng-container>
-  </tfoot>
-</table>
-</div>
-</div>
-
-<div class="card">
-<h2>Ajout d'une transaction prévisionnelle</h2>
-
-<form [formGroup]="form" (ngSubmit)="submit()" class="transaction-form">
-  <label>
-    Date
-    <input type="date" formControlName="date" />
-  </label>
-
-  <label>
-    Libellé
-    <input type="text" formControlName="label" />
-  </label>
-
-  <label>
-    Type
-    <select formControlName="type">
-      @for (type of types; track type) {
-        <option [value]="type">{{ typeLabels[type] }}</option>
-      }
-    </select>
-  </label>
-
-  @if (form.controls.type.value === 'TRANSFERT') {
-    <label>
-      Compte cible
-      <select formControlName="transferAccountId">
-        <option [ngValue]="null">Sélectionner…</option>
-        @for (account of accounts(); track account.id) {
-          <option [ngValue]="account.id">{{ account.name }}</option>
-        }
-      </select>
-    </label>
-
-    <label>
-      Sens
-      <select formControlName="outgoing">
-        <option [ngValue]="true">Sortant (quitte ce compte)</option>
-        <option [ngValue]="false">Entrant (arrive sur ce compte)</option>
-      </select>
-    </label>
-  }
-
-  <label>
-    Montant
-    <input type="number" step="0.01" min="0.01" formControlName="amount" />
-  </label>
-
-  <label>
-    Compte
-    <select formControlName="accountId">
-      <option [ngValue]="null">Sélectionner…</option>
-      @for (account of accounts(); track account.id) {
-        <option [ngValue]="account.id">{{ account.name }}</option>
-      }
-    </select>
-  </label>
-
-  <label>
-    Catégorie
-    <select formControlName="categoryId">
-      <option [ngValue]="null">Aucune</option>
-      @for (category of categoryTree(); track category.id) {
-        <option [ngValue]="category.id">
-          {{ '  '.repeat(category.depth) }}{{ category.name }}
-        </option>
-      }
-    </select>
-  </label>
-
-  <p class="form-hint">
-    Ajoutée ici, une transaction est toujours prévisionnelle. Elle devient pointée via un
-    import bancaire ou un rapprochement.
-  </p>
-
-  <div class="form-actions">
-    <button type="submit" [disabled]="form.invalid">Ajouter</button>
-  </div>
-</form>
-</div>
-
-<div class="sticky-title">
-  <h2>Transactions importées</h2>
-  <div class="suggestion-actions">
+@if (suggestedLabelIds().length > 0 || suggestedCategoryIds().length > 0) {
+  <div class="suggestion-bar">
+    <span class="suggestion-intro">Suggestions de l’import à valider&nbsp;:</span>
     @if (suggestedLabelIds().length > 0) {
       @if (pendingConfirmAllLabels()) {
-        <span class="confirm-all-categories">
-          Confirmer {{ suggestedLabelIds().length }} libellé(s) suggéré(s) ?
-          <button type="button" class="confirm-all" (click)="confirmAllLabels()">Confirmer</button>
+        <span class="confirm-all">
+          Confirmer {{ suggestedLabelIds().length }} libellé(s) suggéré(s)&nbsp;?
+          <button type="button" class="primary" (click)="confirmAllLabels()">Confirmer</button>
           <button type="button" (click)="cancelConfirmAllLabels()">Annuler</button>
         </span>
       } @else {
-        <button type="button" class="validate-all-categories" (click)="requestConfirmAllLabels()">
-          Valider les libellés suggérés ({{ suggestedLabelIds().length }})
-        </button>
+        <button type="button" (click)="requestConfirmAllLabels()">Valider les libellés suggérés ({{ suggestedLabelIds().length }})</button>
       }
     }
     @if (suggestedCategoryIds().length > 0) {
       @if (pendingConfirmAllCategories()) {
-        <span class="confirm-all-categories">
-          Confirmer {{ suggestedCategoryIds().length }} catégorie(s) suggérée(s) ?
-          <button type="button" class="confirm-all" (click)="confirmAllCategories()">Confirmer</button>
+        <span class="confirm-all">
+          Confirmer {{ suggestedCategoryIds().length }} catégorie(s) suggérée(s)&nbsp;?
+          <button type="button" class="primary" (click)="confirmAllCategories()">Confirmer</button>
           <button type="button" (click)="cancelConfirmAllCategories()">Annuler</button>
         </span>
       } @else {
-        <button type="button" class="validate-all-categories" (click)="requestConfirmAllCategories()">
-          Valider les catégories suggérées ({{ suggestedCategoryIds().length }})
-        </button>
+        <button type="button" (click)="requestConfirmAllCategories()">Valider les catégories suggérées ({{ suggestedCategoryIds().length }})</button>
       }
     }
   </div>
-</div>
-<div class="card table-card">
-<div class="table-scroll">
-<table class="transactions-table">
-  <colgroup>
-    <col class="col-date" />
-    <col class="col-label" />
-    <col class="col-category" />
-    <col class="col-type" />
-    <col class="col-amount" />
-    <col class="col-match" />
-    <col class="col-actions" />
-  </colgroup>
-  <thead>
-    <ng-container [ngTemplateOutlet]="headerRow" [ngTemplateOutletContext]="{ table: 'pointee' }"></ng-container>
-  </thead>
-  <tbody>
-    @for (transaction of pointeeTransactions(); track transaction.id) {
-      <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: transaction }"></ng-container>
-    } @empty {
-      <tr>
-        <td colspan="7">Aucune transaction importée pour ce mois.</td>
-      </tr>
-    }
-  </tbody>
-  <tfoot>
-    <ng-container [ngTemplateOutlet]="totalRow" [ngTemplateOutletContext]="{ $implicit: pointeeTotal() }"></ng-container>
-  </tfoot>
-</table>
-</div>
+}
+
+<dialog class="card add-dialog" #addDialog aria-labelledby="add-title" (click)="onAddDialogClick($event)">
+    <div class="add-head">
+      <h2 id="add-title">Ajout d’une transaction prévisionnelle <span class="add-account">sur {{ accountName(form.controls.accountId.value) }}</span></h2>
+      <button type="button" class="icon-button" title="Fermer" aria-label="Fermer" (click)="closeAdd()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    <form [formGroup]="form" (ngSubmit)="submit()" class="transaction-form">
+      <label>
+        Date
+        <input type="date" formControlName="date" />
+      </label>
+      <label class="grow">
+        Libellé
+        <input type="text" formControlName="label" autofocus />
+      </label>
+      <label>
+        Type
+        <select formControlName="type">
+          @for (type of types; track type) {
+            <option [value]="type">{{ typeLabels[type] }}</option>
+          }
+        </select>
+      </label>
+      @if (form.controls.type.value === 'TRANSFERT') {
+        <label>
+          Compte cible
+          <select formControlName="transferAccountId">
+            <option [ngValue]="null">Sélectionner…</option>
+            @for (account of accounts(); track account.id) {
+              <option [ngValue]="account.id">{{ account.name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          Sens
+          <select formControlName="outgoing">
+            <option [ngValue]="true">Sortant (quitte ce compte)</option>
+            <option [ngValue]="false">Entrant (arrive sur ce compte)</option>
+          </select>
+        </label>
+      }
+      <label>
+        Montant
+        <input type="number" step="0.01" min="0.01" formControlName="amount" class="amount-input" />
+      </label>
+      <label>
+        Catégorie
+        <select formControlName="categoryId">
+          <option [ngValue]="null">Aucune</option>
+          @for (category of categoryTree(); track category.id) {
+            <option [ngValue]="category.id">{{ category.optionLabel }}</option>
+          }
+        </select>
+      </label>
+      <p class="form-hint">
+        Ajoutée ici, une transaction est toujours prévisionnelle&nbsp;; elle devient pointée via un
+        import bancaire ou un rapprochement.
+      </p>
+      <div class="form-actions">
+        <button type="submit" [disabled]="form.invalid">Ajouter</button>
+        <button type="button" (click)="closeAdd()">Fermer</button>
+      </div>
+    </form>
+</dialog>
+
+<div class="cards">
+  @for (column of cardColumns(); track $index) {
+  <div class="card-column">
+  @for (card of column; track card.key) {
+    <article class="cat-card" [style.--c]="card.color" [attr.aria-labelledby]="'card-' + card.key">
+      <header class="cat-card-head">
+        <span class="swatch" aria-hidden="true"></span>
+        <h2 [id]="'card-' + card.key">{{ card.title }}</h2>
+        <span class="count">{{ card.totals.count }}&nbsp;ligne{{ card.totals.count > 1 ? 's' : '' }}</span>
+        <span class="card-amount" [class.in]="card.totals.net > 0">{{ card.totals.net > 0 ? '+' : '' }}{{ abs(card.totals.net) | number: '1.2-2' }}&nbsp;€</span>
+      </header>
+
+      @if (card.budget !== null && !card.showSectionTitles) {
+        <ng-container [ngTemplateOutlet]="meter" [ngTemplateOutletContext]="{ $implicit: card.budgetTotals, budget: card.budget }"></ng-container>
+      }
+
+      @for (section of card.sections; track section.key) {
+        <section class="card-section">
+          @if (card.showSectionTitles) {
+            <h3 class="section-title">
+              {{ section.title }}
+              <span class="section-amount">{{ section.totals.net > 0 ? '+' : '' }}{{ abs(section.totals.net) | number: '1.2-2' }}&nbsp;€</span>
+            </h3>
+            @if (section.budget !== null) {
+              <ng-container [ngTemplateOutlet]="meter" [ngTemplateOutletContext]="{ $implicit: section.totals, budget: section.budget }"></ng-container>
+            }
+          }
+          <ul class="rows">
+            @for (transaction of section.transactions; track transaction.id) {
+              <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: transaction }"></ng-container>
+            }
+          </ul>
+        </section>
+      }
+
+      <button type="button" class="add-in-card" (click)="openAdd(card.addCategoryId)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        Ajouter dans {{ card.title }}
+      </button>
+    </article>
+  }
+  </div>
+  }
+  @if (cards().length === 0) {
+    <p class="empty">Aucune transaction pour ce mois et ces filtres.</p>
+  }
 </div>
 
-<ng-template #totalRow let-total>
-  <tr class="total-row">
-    <td colspan="4">Total</td>
-    <td [class.negative]="total < 0" [class.positive]="total >= 0">{{ total | number: '1.2-2' }} €</td>
-    <td></td>
-    <td></td>
-  </tr>
+@if (cards().length > 0) {
+  <div class="totals-footer">
+    <span>Total prévisionnel <b [class.out]="previsionnelleTotal() < 0">{{ previsionnelleTotal() | number: '1.2-2' }}&nbsp;€</b></span>
+    <span>Total pointé <b [class.out]="pointeeTotal() < 0" [class.in]="pointeeTotal() >= 0">{{ pointeeTotal() | number: '1.2-2' }}&nbsp;€</b></span>
+  </div>
+}
+
+<ng-template #meter let-totals let-budget="budget">
+  @let engaged = abs(totals.pointee) + abs(totals.previsionnelle);
+  <div class="budget">
+    <div class="meter" [class.over]="engaged > budget" role="img"
+         [attr.aria-label]="(engaged | number: '1.2-2') + ' € engagés sur un budget de ' + (budget | number: '1.2-2') + ' €'">
+      <span class="meter-real" [style.width.%]="budgetPercent(totals.pointee, budget, engaged)"></span>
+      <span class="meter-prev" [style.width.%]="budgetPercent(totals.previsionnelle, budget, engaged)"></span>
+    </div>
+    <div class="meter-legend">
+      <span><b>{{ engaged | number: '1.2-2' }}&nbsp;€</b> sur {{ budget | number: '1.2-2' }}&nbsp;€ de budget</span>
+      @if (engaged > budget) {
+        <span class="over-text">Dépassement de {{ engaged - budget | number: '1.2-2' }}&nbsp;€</span>
+      } @else {
+        <span>Reste {{ budget - engaged | number: '1.2-2' }}&nbsp;€</span>
+      }
+    </div>
+  </div>
 </ng-template>
 
-<ng-template #headerRow let-table="table">
-  <tr>
-    <th class="sortable" [attr.aria-sort]="ariaSort(table, 'date')" (click)="toggleSort(table, 'date')">
-      Date <span class="sort-indicator">{{ sortIndicator(table, 'date') }}</span>
-    </th>
-    <th class="sortable" [attr.aria-sort]="ariaSort(table, 'label')" (click)="toggleSort(table, 'label')">
-      Libellé <span class="sort-indicator">{{ sortIndicator(table, 'label') }}</span>
-    </th>
-    <th class="sortable" [attr.aria-sort]="ariaSort(table, 'category')" (click)="toggleSort(table, 'category')">
-      Catégorie <span class="sort-indicator">{{ sortIndicator(table, 'category') }}</span>
-    </th>
-    <th class="icon-header sortable" title="Type" [attr.aria-sort]="ariaSort(table, 'type')" (click)="toggleSort(table, 'type')">
-      Type <span class="sort-indicator">{{ sortIndicator(table, 'type') }}</span>
-    </th>
-    <th class="sortable" [attr.aria-sort]="ariaSort(table, 'amount')" (click)="toggleSort(table, 'amount')">
-      Montant <span class="sort-indicator">{{ sortIndicator(table, 'amount') }}</span>
-    </th>
-    <th>Rapprochement</th>
-    <th></th>
-  </tr>
+<ng-template #statusIcon let-kind>
+  <span class="status" [class]="'status ' + kind" aria-hidden="true">
+    @switch (kind) {
+      @case ('prev') {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>
+      }
+      @default {
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="currentColor"></circle></svg>
+      }
+    }
+  </span>
 </ng-template>
 
 <ng-template #row let-transaction>
   @if (transaction.id === editingId()) {
-    <tr class="editing-row">
-      <td><input type="date" [formControl]="editForm.controls.date" /></td>
-      <td>
-        <input type="text" [formControl]="editForm.controls.label" />
-      </td>
-      <td>
-        <select [formControl]="editForm.controls.categoryId">
-          <option [ngValue]="null">Aucune</option>
-          @for (category of categoryTree(); track category.id) {
-            <option [ngValue]="category.id">
-              {{ '  '.repeat(category.depth) }}{{ category.name }}
-            </option>
-          }
-        </select>
-      </td>
-      <td class="icon-cell type-toggle">
-        <div class="type-toggle-row">
-          <button
-            type="button"
-            class="icon-toggle"
-            [class.active]="editForm.controls.type.value === 'REVENU'"
-            title="Revenu"
-            aria-label="Revenu"
-            (click)="setEditType('REVENU')"
-          >
-            <svg class="icon positive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="12" y1="19" x2="12" y2="5"></line>
-              <polyline points="6 11 12 5 18 11"></polyline>
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="icon-toggle"
-            [class.active]="editForm.controls.type.value === 'DEPENSE'"
-            title="Dépense"
-            aria-label="Dépense"
-            (click)="setEditType('DEPENSE')"
-          >
-            <svg class="icon negative" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <polyline points="18 13 12 19 6 13"></polyline>
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="icon-toggle transfer-toggle"
-            [class.active]="editForm.controls.type.value === 'TRANSFERT'"
-            title="Transfert"
-            aria-label="Transfert"
-            (click)="setEditType('TRANSFERT')"
-          >
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="17 1 21 5 17 9"></polyline>
-              <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
-              <polyline points="7 23 3 19 7 15"></polyline>
-              <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
-            </svg>
-          </button>
+    <li class="row-edit">
+      <div class="edit-grid">
+        <label>
+          Date
+          <input type="date" [formControl]="editForm.controls.date" />
+        </label>
+        <label class="span-2">
+          Libellé
+          <input type="text" [formControl]="editForm.controls.label" />
+        </label>
+        <label>
+          Montant
+          <input type="number" step="0.01" min="0.01" class="amount-input" [formControl]="editForm.controls.amount" />
+        </label>
+        <label class="span-2">
+          Catégorie
+          <select [formControl]="editForm.controls.categoryId">
+            <option [ngValue]="null">Aucune</option>
+            @for (category of categoryTree(); track category.id) {
+              <option [ngValue]="category.id">{{ category.optionLabel }}</option>
+            }
+          </select>
+        </label>
+        <div class="edit-type">
+          <span class="edit-label">Type</span>
+          <div class="type-toggle-row">
+            @for (type of types; track type) {
+              <button type="button" class="type-button" [class.active]="editForm.controls.type.value === type" [attr.aria-pressed]="editForm.controls.type.value === type" (click)="setEditType(type)">{{ typeLabels[type] }}</button>
+            }
+          </div>
         </div>
         @if (editForm.controls.type.value === 'TRANSFERT') {
-          <div class="transfer-fields">
+          <label>
+            Compte cible
             <select [formControl]="editForm.controls.transferAccountId">
-              <option [ngValue]="null">Compte cible…</option>
+              <option [ngValue]="null">Sélectionner…</option>
               @for (account of accounts(); track account.id) {
                 <option [ngValue]="account.id">{{ account.name }}</option>
               }
             </select>
-            <div class="direction-toggle">
-              <button
-                type="button"
-                class="direction-button"
-                [class.active]="editForm.controls.outgoing.value"
-                title="Sortant"
-                (click)="setEditOutgoing(true)"
-              >Sortant</button>
-              <button
-                type="button"
-                class="direction-button"
-                [class.active]="!editForm.controls.outgoing.value"
-                title="Entrant"
-                (click)="setEditOutgoing(false)"
-              >Entrant</button>
+          </label>
+          <div class="edit-type">
+            <span class="edit-label">Sens</span>
+            <div class="type-toggle-row">
+              <button type="button" class="type-button" [class.active]="editForm.controls.outgoing.value" [attr.aria-pressed]="editForm.controls.outgoing.value" (click)="setEditOutgoing(true)">Sortant</button>
+              <button type="button" class="type-button" [class.active]="!editForm.controls.outgoing.value" [attr.aria-pressed]="!editForm.controls.outgoing.value" (click)="setEditOutgoing(false)">Entrant</button>
             </div>
           </div>
         }
-      </td>
-      <td>
-        <input type="number" step="0.01" min="0.01" class="amount-input" [formControl]="editForm.controls.amount" />
-      </td>
-      <td class="match-cell">
-        <div class="match-row">
-          <span class="no-candidate">—</span>
-        </div>
-      </td>
-      <td class="actions">
-        <div class="actions-row">
-          <button
-            type="button"
-            class="icon-button"
-            title="Enregistrer"
-            aria-label="Enregistrer"
-            [disabled]="editForm.invalid"
-            (click)="submitEdit()"
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          </button>
-          <button type="button" class="icon-button" title="Annuler" aria-label="Annuler" (click)="cancelEdit()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-      </td>
-    </tr>
+      </div>
+      <div class="edit-actions">
+        <button type="button" (click)="cancelEdit()">Annuler</button>
+        <button type="button" class="primary" [disabled]="editForm.invalid" (click)="submitEdit()">Enregistrer</button>
+      </div>
+    </li>
   } @else {
-    <tr>
-      <td>{{ transaction.date | date: 'dd/MM/yyyy' }}</td>
-      <td [title]="(hasOriginalDivergence(transaction) && transaction.labelConfirmed) ? originalTooltip(transaction) : transaction.label">
-        <div class="label-cell">
-          <div class="label-row">
-            <span class="label-text">{{ transaction.label }}</span>
-            @if (hasOriginalDivergence(transaction) && transaction.labelConfirmed) {
-              <svg class="icon original-marker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-              </svg>
-            }
-            @if (!transaction.labelConfirmed) {
-              <span class="suggested-badge">suggéré</span>
-              <button
-                type="button"
-                class="icon-button confirm-category"
-                title="Confirmer ce libellé"
-                aria-label="Confirmer ce libellé"
-                (click)="confirmLabel(transaction)"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </button>
-            }
-          </div>
-          @if (!transaction.labelConfirmed) {
-            <span class="original-name-suggestion">({{ transaction.originalLabel }})</span>
-          }
-        </div>
-      </td>
-      <td [title]="transaction.categoryName ?? ''">
-        <div class="category-cell">
-          @if (transaction.categoryName) {
-            <span
-              class="category-badge truncate"
-              [class.category-suggested]="!transaction.categoryConfirmed"
-              [style.background]="categoryColor(transaction.categoryId)"
-            >{{ transaction.categoryName }}</span>
-          } @else {
-            <span class="truncate">—</span>
-          }
-          @if (transaction.categoryName && !transaction.categoryConfirmed) {
-            <div class="category-suggestion-actions">
-              <span class="suggested-badge">suggéré</span>
-              <button
-                type="button"
-                class="icon-button confirm-category"
-                title="Confirmer cette catégorie"
-                aria-label="Confirmer cette catégorie"
-                (click)="confirmCategory(transaction)"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </button>
-            </div>
-          }
-        </div>
-      </td>
-      <td class="icon-cell" [title]="typeLabel(transaction.type)">
-        @if (transaction.type === 'REVENU') {
-          <svg class="icon positive" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="12" y1="19" x2="12" y2="5"></line>
-            <polyline points="6 11 12 5 18 11"></polyline>
-          </svg>
-        } @else if (transaction.type === 'TRANSFERT') {
-          <svg class="icon transfer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polyline points="17 1 21 5 17 9"></polyline>
-            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
-            <polyline points="7 23 3 19 7 15"></polyline>
-            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
-          </svg>
-        } @else {
-          <svg class="icon negative" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="12" y1="5" x2="12" y2="19"></line>
-            <polyline points="18 13 12 19 6 13"></polyline>
-          </svg>
+    @let candidates = candidatesFor(transaction);
+    @let suggested = suggestedMatchFor(transaction);
+    @let sameAmount = sameAmountCandidates(transaction);
+    <li class="row" [class.prev]="transaction.status === 'PREVISIONNELLE'">
+      <span class="status-cell" [title]="transaction.status === 'PREVISIONNELLE' ? 'Prévisionnelle' : transaction.matched ? 'Pointée, rapprochée' : 'Pointée'">
+        <ng-container [ngTemplateOutlet]="statusIcon" [ngTemplateOutletContext]="{ $implicit: transaction.status === 'PREVISIONNELLE' ? 'prev' : 'pt' }"></ng-container>
+        <span class="sr-only">{{ transaction.status === 'PREVISIONNELLE' ? 'Prévisionnelle' : transaction.matched ? 'Pointée, rapprochée' : 'Pointée' }}</span>
+      </span>
+      <time [attr.datetime]="transaction.date">{{ transaction.date | date: 'd MMM' }}</time>
+      <span class="lbl">
+        <span class="txt" [title]="(hasOriginalDivergence(transaction) && transaction.labelConfirmed) ? originalTooltip(transaction) : transaction.label">{{ transaction.label }}</span>
+        @if (hasOriginalDivergence(transaction) && transaction.labelConfirmed) {
+          <span class="orig" [title]="originalTooltip(transaction)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+            <span class="sr-only">{{ originalTooltip(transaction) }}</span>
+          </span>
         }
-      </td>
-      <td [class.negative]="transaction.amount < 0" [class.positive]="transaction.amount >= 0">
-        <div class="amount-cell">
-          <span>{{ transaction.amount | number: '1.2-2' }} €</span>
-          @if (transaction.type === 'TRANSFERT' && transaction.transferAccountName) {
-            <span class="transfer-hint">{{ transaction.amount < 0 ? '→' : '←' }} {{ transaction.transferAccountName }}</span>
+        @if (transaction.type === 'TRANSFERT' && transaction.transferAccountName) {
+          <span class="chip transfer">{{ transaction.amount < 0 ? '→' : '←' }}&nbsp;{{ transaction.transferAccountName }}</span>
+        }
+        @if (!transaction.labelConfirmed) {
+          <span class="chip suggested">libellé suggéré
+            <button type="button" class="chip-action" title="Confirmer ce libellé" aria-label="Confirmer ce libellé" (click)="confirmLabel(transaction)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </button>
+          </span>
+        }
+        @if (transaction.categoryName && !transaction.categoryConfirmed) {
+          <span class="chip suggested">catégorie suggérée
+            <button type="button" class="chip-action" title="Confirmer cette catégorie" aria-label="Confirmer cette catégorie" (click)="confirmCategory(transaction)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </button>
+          </span>
+        }
+        @if (suggested || sameAmount.length > 1) {
+          <button type="button" class="chip match" (click)="toggleMatching(transaction.id)" [attr.aria-expanded]="matchingId() === transaction.id">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1 1"></path><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1-1"></path></svg>
+            {{ suggested ? 'Rapprochement suggéré' : sameAmount.length + ' rapprochements possibles' }}
+          </button>
+        }
+        @if (!transaction.labelConfirmed && transaction.originalLabel) {
+          <span class="original-line">({{ transaction.originalLabel }})</span>
+        }
+      </span>
+      <span class="amt" [class.in]="transaction.amount > 0">{{ transaction.amount > 0 ? '+' : '' }}{{ abs(transaction.amount) | number: '1.2-2' }}&nbsp;€</span>
+      <span class="act">
+        @if (pendingDeleteId() === transaction.id) {
+          <button type="button" class="icon-button danger armed" title="Confirmer la suppression" aria-label="Confirmer la suppression" (click)="confirmDelete(transaction.id)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+          </button>
+          <button type="button" class="icon-button" title="Annuler" aria-label="Annuler la suppression" (click)="cancelDelete()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        } @else {
+          @if (candidates.length > 0) {
+            <button type="button" class="icon-button" [class.on]="matchingId() === transaction.id" title="Rapprocher" aria-label="Rapprocher" [attr.aria-expanded]="matchingId() === transaction.id" (click)="toggleMatching(transaction.id)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1 1"></path><path d="M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1-1"></path></svg>
+            </button>
           }
-        </div>
-      </td>
-      <td class="match-cell">
+          <button type="button" class="icon-button" title="Modifier" aria-label="Modifier" (click)="edit(transaction)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+          </button>
+          <button type="button" class="icon-button danger" title="Supprimer" aria-label="Supprimer" (click)="requestDelete(transaction.id)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+          </button>
+        }
+      </span>
+    </li>
+    @if (matchingId() === transaction.id) {
+      <li class="match-panel">
+        <span class="match-title">Rapprocher «&nbsp;{{ transaction.label }}&nbsp;» avec&nbsp;:</span>
         <app-match-picker
-          [candidates]="candidatesFor(transaction)"
-          [suggested]="suggestedMatchFor(transaction)"
+          [candidates]="candidates"
+          [suggested]="suggested"
           [multi]="transaction.status === 'POINTEE'"
           [targetAmount]="transaction.amount"
           (matched)="match(transaction, $event)"
         />
-      </td>
-      <td class="actions">
-        <div class="actions-row">
-          @if (pendingDeleteId() === transaction.id) {
-            <button
-              type="button"
-              class="icon-button danger"
-              title="Confirmer la suppression"
-              aria-label="Confirmer la suppression"
-              (click)="confirmDelete(transaction.id)"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 6h18"></path>
-                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                <line x1="10" y1="11" x2="10" y2="17"></line>
-                <line x1="14" y1="11" x2="14" y2="17"></line>
-              </svg>
-            </button>
-            <button type="button" class="icon-button" title="Annuler" aria-label="Annuler" (click)="cancelDelete()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </button>
-          } @else {
-            <button type="button" class="icon-button" title="Modifier" aria-label="Modifier" (click)="edit(transaction)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-              </svg>
-            </button>
-            <button type="button" class="icon-button danger" title="Supprimer" aria-label="Supprimer" (click)="requestDelete(transaction.id)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 6h18"></path>
-                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
-                <line x1="10" y1="11" x2="10" y2="17"></line>
-                <line x1="14" y1="11" x2="14" y2="17"></line>
-              </svg>
-            </button>
-          }
-        </div>
-      </td>
-    </tr>
+      </li>
+    }
   }
 </ng-template>

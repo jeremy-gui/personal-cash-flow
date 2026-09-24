@@ -1,4 +1,13 @@
-<h1>Catégories</h1>
+<div class="page-header">
+  <h1>Catégories</h1>
+  <button type="button" class="new-button" (click)="openAdd()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    Nouvelle catégorie
+  </button>
+</div>
 
 @if (errorMessage()) {
   <p class="error">{{ errorMessage() }}</p>
@@ -45,13 +54,25 @@
 </div>
 </div>
 
-<div class="card">
-<h2>{{ editingId() ? 'Modifier la catégorie' : 'Ajouter une catégorie' }}</h2>
+<dialog class="card form-dialog" #formDialog aria-labelledby="form-title" (click)="onDialogClick($event)">
+<div class="dialog-head">
+  <h2 id="form-title">{{ editingId() ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}</h2>
+  <button type="button" class="icon-button" title="Fermer" aria-label="Fermer" (click)="closeForm()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+</div>
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
 
 <form [formGroup]="form" (ngSubmit)="submit()" class="category-form">
   <label>
     Nom
-    <input type="text" formControlName="name" />
+    <input type="text" formControlName="name" autofocus />
   </label>
 
   <label>
@@ -59,7 +80,7 @@
     <select formControlName="parentId">
       <option [ngValue]="null">Aucune (catégorie racine)</option>
       @for (option of parentOptions(); track option.id) {
-        <option [ngValue]="option.id">{{ option.name }}</option>
+        <option [ngValue]="option.id">{{ option.optionLabel }}</option>
       }
     </select>
   </label>
@@ -74,24 +95,36 @@
     </select>
   </label>
 
-  @if (editingId()) {
-    @if (formParentId() === null) {
-      <label class="color-label">
-        Couleur
-        <input type="color" formControlName="color" />
-      </label>
-    } @else {
-      <p class="color-hint">La couleur suit celle de la catégorie parente.</p>
-    }
+  @if (formParentId() === null) {
+    <fieldset class="color-field">
+      <legend>Couleur</legend>
+      <div class="swatches" role="radiogroup" aria-label="Couleur">
+        @for (color of swatches(); track color) {
+          <button
+            type="button"
+            class="swatch"
+            role="radio"
+            [style.background]="color"
+            [attr.aria-checked]="formColor() === color"
+            [attr.aria-label]="color"
+            (click)="pickColor(color)"
+          ></button>
+        }
+        <label class="custom-color" title="Couleur personnalisée">
+          <input type="color" formControlName="color" aria-label="Couleur personnalisée" />
+          <span>Autre…</span>
+        </label>
+      </div>
+    </fieldset>
+  } @else {
+    <p class="color-hint">La couleur suit celle de la catégorie parente.</p>
   }
 
   <div class="form-actions">
     <button type="submit" [disabled]="form.invalid">
       {{ editingId() ? 'Enregistrer' : 'Ajouter' }}
     </button>
-    @if (editingId()) {
-      <button type="button" (click)="cancelEdit()">Annuler</button>
-    }
+    <button type="button" (click)="closeForm()">Annuler</button>
   </div>
 </form>
-</div>
+</dialog>

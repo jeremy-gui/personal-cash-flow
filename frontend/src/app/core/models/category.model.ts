@@ -30,11 +30,14 @@ export function categoryColor(categories: Category[], categoryId: number | null)
 export interface CategoryTreeNode extends Category {
   depth: number;
   children: CategoryTreeNode[];
+  /** Name indented with non-breaking spaces and a "└" branch, since native <option>s collapse regular
+   *  whitespace - every category <select> uses this so the hierarchy stays visible. */
+  optionLabel: string;
 }
 
 export function buildCategoryTree(categories: Category[]): CategoryTreeNode[] {
   const nodes = new Map<number, CategoryTreeNode>(
-    categories.map((category) => [category.id, { ...category, depth: 0, children: [] }]),
+    categories.map((category) => [category.id, { ...category, depth: 0, children: [], optionLabel: category.name }]),
   );
   const roots: CategoryTreeNode[] = [];
 
@@ -49,9 +52,11 @@ export function buildCategoryTree(categories: Category[]): CategoryTreeNode[] {
   const flatten = (list: CategoryTreeNode[], depth: number): CategoryTreeNode[] =>
     list.flatMap((node) => {
       node.depth = depth;
+      node.optionLabel = depth === 0 ? node.name : '    '.repeat(depth - 1) + '  └ ' + node.name;
       return [node, ...flatten(node.children, depth + 1)];
     });
 
+  roots.sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
   return flatten(roots, 0);
 }
 

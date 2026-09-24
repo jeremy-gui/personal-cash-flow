@@ -2,7 +2,6 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-3);
   position: sticky;
   /* Matches the topbar's own rendered height, so this row sticks right below it. */
@@ -12,31 +11,18 @@
   padding: var(--space-2) 0;
 }
 
-/* The section title ("Transactions prévisionnelles"/"Transactions importées") sticks right below
-   .page-header, and the table's own header row sticks right below that - each one only for as
-   long as its own section is on screen, so scrolling from one table into the next swaps which
-   title/header pair is pinned. The bulk "Valider les X suggérées" buttons live inside this same
-   sticky bar (table 1 never has any, table 2 shows up to two) - min-height plus nowrap keep the
-   bar a constant height whether 0, 1 or 2 buttons are showing, so the sticky table header pinned
-   right below it (a fixed pixel offset, since CSS can't read a sibling's rendered height) never
-   has to guess at a moving target. */
-.sticky-title {
-  position: sticky;
-  top: 121px;
-  z-index: 4;
-  margin: 0 0 var(--space-3) 0;
-  background: var(--bg);
+.month-nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: nowrap;
-  gap: var(--space-3);
-  min-height: 34px;
+  gap: 6px;
+  margin-left: auto;
 }
 
-.sticky-title h2 {
-  margin: 0;
-  white-space: nowrap;
+.balances {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }
 
 .balance-badge {
@@ -56,450 +42,191 @@
   background: var(--red-soft);
 }
 
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-6);
-  margin-bottom: var(--space-4);
-}
-
-.month-nav {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.table-card {
-  padding: var(--space-4) 0;
-  margin-bottom: var(--space-4);
-}
-
-/* No overflow-x here on purpose: any non-visible overflow-x forces overflow-y to compute as
-   auto too, which would make this element the sticky positioning context for the <th> below
-   instead of the viewport (a well-known CSS gotcha), breaking the page-level sticky handoff. On
-   narrow viewports the table now overflows the page horizontally instead of just this wrapper. */
-.transactions-table {
-  table-layout: fixed;
-  width: 100%;
-  min-width: 900px;
-  font-size: 13px;
-  /* border-collapse: collapse (the global table default) is incompatible with a sticky <th>: in
-     Chrome the scrolling <tbody> rows paint over the sticky header instead of staying behind it.
-     border-spacing: 0 keeps the same flush look without collapsing borders. */
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.transactions-table thead th {
-  position: sticky;
-  top: 155px;
-  z-index: 3;
-  background: var(--surface);
-}
-
-/* Once the header sticks, the card's own rounded top edge has already scrolled out of view -
-   round the header's own outer corners so it still reads as a rounded card top while pinned. */
-.transactions-table thead th:first-child {
-  border-top-left-radius: var(--radius-lg);
-}
-
-.transactions-table thead th:last-child {
-  border-top-right-radius: var(--radius-lg);
-}
-
-.transactions-table th:first-child,
-.transactions-table td:first-child {
-  padding-left: var(--space-6);
-}
-
-.transactions-table th:last-child,
-.transactions-table td:last-child {
-  padding-right: var(--space-6);
-}
-
-.col-date { width: 130px; }
-.col-label { width: auto; }
-.col-category { width: 150px; }
-.col-type { width: 56px; }
-.col-amount { width: 132px; }
-.col-match { width: 170px; }
-.col-actions { width: 104px; }
-
-.editing-row input,
-.editing-row select {
-  width: 100%;
-}
-
-.amount-input {
-  text-align: right;
-  font-feature-settings: 'tnum' 1;
-}
-
-.type-toggle {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.type-toggle-row {
-  display: flex;
-  justify-content: center;
-  gap: 4px;
-}
-
-.icon-toggle {
+.new-button {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  color: var(--ink-faint);
-  opacity: 0.6;
-}
-
-.icon-toggle .icon {
-  width: 14px;
-  height: 14px;
-}
-
-.icon-toggle.active {
-  opacity: 1;
-  border-color: currentColor;
-  background: var(--bg);
-}
-
-.transfer-toggle.active {
-  color: var(--blue);
-}
-
-/* Floats as a popover instead of stretching the narrow .col-type column: anchored to
-   .type-toggle (position: relative), it overlaps the row below it rather than pushing/
-   overflowing into the adjacent Montant/Rapprochement columns. */
-.transfer-fields {
-  position: absolute;
-  top: 100%;
-  /* Anchored to the right edge, growing left: the type column sits near the right side of the
-     table, with the narrow Montant/Rapprochement/Actions columns beyond it - centering (or
-     growing right) pushed this off the viewport edge on typical window widths. */
-  right: 0;
-  z-index: 20;
-  margin-top: 4px;
-  width: 160px;
-  display: flex;
-  flex-direction: column;
   gap: 6px;
-  padding: var(--space-2);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-md);
-}
-
-.transfer-fields select {
-  width: 100%;
-  font-size: 0.75rem;
-  padding: 4px 6px;
-}
-
-.direction-toggle {
-  display: flex;
-  gap: 4px;
-}
-
-.direction-button {
-  flex: 1;
-  font-size: 0.7rem;
-  padding: 3px 4px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--ink-faint);
-}
-
-.direction-button.active {
-  border-color: var(--blue);
-  color: var(--blue);
-  background: var(--blue-soft);
-}
-
-.icon.transfer {
-  color: var(--blue);
-}
-
-.amount-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-
-.transfer-hint {
-  font-size: 0.72rem;
-  font-weight: 400;
-  color: var(--ink-faint);
-  white-space: nowrap;
-}
-
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Name on its own line, badge + confirm button on the line below - the name gets the column's
-   full width instead of fighting the badge/button for it and getting truncated too eagerly. */
-.category-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-
-.category-cell > .truncate {
-  display: block;
-  max-width: 100%;
-}
-
-.category-suggestion-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.category-badge {
-  display: inline-block;
-  color: #fff;
-  border-radius: var(--radius-pill);
-  padding: 2px var(--space-2);
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.category-suggested {
-  font-style: italic;
-  opacity: 0.7;
-  outline: 1px dashed rgba(255, 255, 255, 0.7);
-  outline-offset: -3px;
-}
-
-.suggested-badge {
-  flex-shrink: 0;
-  color: var(--blue-dark);
-  background: var(--blue-soft);
-  border-radius: var(--radius-pill);
-  padding: 0 var(--space-2);
-  font-size: 0.68rem;
-  font-weight: 600;
-}
-
-.confirm-category {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-}
-
-.confirm-category svg {
-  width: 13px;
-  height: 13px;
-}
-
-.suggestion-actions {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.validate-all-categories {
-  font-size: 0.8rem;
-  padding: 6px var(--space-3);
-}
-
-.confirm-all-categories {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 0.85rem;
-}
-
-.confirm-all-categories button {
-  font-size: 0.8rem;
-  padding: 6px var(--space-3);
-}
-
-.confirm-all-categories button.confirm-all {
   background: var(--blue);
-  color: #ffffff;
   border-color: var(--blue);
+  color: #fff;
 }
 
-.confirm-all-categories button.confirm-all:hover:not(:disabled) {
+.new-button:hover:not(:disabled) {
   background: var(--blue-dark);
   border-color: var(--blue-dark);
 }
 
-/* Same reasoning as .category-cell: the suggestion row goes on its own line below the name,
-   rather than fighting it for horizontal space and getting truncated too eagerly. */
-.label-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.new-button svg {
+  width: 14px;
+  height: 14px;
 }
 
-.label-row {
+.filters {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  align-items: flex-end;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: var(--space-4) var(--space-6);
 }
 
-.label-row .label-text {
-  min-width: 0;
-  white-space: normal;
-  overflow-wrap: break-word;
-}
-
-/* The bank's raw wording can run much longer than the friendly name above it - let it wrap
-   instead of forcing the row wider than the column (which would bleed into Catégorie). */
-.original-name-suggestion {
-  display: block;
-  max-width: 100%;
-  white-space: normal;
-  overflow-wrap: break-word;
-  font-style: italic;
-  color: var(--ink-faint);
-  font-size: 0.85em;
-}
-
-.icon.original-marker {
-  flex-shrink: 0;
-  width: 13px;
-  height: 13px;
-  color: var(--ink-faint);
-}
-
-.icon-header {
-  text-align: center;
-  cursor: default;
-}
-
-.sortable {
-  cursor: pointer;
-  user-select: none;
-}
-
-.sortable:hover {
-  color: var(--ink);
-}
-
-.sort-indicator {
-  display: inline-block;
-  width: 0.7em;
-  color: var(--blue);
-  font-size: 0.7em;
-}
-
-.icon-cell {
-  text-align: center;
-}
-
-.total-row td {
-  border-top: 2px solid var(--border);
-  font-weight: 600;
-  position: sticky;
-  bottom: 0;
-  z-index: 3;
-  background: var(--surface);
-}
-
-.icon {
-  width: 16px;
-  height: 16px;
-  vertical-align: middle;
-}
-
-.icon.positive {
-  color: var(--green);
-}
-
-.icon.negative {
-  color: var(--red);
-}
-
-.actions-row {
+.legend {
+  margin-left: auto;
   display: flex;
-  flex-wrap: nowrap;
-  justify-content: flex-end;
-  gap: var(--space-1);
-  align-items: center;
-}
-
-.icon-button {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: 0.8rem;
   color: var(--ink-soft);
 }
 
-.icon-button svg {
-  width: 15px;
-  height: 15px;
+.legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.icon-button:hover:not(:disabled) {
-  background: var(--bg);
-  color: var(--ink);
+/* ---------- KPI strip ---------- */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
 }
 
-.icon-button.danger {
-  color: var(--red);
-}
-
-.icon-button.danger:hover:not(:disabled) {
-  background: var(--red-soft);
-  border-color: var(--red);
-  color: var(--red);
-}
-
-.match-row {
+.kpi {
   display: flex;
-  flex-wrap: nowrap;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  min-width: 0;
+}
+
+.kpi + .kpi {
+  border-left: 1px solid var(--border);
+}
+
+.kpi .k {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.kpi .v {
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.in {
+  color: var(--green);
+}
+
+.out {
+  color: var(--red);
+}
+
+@media (max-width: 760px) {
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi + .kpi {
+    border-left: 0;
+  }
+
+  .kpi:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+
+  .kpi:nth-child(even) {
+    border-left: 1px solid var(--border);
+  }
+
+  .legend {
+    margin-left: 0;
+  }
+}
+
+/* ---------- bulk suggestions ---------- */
+.suggestion-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--blue-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+}
+
+.suggestion-bar button {
+  font-size: 0.8rem;
+  padding: 6px var(--space-3);
+}
+
+.suggestion-intro {
+  font-weight: 600;
+}
+
+.confirm-all {
+  display: flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-.no-candidate {
-  color: var(--ink-faint);
+button.primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
 }
 
-.error {
-  color: var(--red);
-  background: var(--red-soft);
-  border: 1px solid #fecaca;
-  border-radius: var(--radius-sm);
-  padding: var(--space-3);
-  margin-bottom: var(--space-4);
-  font-size: 0.85rem;
+button.primary:hover:not(:disabled) {
+  background: var(--blue-dark);
+  border-color: var(--blue-dark);
+}
+
+/* ---------- add dialog ---------- */
+.add-dialog {
+  width: min(760px, calc(100vw - 32px));
+  margin: auto;
+  color: inherit;
+}
+
+.add-dialog::backdrop {
+  background: rgb(15 23 42 / 0.45);
+}
+
+.add-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-3);
+}
+
+.add-head h2 {
+  margin: 0;
+}
+
+.add-account {
+  font-weight: 500;
+  color: var(--ink-soft);
 }
 
 .transaction-form {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-6);
+  gap: var(--space-4);
   align-items: flex-end;
+}
+
+.transaction-form .grow {
+  flex: 1 1 220px;
 }
 
 .form-actions {
@@ -512,4 +239,509 @@
   margin: 0;
   font-size: 0.8rem;
   color: var(--ink-soft);
+}
+
+.amount-input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- cards ---------- */
+/* Two independent column stacks (filled in priority order by the component) so cards of very
+   different heights pack without gaps while "Non catégorisées" and "Crédit" both stay on top. */
+.cards {
+  display: flex;
+  gap: var(--space-6);
+  align-items: flex-start;
+  margin-bottom: var(--space-6);
+}
+
+.card-column {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.cat-card {
+  --cs: color-mix(in srgb, var(--c) 55%, var(--ink));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--cs);
+  border-radius: var(--radius-md);
+}
+
+.cat-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.cat-card-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.swatch {
+  align-self: center;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: var(--c);
+  box-shadow: inset 0 0 0 1px var(--cs);
+}
+
+.count {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.card-amount {
+  margin-left: auto;
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.card-section + .card-section {
+  margin-top: var(--space-2);
+}
+
+.section-title {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0 0 2px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.section-amount {
+  margin-left: auto;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.add-in-card {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--space-1);
+  font-size: 0.8rem;
+  padding: 6px var(--space-3);
+  border-style: dashed;
+  color: var(--ink-soft);
+  background: transparent;
+}
+
+.add-in-card:hover:not(:disabled) {
+  color: var(--blue);
+  border-color: var(--blue);
+  background: transparent;
+}
+
+.add-in-card svg {
+  width: 13px;
+  height: 13px;
+}
+
+.empty {
+  color: var(--ink-soft);
+}
+
+/* ---------- budget meter ---------- */
+.budget {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 6px;
+}
+
+.meter {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--border-soft);
+}
+
+.meter-real {
+  background: var(--cs);
+}
+
+.meter-prev {
+  background: repeating-linear-gradient(135deg, var(--cs) 0 3px, transparent 3px 6px);
+  opacity: 0.7;
+}
+
+.meter.over .meter-real {
+  background: var(--red);
+}
+
+.meter-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.meter-legend b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.over-text {
+  color: var(--red);
+  font-weight: 600;
+}
+
+/* ---------- rows ---------- */
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 16px 4.4em minmax(0, 1fr) auto auto;
+  align-items: start;
+  column-gap: var(--space-3);
+  min-height: 36px;
+  padding: 7px 0;
+  border-top: 1px solid var(--border-soft);
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.rows > .row:first-child {
+  border-top: 0;
+}
+
+.status-cell {
+  padding-top: 1px;
+}
+
+.status {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+}
+
+.status svg {
+  width: 14px;
+  height: 14px;
+}
+
+.status.pt {
+  color: var(--ink-faint);
+}
+
+.status.prev {
+  color: #d97706;
+}
+
+.row time {
+  padding-top: 1px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Long labels (raw bank imports especially) wrap in full instead of being cut. */
+.lbl {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+}
+
+.txt {
+  overflow-wrap: anywhere;
+}
+
+.row.prev .txt {
+  color: var(--ink-soft);
+}
+
+.original-line {
+  flex-basis: 100%;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  overflow-wrap: anywhere;
+}
+
+.orig {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--ink-faint);
+  cursor: help;
+}
+
+.orig svg {
+  width: 12px;
+  height: 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.chip svg {
+  width: 11px;
+  height: 11px;
+}
+
+.chip.transfer,
+.chip.suggested {
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+}
+
+.chip.match {
+  color: var(--green);
+  background: var(--green-soft);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.chip.match:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 1px currentColor;
+  background: var(--green-soft);
+}
+
+.chip-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--blue-dark);
+}
+
+/* Actions sit before the amount so amounts stay flush right against the card edge. */
+.act {
+  order: 1;
+}
+
+.amt {
+  order: 2;
+  font-weight: 650;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.row.prev .amt {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.act {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: -3px;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.row:hover .act,
+.row:focus-within .act,
+.act:has(.armed),
+.act:has(.on) {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .act {
+    opacity: 1;
+  }
+}
+
+.icon-button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.icon-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.icon-button:hover:not(:disabled),
+.icon-button.on {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.icon-button.danger:hover:not(:disabled),
+.icon-button.danger.armed {
+  background: var(--red-soft);
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* ---------- inline editing & matching ---------- */
+.row-edit,
+.match-panel {
+  padding: var(--space-3);
+  margin: 4px 0;
+  border: 1px solid var(--blue);
+  border-radius: var(--radius-sm);
+  background: var(--blue-soft);
+}
+
+.edit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.edit-grid .span-2 {
+  grid-column: span 2;
+}
+
+.edit-grid input,
+.edit-grid select {
+  width: 100%;
+}
+
+.edit-type {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.edit-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.type-toggle-row {
+  display: flex;
+  gap: 4px;
+}
+
+.type-button {
+  flex: 1;
+  padding: 7px 8px;
+  font-size: 0.78rem;
+}
+
+.type-button.active {
+  border-color: var(--blue);
+  color: var(--blue);
+  background: var(--surface);
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.match-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+}
+
+.match-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-grid .span-2 {
+    grid-column: auto;
+  }
+}
+
+/* ---------- footer & misc ---------- */
+.totals-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.totals-footer b {
+  margin-left: 6px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.error {
+  color: var(--red);
+  background: var(--red-soft);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+  font-size: 0.85rem;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

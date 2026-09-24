@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Account } from '../../core/models/account.model';
-import { Category } from '../../core/models/category.model';
+import { buildCategoryTree, Category } from '../../core/models/category.model';
 import { Provision, ProvisionContribution, ProvisionContributionRequest, ProvisionRequest } from '../../core/models/provision.model';
 import { AccountService } from '../accounts/account.service';
 import { CategoryService } from '../categories/category.service';
@@ -27,6 +27,7 @@ export class ProvisionsComponent {
 
   protected readonly provisions = signal<Provision[]>([]);
   protected readonly categories = signal<Category[]>([]);
+  protected readonly categoryTree = computed(() => buildCategoryTree(this.categories()));
   protected readonly accounts = signal<Account[]>([]);
   protected readonly editingId = signal<number | null>(null);
   protected readonly pendingDeleteId = signal<number | null>(null);

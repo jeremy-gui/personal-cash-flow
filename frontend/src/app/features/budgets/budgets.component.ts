@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Budget, BudgetRequest } from '../../core/models/budget.model';
-import { Category } from '../../core/models/category.model';
+import { buildCategoryTree, Category } from '../../core/models/category.model';
 import { RecurringTransaction, RecurringTransactionRequest } from '../../core/models/recurring-transaction.model';
 import { TRANSACTION_TYPE_LABELS, TransactionType } from '../../core/models/transaction.model';
 import { CategoryService } from '../categories/category.service';
@@ -34,7 +34,9 @@ export class BudgetsComponent {
   protected readonly pendingDeleteId = signal<number | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
 
-  protected readonly availableCategories = computed(() => {
+  protected readonly categoryTree = computed(() => buildCategoryTree(this.categories()));
+  protected readonly availableCategoryIds = computed(() => new Set(this.availableCategories().map((c) => c.id)));
+  private readonly availableCategories = computed(() => {
     const editing = this.budgets().find((b) => b.id === this.editingId());
     const budgetedIds = new Set(
       this.budgets()

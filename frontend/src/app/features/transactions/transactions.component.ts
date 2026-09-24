@@ -1,18 +1,18 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Account } from '../../core/models/account.model';
-import { buildCategoryTree, Category, categoryColor } from '../../core/models/category.model';
+import { Budget } from '../../core/models/budget.model';
+import { buildCategoryTree, Category } from '../../core/models/category.model';
 import {
-  TRANSACTION_STATUS_LABELS,
   TRANSACTION_TYPE_LABELS,
   Transaction,
   TransactionRequest,
-  TransactionStatus,
   TransactionType,
 } from '../../core/models/transaction.model';
 import { AccountService } from '../accounts/account.service';
+import { BudgetService } from '../budgets/budget.service';
 import { CategoryService } from '../categories/category.service';
 import { MatchPickerComponent } from './match-picker.component';
 import { TransactionService } from './transaction.service';
@@ -57,37 +57,68 @@ function sameAmount(a: number, b: number): boolean {
   return Math.round(a * 100) === Math.round(b * 100);
 }
 
-type SortTable = 'previsionnelle' | 'pointee';
-type SortColumn = 'date' | 'label' | 'category' | 'type' | 'amount';
-type SortDirection = 'asc' | 'desc';
+type RowSort = 'date-desc' | 'date-asc' | 'amount-desc';
 
-interface SortState {
-  column: SortColumn;
-  direction: SortDirection;
+/** Previsionnelles always lead (they are what's still to come), then the chosen order. */
+function sortRows(transactions: Transaction[], sort: RowSort): Transaction[] {
+  return [...transactions].sort((a, b) => {
+    if (a.status !== b.status) {
+      return a.status === 'PREVISIONNELLE' ? -1 : 1;
+    }
+    switch (sort) {
+      case 'date-asc':
+        return a.date.localeCompare(b.date);
+      case 'amount-desc':
+        return Math.abs(b.amount) - Math.abs(a.amount);
+      default:
+        return b.date.localeCompare(a.date);
+    }
+  });
 }
 
-function compareByColumn(a: Transaction, b: Transaction, column: SortColumn): number {
-  switch (column) {
-    case 'date':
-      return a.date.localeCompare(b.date);
-    case 'label':
-      return a.label.localeCompare(b.label);
-    case 'category':
-      return (a.categoryName ?? '').localeCompare(b.categoryName ?? '');
-    case 'type':
-      return a.type.localeCompare(b.type);
-    case 'amount':
-      return a.amount - b.amount;
+interface Totals {
+  net: number;
+  pointee: number;
+  previsionnelle: number;
+  count: number;
+}
+
+function totalsOf(transactions: Transaction[]): Totals {
+  let pointee = 0;
+  let previsionnelle = 0;
+  for (const t of transactions) {
+    if (t.status === 'PREVISIONNELLE') {
+      previsionnelle += t.amount;
+    } else {
+      pointee += t.amount;
+    }
   }
+  return { net: pointee + previsionnelle, pointee, previsionnelle, count: transactions.length };
 }
 
-function sortTransactions(transactions: Transaction[], sort: SortState | null): Transaction[] {
-  if (!sort) {
-    return transactions;
-  }
-  const factor = sort.direction === 'asc' ? 1 : -1;
-  return [...transactions].sort((a, b) => factor * compareByColumn(a, b, sort.column));
+export interface CardSection {
+  key: string;
+  title: string;
+  totals: Totals;
+  budget: number | null;
+  transactions: Transaction[];
 }
+
+export interface CategoryCard {
+  key: string;
+  title: string;
+  color: string;
+  addCategoryId: number | null;
+  totals: Totals;
+  /** Totals of the budgeted sections only - what the card-level budget meter measures. */
+  budgetTotals: Totals;
+  budget: number | null;
+  sections: CardSection[];
+  /** Section headings only help when the card mixes several (sub)categories. */
+  showSectionTitles: boolean;
+}
+
+const UNCATEGORIZED_COLOR = '#e2e8f0';
 
 @Component({
   selector: 'app-transactions',
@@ -99,47 +130,26 @@ export class TransactionsComponent {
   private readonly transactionService = inject(TransactionService);
   private readonly accountService = inject(AccountService);
   private readonly categoryService = inject(CategoryService);
+  private readonly budgetService = inject(BudgetService);
   private readonly fb = inject(FormBuilder);
 
-  protected readonly statusLabels = TRANSACTION_STATUS_LABELS;
+  private readonly addDialog = viewChild.required<ElementRef<HTMLDialogElement>>('addDialog');
+
+  protected readonly abs = Math.abs;
   protected readonly typeLabels = TRANSACTION_TYPE_LABELS;
-  protected readonly statuses = Object.keys(TRANSACTION_STATUS_LABELS) as TransactionStatus[];
   protected readonly types = Object.keys(TRANSACTION_TYPE_LABELS) as TransactionType[];
 
   protected readonly accounts = signal<Account[]>([]);
   protected readonly categories = signal<Category[]>([]);
   protected readonly categoryTree = computed(() => buildCategoryTree(this.categories()));
+  protected readonly budgets = signal<Budget[]>([]);
   protected readonly transactions = signal<Transaction[]>([]);
-  protected readonly previsionnelleSort = signal<SortState | null>(null);
-  protected readonly pointeeSort = signal<SortState | null>(null);
-  protected readonly previsionnelleTransactions = computed(() =>
-    sortTransactions(
-      this.transactions().filter((t) => t.status === 'PREVISIONNELLE'),
-      this.previsionnelleSort(),
-    ),
-  );
-  protected readonly pointeeTransactions = computed(() =>
-    sortTransactions(
-      this.transactions().filter((t) => t.status === 'POINTEE'),
-      this.pointeeSort(),
-    ),
-  );
-  protected readonly previsionnelleTotal = computed(() =>
-    this.previsionnelleTransactions().reduce((sum, t) => sum + t.amount, 0),
-  );
-  protected readonly pointeeTotal = computed(() => this.pointeeTransactions().reduce((sum, t) => sum + t.amount, 0));
-  protected readonly suggestedCategoryIds = computed(() =>
-    this.pointeeTransactions()
-      .filter((t) => t.categoryId !== null && !t.categoryConfirmed)
-      .map((t) => t.id),
-  );
-  protected readonly suggestedLabelIds = computed(() =>
-    this.pointeeTransactions()
-      .filter((t) => !t.labelConfirmed)
-      .map((t) => t.id),
-  );
+  protected readonly rowSort = signal<RowSort>('date-desc');
+
   protected readonly editingId = signal<number | null>(null);
   protected readonly pendingDeleteId = signal<number | null>(null);
+  /** The row whose rapprochement picker is unfolded underneath it, if any. */
+  protected readonly matchingId = signal<number | null>(null);
   protected readonly pendingConfirmAllCategories = signal(false);
   protected readonly pendingConfirmAllLabels = signal(false);
   protected readonly matchError = signal<string | null>(null);
@@ -147,8 +157,12 @@ export class TransactionsComponent {
   protected readonly month = signal(currentMonth());
   protected readonly filterAccountId = signal<number | null>(null);
   protected readonly filterCategoryId = signal<number | null>(null);
-  protected readonly filterStatus = signal<TransactionStatus | null>(null);
   protected readonly filterType = signal<TransactionType | null>(null);
+
+  protected readonly monthLabel = computed(() => {
+    const [year, month] = this.month().split('-').map(Number);
+    return new Date(year, month - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  });
 
   /** The real bank balance (initial + pointées): the filtered account's, or the sum of all when "Tous" is selected. */
   protected readonly bankBalance = computed(() => {
@@ -169,6 +183,144 @@ export class TransactionsComponent {
     return name ? `Solde ${name}` : 'Solde';
   });
 
+  /**
+   * The month's previsionnelles for the selected account(s), fetched without the category/type
+   * filters: the projected balance must not change just because the view is filtered.
+   */
+  private readonly accountPrevisionnelTotal = signal(0);
+
+  /**
+   * Month totals count previsionnelles too (they're the month's expected income/spending), and
+   * transfers by direction: money coming into the account counts as revenue, money leaving it as
+   * spending.
+   */
+  protected readonly kpis = computed(() => {
+    const sum = (predicate: (t: Transaction) => boolean) =>
+      this.transactions().filter(predicate).reduce((total, t) => total + t.amount, 0);
+    const revenus = sum((t) => t.type === 'REVENU' || (t.type === 'TRANSFERT' && t.amount > 0));
+    const depenses = sum((t) => t.type === 'DEPENSE' || (t.type === 'TRANSFERT' && t.amount < 0));
+    return {
+      revenus,
+      depenses,
+      solde: revenus + depenses,
+      soldeApresPrevisionnel: this.bankBalance() + this.accountPrevisionnelTotal(),
+    };
+  });
+
+  protected readonly previsionnelleTotal = computed(() =>
+    this.transactions().filter((t) => t.status === 'PREVISIONNELLE').reduce((sum, t) => sum + t.amount, 0),
+  );
+  protected readonly pointeeTotal = computed(() =>
+    this.transactions().filter((t) => t.status === 'POINTEE').reduce((sum, t) => sum + t.amount, 0),
+  );
+
+  protected readonly suggestedCategoryIds = computed(() =>
+    this.transactions()
+      .filter((t) => t.status === 'POINTEE' && t.categoryId !== null && !t.categoryConfirmed)
+      .map((t) => t.id),
+  );
+  protected readonly suggestedLabelIds = computed(() =>
+    this.transactions()
+      .filter((t) => t.status === 'POINTEE' && !t.labelConfirmed)
+      .map((t) => t.id),
+  );
+
+  /**
+   * One card per root category (plus "Non catégorisées"), each split into sections by the exact
+   * (sub)category. Order: uncategorized first (it needs attention), then income cards such as
+   * "Crédit", then the rest by amount.
+   */
+  protected readonly cards = computed<CategoryCard[]>(() => {
+    const byId = new Map(this.categories().map((c) => [c.id, c]));
+    const budgetByCategory = new Map(this.budgets().map((b) => [b.categoryId, b.amount]));
+    const rootOf = (category: Category): Category => {
+      let current = category;
+      while (current.parentId !== null && byId.has(current.parentId)) {
+        current = byId.get(current.parentId)!;
+      }
+      return current;
+    };
+    const sumBudgets = (ids: number[]): number | null => {
+      const known = ids.filter((id) => budgetByCategory.has(id));
+      return known.length ? known.reduce((sum, id) => sum + budgetByCategory.get(id)!, 0) : null;
+    };
+
+    const groups = new Map<number, { root: Category | null; sections: Map<number, { category: Category | null; transactions: Transaction[] }> }>();
+    for (const t of this.transactions()) {
+      const leaf = t.categoryId !== null ? byId.get(t.categoryId) ?? null : null;
+      const root = leaf ? rootOf(leaf) : null;
+      const key = root?.id ?? 0;
+      let group = groups.get(key);
+      if (!group) {
+        group = { root, sections: new Map() };
+        groups.set(key, group);
+      }
+      const sectionKey = leaf?.id ?? 0;
+      let section = group.sections.get(sectionKey);
+      if (!section) {
+        section = { category: leaf, transactions: [] };
+        group.sections.set(sectionKey, section);
+      }
+      section.transactions.push(t);
+    }
+
+    const sort = this.rowSort();
+    const cards = [...groups.values()].map(({ root, sections }) => {
+      const sectionList: CardSection[] = [...sections.values()]
+        .map(({ category, transactions }) => ({
+          key: String(category?.id ?? 0),
+          title: category === null ? 'Non catégorisées' : category.id === root?.id ? `${category.name} (direct)` : category.name,
+          totals: totalsOf(transactions),
+          budget: category ? sumBudgets([category.id]) : null,
+          transactions: sortRows(transactions, sort),
+        }))
+        .sort((a, b) => Math.abs(b.totals.net) - Math.abs(a.totals.net));
+      const all = sectionList.flatMap((s) => s.transactions);
+      // Only sections that carry a budget count against it - an unbudgeted sibling (e.g. Paramédical
+      // next to a budgeted Pharmacie) must not show up as a budget overrun.
+      const budgeted = sectionList.filter((s) => s.budget !== null).flatMap((s) => s.transactions);
+      const revenue = all.filter((t) => t.type === 'REVENU').reduce((sum, t) => sum + t.amount, 0);
+      const spending = all.filter((t) => t.type === 'DEPENSE').reduce((sum, t) => sum + t.amount, 0);
+      return {
+        key: String(root?.id ?? 0),
+        title: root?.name ?? 'Non catégorisées',
+        color: root?.color ?? UNCATEGORIZED_COLOR,
+        addCategoryId: root?.id ?? null,
+        totals: totalsOf(all),
+        budgetTotals: totalsOf(budgeted),
+        budget: sumBudgets(sectionList.map((s) => Number(s.key)).filter((id) => id !== 0)),
+        sections: sectionList,
+        showSectionTitles: sectionList.length > 1 || (root !== null && sectionList[0].key !== String(root.id)),
+        rank: root === null ? 0 : revenue > 0 && revenue >= Math.abs(spending) ? 1 : 2,
+      };
+    });
+    return cards
+      .sort((a, b) => a.rank - b.rank || Math.abs(b.totals.net) - Math.abs(a.totals.net))
+      .map(({ rank, ...card }) => card);
+  });
+
+  private readonly wideScreen = signal(window.matchMedia('(min-width: 1000px)').matches);
+
+  /**
+   * Row-major placement: the first cards take the top of each column in priority order (so
+   * "Non catégorisées" and "Crédit" both sit at the top), then each next card drops into the
+   * shorter column. CSS columns would fill top-to-bottom and push "Crédit" down instead.
+   */
+  protected readonly cardColumns = computed<CategoryCard[][]>(() => {
+    const cards = this.cards();
+    if (!this.wideScreen()) {
+      return [cards];
+    }
+    const columns: CategoryCard[][] = [[], []];
+    const heights = [0, 0];
+    for (const card of cards) {
+      const target = heights[0] <= heights[1] ? 0 : 1;
+      columns[target].push(card);
+      heights[target] += 4 + card.totals.count + card.sections.length * (card.showSectionTitles ? 1.5 : 0);
+    }
+    return columns;
+  });
+
   protected readonly form = this.fb.nonNullable.group({
     date: [this.today(), Validators.required],
     label: ['', Validators.required],
@@ -180,7 +332,7 @@ export class TransactionsComponent {
     outgoing: this.fb.nonNullable.control<boolean>(true),
   });
 
-  /** Populated per-row when a transaction is being edited in-line in the table. */
+  /** Populated per-row when a transaction is being edited in place inside its card. */
   protected readonly editForm = this.fb.nonNullable.group({
     date: ['', Validators.required],
     label: ['', Validators.required],
@@ -203,6 +355,10 @@ export class TransactionsComponent {
       this.reload();
     });
     this.categoryService.list().subscribe((categories) => this.categories.set(categories));
+    const wide = window.matchMedia('(min-width: 1000px)');
+    const onWidthChange = (event: MediaQueryListEvent) => this.wideScreen.set(event.matches);
+    wide.addEventListener('change', onWidthChange);
+    inject(DestroyRef).onDestroy(() => wide.removeEventListener('change', onWidthChange));
     // Picking a category that has a configured default transfer account pre-fills type/compte
     // cible - a suggestion only, the user can still change either field afterward.
     this.form.controls.categoryId.valueChanges.subscribe((categoryId) =>
@@ -230,10 +386,16 @@ export class TransactionsComponent {
         month: this.month(),
         accountId: this.filterAccountId(),
         categoryId: this.filterCategoryId(),
-        status: this.filterStatus(),
+        status: null,
         type: this.filterType(),
       })
       .subscribe((transactions) => this.transactions.set(transactions));
+    this.transactionService
+      .search({ month: this.month(), accountId: this.filterAccountId(), categoryId: null, status: 'PREVISIONNELLE', type: null })
+      .subscribe((previsionnelles) =>
+        this.accountPrevisionnelTotal.set(previsionnelles.reduce((total, t) => total + t.amount, 0)),
+      );
+    this.budgetService.listForMonth(this.month()).subscribe((budgets) => this.budgets.set(budgets));
     // Re-fetch balances too, so the badge stays live as transactions are added/edited/deleted/matched.
     this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
     // The suggested-categories/labels counts are about to change under them - don't leave a stale confirm prompt open.
@@ -262,18 +424,42 @@ export class TransactionsComponent {
     this.reload();
   }
 
-  protected onFilterStatusChange(value: string): void {
-    this.filterStatus.set((value as TransactionStatus) || null);
-    this.reload();
-  }
-
   protected onFilterTypeChange(value: string): void {
     this.filterType.set((value as TransactionType) || null);
     this.reload();
   }
 
+  protected onSortChange(value: string): void {
+    this.rowSort.set(value as RowSort);
+  }
+
+  /** Opens the add dialog pre-filled with the card's category; the label input takes focus via autofocus. */
+  protected openAdd(categoryId: number | null): void {
+    // Always the account browsed on the page ("Tous" falls back to the default account).
+    this.form.controls.accountId.setValue(this.filterAccountId() ?? this.defaultAccountId);
+    this.form.controls.categoryId.setValue(categoryId);
+    this.addDialog().nativeElement.showModal();
+  }
+
+  protected accountName(id: number | null): string {
+    return this.accounts().find((a) => a.id === id)?.name ?? '';
+  }
+
+  protected closeAdd(): void {
+    this.addDialog().nativeElement.close();
+  }
+
+  /** Closes on a backdrop click. Must return void: a handler evaluating to `false` makes Angular
+   *  preventDefault() every click inside the dialog, which breaks its submit button. */
+  protected onAddDialogClick(event: MouseEvent): void {
+    if (event.target === this.addDialog().nativeElement) {
+      this.closeAdd();
+    }
+  }
+
   protected edit(transaction: Transaction): void {
     this.pendingDeleteId.set(null);
+    this.matchingId.set(null);
     this.editingId.set(transaction.id);
     // emitEvent: false - loading an existing (possibly TRANSFERT) transaction must not trigger
     // the category valueChanges handler and clobber its real transferAccountId/type with a
@@ -318,13 +504,14 @@ export class TransactionsComponent {
           label: '',
           amount: 0,
           accountId: this.defaultAccountId,
-          categoryId: null,
+          categoryId: raw.categoryId,
           type: 'DEPENSE',
           transferAccountId: null,
           outgoing: true,
         },
         { emitEvent: false },
       );
+      this.closeAdd();
       this.reload();
     });
   }
@@ -361,6 +548,11 @@ export class TransactionsComponent {
     });
   }
 
+  protected toggleMatching(transactionId: number): void {
+    this.editingId.set(null);
+    this.matchingId.set(this.matchingId() === transactionId ? null : transactionId);
+  }
+
   /**
    * Candidates to reconcile with: same account, opposite status, not already matched. A pointee
    * that already absorbed a previsionnelle (transaction.matched) is done - it never gets more
@@ -379,15 +571,38 @@ export class TransactionsComponent {
     );
   }
 
+  /** Same-amount candidates: the ones worth flagging on the row itself, instead of on every unmatched line. */
+  protected sameAmountCandidates(transaction: Transaction): Transaction[] {
+    return this.candidatesFor(transaction).filter((candidate) => sameAmount(candidate.amount, transaction.amount));
+  }
+
   /**
-   * Best-guess match to pre-select for validation: the unique same-amount candidate, or - when
-   * several share that amount - the unique candidate whose label best overlaps this one's.
-   * Returns null rather than guess when nothing stands out, so the user searches manually instead.
+   * Suggestions are strictly one-to-one: a pair is only suggested when each line is the other's
+   * single best match. Otherwise one line could be suggested to several others (e.g. one
+   * previsionnelle offered to two bank lines at once), which reads as a reconciliation that
+   * already belongs elsewhere. Lines already reconciled never take part (see candidatesFor).
    */
+  private readonly mutualSuggestions = computed(() => {
+    const best = new Map(this.transactions().map((t) => [t.id, this.bestMatchFor(t)]));
+    const mutual = new Map<number, Transaction>();
+    for (const [id, match] of best) {
+      if (match && best.get(match.id)?.id === id) {
+        mutual.set(id, match);
+      }
+    }
+    return mutual;
+  });
+
   protected suggestedMatchFor(transaction: Transaction): Transaction | null {
-    const candidates = this.candidatesFor(transaction).filter((candidate) =>
-      sameAmount(candidate.amount, transaction.amount),
-    );
+    return this.mutualSuggestions().get(transaction.id) ?? null;
+  }
+
+  /**
+   * One side's best guess: the unique same-amount candidate, or - when several share that amount -
+   * the unique candidate whose label best overlaps this one's. Null rather than guess on a tie.
+   */
+  private bestMatchFor(transaction: Transaction): Transaction | null {
+    const candidates = this.sameAmountCandidates(transaction);
     if (candidates.length === 0) {
       return null;
     }
@@ -414,47 +629,8 @@ export class TransactionsComponent {
     return bestScore > 0 && tieCount === 1 ? best : null;
   }
 
-  /** Wraps the Record lookup so it stays typed when called from the shared row ng-template,
-   *  whose ngTemplateOutletContext variables aren't inferred by the template type checker. */
-  protected typeLabel(type: TransactionType): string {
-    return this.typeLabels[type];
-  }
-
-  protected categoryColor(categoryId: number | null): string {
-    return categoryColor(this.categories(), categoryId);
-  }
-
-  private sortSignal(table: SortTable) {
-    return table === 'previsionnelle' ? this.previsionnelleSort : this.pointeeSort;
-  }
-
-  /** Cycles asc -> desc -> unsorted on repeated clicks of the same column. */
-  protected toggleSort(table: SortTable, column: SortColumn): void {
-    const sortSignal = this.sortSignal(table);
-    const current = sortSignal();
-    if (current?.column !== column) {
-      sortSignal.set({ column, direction: 'asc' });
-    } else if (current.direction === 'asc') {
-      sortSignal.set({ column, direction: 'desc' });
-    } else {
-      sortSignal.set(null);
-    }
-  }
-
-  protected sortIndicator(table: SortTable, column: SortColumn): string {
-    const current = this.sortSignal(table)();
-    if (current?.column !== column) {
-      return '';
-    }
-    return current.direction === 'asc' ? '▲' : '▼';
-  }
-
-  protected ariaSort(table: SortTable, column: SortColumn): 'ascending' | 'descending' | 'none' {
-    const current = this.sortSignal(table)();
-    if (current?.column !== column) {
-      return 'none';
-    }
-    return current.direction === 'asc' ? 'ascending' : 'descending';
+  protected budgetPercent(part: number, budget: number, total: number): number {
+    return (Math.abs(part) / Math.max(budget, Math.abs(total))) * 100;
   }
 
   protected hasOriginalDivergence(transaction: Transaction): boolean {
@@ -466,7 +642,7 @@ export class TransactionsComponent {
 
   protected originalTooltip(transaction: Transaction): string {
     const date = transaction.originalDate ? this.formatDate(transaction.originalDate) : '';
-    return `Import d'origine : ${date} — ${transaction.originalLabel}`;
+    return `Import d’origine : ${date} — ${transaction.originalLabel}`;
   }
 
   private formatDate(isoDate: string): string {
@@ -537,7 +713,10 @@ export class TransactionsComponent {
     }
     this.matchError.set(null);
     this.transactionService.match(transaction.id, matchWithIds).subscribe({
-      next: () => this.reload(),
+      next: () => {
+        this.matchingId.set(null);
+        this.reload();
+      },
       error: (err: HttpErrorResponse) => {
         this.matchError.set(err.error?.message ?? 'Une erreur est survenue.');
         // The request can fail after the backend already committed (e.g. a dropped connection) -

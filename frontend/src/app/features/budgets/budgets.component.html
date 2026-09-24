@@ -55,8 +55,8 @@
     Catégorie
     <select formControlName="categoryId">
       <option [ngValue]="null">Sélectionner…</option>
-      @for (category of availableCategories(); track category.id) {
-        <option [ngValue]="category.id">{{ category.name }}</option>
+      @for (category of categoryTree(); track category.id) {
+        <option [ngValue]="category.id" [disabled]="!availableCategoryIds().has(category.id)">{{ category.optionLabel }}</option>
       }
     </select>
   </label>
@@ -129,8 +129,8 @@
     Catégorie
     <select formControlName="categoryId">
       <option [ngValue]="null">Sélectionner…</option>
-      @for (category of categories(); track category.id) {
-        <option [ngValue]="category.id">{{ category.name }}</option>
+      @for (category of categoryTree(); track category.id) {
+        <option [ngValue]="category.id">{{ category.optionLabel }}</option>
       }
     </select>
   </label>
