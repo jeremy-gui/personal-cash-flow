@@ -225,6 +225,13 @@ button.primary:hover:not(:disabled) {
   align-items: flex-end;
 }
 
+.transfer-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  flex-basis: 100%;
+}
+
 .transaction-form .grow {
   flex: 1 1 220px;
 }
@@ -645,6 +652,13 @@ button.primary:hover:not(:disabled) {
   grid-column: span 2;
 }
 
+/* Toggle rows (Type, Sens) and the transfer target take a whole line: in a card-width grid
+   column, three toggle buttons overflowed into the next field. */
+.edit-grid .edit-type,
+.edit-grid .full {
+  grid-column: 1 / -1;
+}
+
 .edit-grid input,
 .edit-grid select {
   width: 100%;
@@ -703,7 +717,9 @@ button.primary:hover:not(:disabled) {
     grid-template-columns: 1fr;
   }
 
-  .edit-grid .span-2 {
+  .edit-grid .span-2,
+  .edit-grid .edit-type,
+  .edit-grid .full {
     grid-column: auto;
   }
 }
