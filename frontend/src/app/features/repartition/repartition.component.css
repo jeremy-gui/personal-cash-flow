@@ -110,6 +110,44 @@
   color: var(--ink-soft);
 }
 
+.apply {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.apply p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+}
+
+.apply .change {
+  margin-left: var(--space-3);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.apply .ok {
+  color: var(--green);
+}
+
+.apply .primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+
+.apply .primary:hover:not(:disabled) {
+  background: var(--blue-dark);
+  border-color: var(--blue-dark);
+}
+
 .summary {
   display: flex;
   flex-wrap: wrap;

@@ -10,6 +10,7 @@ import com.personalcashflow.recurring.dto.RecurringTransactionRequest;
 import com.personalcashflow.recurring.dto.RecurringTransactionResponse;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionRepository;
+import com.personalcashflow.transaction.TransactionStatus;
 import com.personalcashflow.transaction.TransactionType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -54,6 +55,22 @@ public class RecurringTransactionService {
                 request.label(), request.amount(), request.type(), category, YearMonth.now().atDay(1));
         recurringTransactionRepository.save(recurring);
         ensureGeneratedForMonth(YearMonth.now().toString());
+        return RecurringTransactionResponse.of(recurring);
+    }
+
+    /**
+     * Changes the recurring amount from the current month on: the definition itself, plus every
+     * instance already generated from this month that is still a prévisionnelle. Pointées (and past
+     * months) keep their real amount.
+     */
+    public RecurringTransactionResponse updateAmount(Long id, BigDecimal amount) {
+        RecurringTransaction recurring = findById(id);
+        recurring.changeAmount(amount);
+        BigDecimal signed = signedAmount(recurring);
+        transactionRepository
+                .findByRecurringTransactionIdAndStatusAndDateGreaterThanEqual(
+                        id, TransactionStatus.PREVISIONNELLE, YearMonth.now().atDay(1))
+                .forEach(instance -> instance.changeAmount(signed));
         return RecurringTransactionResponse.of(recurring);
     }
 

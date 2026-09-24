@@ -63,6 +63,21 @@
     </div>
   }
   <button type="button" class="add-person" (click)="addLine('SALAIRE')">+ Ajouter une personne</button>
+  <div class="apply">
+    @if (pendingUpdates().length) {
+      <p>
+        Reporter dans les récurrentes Salaire, à partir de ce mois&nbsp;:
+        @for (u of pendingUpdates(); track u.recurring.id) {
+          <span class="change">{{ u.recurring.label }} {{ abs(u.recurring.amount) | number: '1.0-2' }}&nbsp;→&nbsp;<b>{{ u.person.contribution | number: '1.0-0' }}&nbsp;€</b></span>
+        }
+      </p>
+      <button type="button" class="primary" [disabled]="applying()" (click)="applyToRecurring()">Reporter les montants</button>
+    } @else if (appliedMessage()) {
+      <p class="ok" role="status">{{ appliedMessage() }}</p>
+    } @else {
+      <p class="muted">Les récurrentes Salaire correspondent déjà aux montants calculés.</p>
+    }
+  </div>
 </section>
 
 <div class="summary">

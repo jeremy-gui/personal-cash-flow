@@ -17,6 +17,11 @@ export class RecurringTransactionService {
     return this.http.post<RecurringTransaction>(this.baseUrl, request);
   }
 
+  /** New positive amount from the current month on (definition + its not-yet-pointed instances). */
+  updateAmount(id: number, amount: number): Observable<RecurringTransaction> {
+    return this.http.put<RecurringTransaction>(`${this.baseUrl}/${id}/amount`, { amount });
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }

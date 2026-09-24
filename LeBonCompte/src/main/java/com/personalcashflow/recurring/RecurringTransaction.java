@@ -85,4 +85,9 @@ public class RecurringTransaction {
     public Instant getCreatedAt() {
         return createdAt;
     }
+
+    /** Positive magnitude, like the constructor's; the sign still comes from {@code type}. */
+    public void changeAmount(BigDecimal amount) {
+        this.amount = amount;
+    }
 }

@@ -19,10 +19,12 @@ import com.personalcashflow.dashboard.NoDefaultAccountException;
 import com.personalcashflow.recurring.dto.RecurringTransactionRequest;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionRepository;
+import com.personalcashflow.transaction.TransactionStatus;
 import com.personalcashflow.transaction.TransactionType;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -152,6 +154,23 @@ class RecurringTransactionServiceTest {
 
         assertThatThrownBy(() -> recurringTransactionService.delete(42L))
                 .isInstanceOf(RecurringTransactionNotFoundException.class);
+    }
+
+    @Test
+    void updateAmount_shouldChangeDefinitionAndFutureUnpointedInstances() {
+        RecurringTransaction recurring = recurringWithId(
+                1L, "alimentation Alex", BigDecimal.valueOf(1600), TransactionType.REVENU, LocalDate.of(2026, 7, 1));
+        Transaction instance = Transaction.recurring(LocalDate.of(2026, 10, 1), "alimentation Alex",
+                BigDecimal.valueOf(1600), accountWithId(2L), null, TransactionType.REVENU, recurring);
+        when(recurringTransactionRepository.findById(1L)).thenReturn(Optional.of(recurring));
+        when(transactionRepository.findByRecurringTransactionIdAndStatusAndDateGreaterThanEqual(
+                        eq(1L), eq(TransactionStatus.PREVISIONNELLE), eq(YearMonth.now().atDay(1))))
+                .thenReturn(List.of(instance));
+
+        var response = recurringTransactionService.updateAmount(1L, BigDecimal.valueOf(2420));
+
+        assertThat(response.amount()).isEqualByComparingTo("2420");
+        assertThat(instance.getAmount()).isEqualByComparingTo("2420");
     }
 
     private static RecurringTransaction recurringWithId(

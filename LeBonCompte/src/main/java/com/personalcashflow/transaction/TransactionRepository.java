@@ -156,6 +156,9 @@ public interface TransactionRepository
 
     boolean existsByRecurringTransactionIdAndDate(Long recurringTransactionId, LocalDate date);
 
+    List<Transaction> findByRecurringTransactionIdAndStatusAndDateGreaterThanEqual(
+            Long recurringTransactionId, TransactionStatus status, LocalDate from);
+
     /** Scoped to {@code importHash} prefix so this only ever returns Excel-backfilled placeholder rows. */
     List<Transaction> findByAccountIdAndDateBetweenAndStatusAndImportHashStartingWith(
             Long accountId, LocalDate from, LocalDate to, TransactionStatus status, String importHashPrefix);

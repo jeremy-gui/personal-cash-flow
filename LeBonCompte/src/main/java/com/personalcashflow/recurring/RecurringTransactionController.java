@@ -1,5 +1,6 @@
 package com.personalcashflow.recurring;
 
+import com.personalcashflow.recurring.dto.RecurringAmountRequest;
 import com.personalcashflow.recurring.dto.RecurringTransactionRequest;
 import com.personalcashflow.recurring.dto.RecurringTransactionResponse;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -34,6 +36,12 @@ public class RecurringTransactionController {
     @ResponseStatus(HttpStatus.CREATED)
     public RecurringTransactionResponse create(@Valid @RequestBody RecurringTransactionRequest request) {
         return recurringTransactionService.create(request);
+    }
+
+    @PutMapping("/{id}/amount")
+    public RecurringTransactionResponse updateAmount(
+            @PathVariable Long id, @Valid @RequestBody RecurringAmountRequest request) {
+        return recurringTransactionService.updateAmount(id, request.amount());
     }
 
     @DeleteMapping("/{id}")

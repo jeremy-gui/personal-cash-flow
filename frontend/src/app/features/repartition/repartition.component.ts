@@ -1,8 +1,10 @@
 import { DecimalPipe, NgTemplateOutlet, PercentPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { RecurringTransaction } from '../../core/models/recurring-transaction.model';
 import {
+  PersonShare,
   RepartitionLine,
   RepartitionLineKind,
   computeRepartition,
@@ -44,6 +46,18 @@ export class RepartitionComponent {
     this.recurring().filter((r) => r.type === 'REVENU' && r.categoryName === SALARY_CATEGORY),
   );
 
+  /** Each person's computed transfer paired with the recurring "alimentation <name>" it should update. */
+  protected readonly pendingUpdates = computed(() =>
+    this.result()
+      .people.map((person) => ({ person, recurring: this.plannedFor(person.name) }))
+      .filter(
+        (u): u is { person: PersonShare; recurring: RecurringTransaction } =>
+          u.recurring !== null && u.person.contribution > 0 && Math.abs(u.recurring.amount) !== u.person.contribution,
+      ),
+  );
+  protected readonly applying = signal(false);
+  protected readonly appliedMessage = signal<string | null>(null);
+
   protected readonly result = computed(() =>
     computeRepartition(
       this.salaries().map((s) => ({ name: s.label, amount: s.amount })),
@@ -55,6 +69,26 @@ export class RepartitionComponent {
   constructor() {
     this.repartitionService.list().subscribe((lines) => this.lines.set(lines));
     this.recurringService.list().subscribe((recurring) => this.recurring.set(recurring));
+  }
+
+  protected applyToRecurring(): void {
+    const updates = this.pendingUpdates();
+    if (!updates.length) {
+      return;
+    }
+    this.applying.set(true);
+    this.appliedMessage.set(null);
+    forkJoin(updates.map((u) => this.recurringService.updateAmount(u.recurring.id, u.person.contribution))).subscribe({
+      next: (updated) => {
+        this.recurring.update((all) => all.map((r) => updated.find((u) => u.id === r.id) ?? r));
+        this.appliedMessage.set(`Récurrentes mises à jour : ${updated.map((u) => u.label).join(', ')}.`);
+        this.applying.set(false);
+      },
+      error: (err: HttpErrorResponse) => {
+        this.showError(err);
+        this.applying.set(false);
+      },
+    });
   }
 
   protected amountOf(recurring: RecurringTransaction): number {
