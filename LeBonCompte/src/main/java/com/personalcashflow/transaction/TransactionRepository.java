@@ -36,6 +36,21 @@ public interface TransactionRepository
             @Param("from") LocalDate from,
             @Param("to") LocalDate to);
 
+    /** Sum of one direction of TRANSFERT amounts within a date range, for one account: incoming (positive) or outgoing (negative). */
+    @Query("""
+            SELECT COALESCE(SUM(t.amount), 0) FROM Transaction t
+            WHERE t.type = com.personalcashflow.transaction.TransactionType.TRANSFERT
+              AND t.account.id = :accountId
+              AND t.date >= :from
+              AND t.date <= :to
+              AND ((:incoming = true AND t.amount > 0) OR (:incoming = false AND t.amount < 0))
+            """)
+    BigDecimal sumTransfersByDirection(
+            @Param("incoming") boolean incoming,
+            @Param("accountId") Long accountId,
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
+
     /** DEPENSE totals (negative, or zero) grouped by category within a date range, for one account. Uncategorized transactions are excluded. */
     @Query("""
             SELECT c.id AS categoryId, c.name AS categoryName, SUM(t.amount) AS total

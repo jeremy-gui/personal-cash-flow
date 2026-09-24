@@ -71,6 +71,11 @@ export class DashboardComponent {
     });
   });
 
+  /** The donut's own total: `depenses` also counts outgoing transfers, which the donut doesn't show. */
+  protected readonly categoryDonutTotal = computed(() =>
+    this.categoryDonutSegments().reduce((sum, s) => sum + s.amount, 0),
+  );
+
   protected readonly categoryDonutGradient = computed(() => {
     const segments = this.categoryDonutSegments();
     if (!segments.length) {

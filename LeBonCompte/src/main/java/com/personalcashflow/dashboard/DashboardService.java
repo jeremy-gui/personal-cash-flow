@@ -45,9 +45,12 @@ public class DashboardService {
         LocalDate from = yearMonth.atDay(1);
         LocalDate to = yearMonth.atEndOfMonth();
 
-        BigDecimal revenus = transactionRepository.sumByTypeAndDateRange(TransactionType.REVENU, accountId, from, to);
-        BigDecimal depensesSigned =
-                transactionRepository.sumByTypeAndDateRange(TransactionType.DEPENSE, accountId, from, to);
+        // Same definitions as the Transactions page KPIs: every status (pointée + prévisionnelle),
+        // and transfers counted by direction - incoming as revenus, outgoing as dépenses.
+        BigDecimal revenus = transactionRepository.sumByTypeAndDateRange(TransactionType.REVENU, accountId, from, to)
+                .add(transactionRepository.sumTransfersByDirection(true, accountId, from, to));
+        BigDecimal depensesSigned = transactionRepository.sumByTypeAndDateRange(TransactionType.DEPENSE, accountId, from, to)
+                .add(transactionRepository.sumTransfersByDirection(false, accountId, from, to));
         BigDecimal depenses = depensesSigned.negate();
         BigDecimal soldeNet = revenus.add(depensesSigned);
 

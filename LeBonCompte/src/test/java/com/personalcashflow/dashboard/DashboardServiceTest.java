@@ -69,6 +69,10 @@ class DashboardServiceTest {
                 .thenReturn(BigDecimal.valueOf(2850));
         when(transactionRepository.sumByTypeAndDateRange(TransactionType.DEPENSE, ACCOUNT_ID, from, to))
                 .thenReturn(BigDecimal.valueOf(-177.80));
+        when(transactionRepository.sumTransfersByDirection(true, ACCOUNT_ID, from, to))
+                .thenReturn(BigDecimal.valueOf(150));
+        when(transactionRepository.sumTransfersByDirection(false, ACCOUNT_ID, from, to))
+                .thenReturn(BigDecimal.valueOf(-500));
         when(transactionRepository.sumDepenseGroupedByCategory(ACCOUNT_ID, from, to)).thenReturn(List.of());
         when(budgetService.findAllForMonth(month)).thenReturn(List.of());
         when(transactionService.search(month, ACCOUNT_ID, null, TransactionStatus.PREVISIONNELLE, null))
@@ -86,9 +90,10 @@ class DashboardServiceTest {
 
         DashboardResponse response = dashboardService.getDashboard("2026-09");
 
-        assertThat(response.revenus()).isEqualByComparingTo(BigDecimal.valueOf(2850));
-        assertThat(response.depenses()).isEqualByComparingTo(BigDecimal.valueOf(177.80));
-        assertThat(response.soldeNet()).isEqualByComparingTo(BigDecimal.valueOf(2672.20));
+        // Transfers count by direction: +150 incoming joins revenus, -500 outgoing joins dépenses.
+        assertThat(response.revenus()).isEqualByComparingTo(BigDecimal.valueOf(3000));
+        assertThat(response.depenses()).isEqualByComparingTo(BigDecimal.valueOf(677.80));
+        assertThat(response.soldeNet()).isEqualByComparingTo(BigDecimal.valueOf(2322.20));
     }
 
     @Test

@@ -96,7 +96,7 @@
         }
       </span>
       <div class="kpi-text">
-        <span class="kpi-label">Solde prévisionnel fin de mois</span>
+        <span class="kpi-label">Solde après prévisionnel</span>
         <span class="kpi-value">{{ data.previsionnelFinDeMoisSelectionne | number: '1.2-2' }} €</span>
       </div>
     </div>
@@ -109,7 +109,7 @@
         <div class="donut-block">
           <div class="donut" [style.background]="categoryDonutGradient()">
             <div class="donut-hole">
-              <span class="donut-total">{{ data.depenses | number: '1.0-0' }} €</span>
+              <span class="donut-total">{{ categoryDonutTotal() | number: '1.0-0' }} €</span>
               <span class="donut-total-label">total</span>
             </div>
           </div>
