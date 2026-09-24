@@ -76,6 +76,12 @@ export class BudgetsComponent {
     this.budgetService.listForMonth(this.month()).subscribe((budgets) => this.budgets.set(budgets));
   }
 
+  protected shiftMonth(delta: number): void {
+    const [year, month] = this.month().split('-').map(Number);
+    const date = new Date(year, month - 1 + delta, 1);
+    this.onMonthChange(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  }
+
   protected onMonthChange(value: string): void {
     this.month.set(value);
     this.cancelEdit();
