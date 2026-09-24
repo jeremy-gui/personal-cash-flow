@@ -245,12 +245,7 @@
   }
 </div>
 
-@if (cards().length > 0) {
-  <div class="totals-footer">
-    <span>Total prévisionnel <b [class.out]="previsionnelleTotal() < 0">{{ previsionnelleTotal() | number: '1.2-2' }}&nbsp;€</b></span>
-    <span>Total pointé <b [class.out]="pointeeTotal() < 0" [class.in]="pointeeTotal() >= 0">{{ pointeeTotal() | number: '1.2-2' }}&nbsp;€</b></span>
-  </div>
-}
+
 
 <ng-template #meter let-totals let-budget="budget">
   @let engaged = abs(totals.pointee) + abs(totals.previsionnelle);
