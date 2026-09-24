@@ -1,0 +1,170 @@
+<div class="page-header">
+  <div>
+    <h1>Répartition des salaires</h1>
+    <p class="subtitle">Chacun verse sur le compte commun une part des frais proportionnelle à son salaire.</p>
+  </div>
+</div>
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
+
+@let r = result();
+
+<section class="card people" aria-label="Salaires et virements">
+  @for (person of r.people; track $index) {
+    @let line = salaries()[$index];
+    @let planned = plannedFor(person.name);
+    <div class="person">
+      <div class="person-head">
+        <input
+          class="person-name"
+          type="text"
+          aria-label="Nom"
+          [value]="line.label"
+          (input)="editLine(line, { label: $any($event.target).value })"
+          (change)="saveLine(line.id)"
+        />
+        <button type="button" class="icon-button" title="Retirer cette personne" aria-label="Retirer cette personne" (click)="deleteLine(line.id)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <label class="salary">
+        Salaire du mois
+        <span class="money-input">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            [value]="line.amount"
+            (input)="editLine(line, { amount: parse($any($event.target).value) })"
+            (change)="saveLine(line.id)"
+          />
+          <span aria-hidden="true">€</span>
+        </span>
+      </label>
+      <div class="transfer">
+        <span class="k">À virer</span>
+        <span class="v">{{ person.contribution | number: '1.0-0' }}&nbsp;€</span>
+        <span class="hint">
+          {{ person.ratio | percent: '1.1-1' }} des frais
+          @if (planned) {
+            · prévu actuellement {{ abs(planned.amount) | number: '1.2-2' }}&nbsp;€
+          }
+        </span>
+      </div>
+      <div class="rest">
+        <span class="k">Reste à vivre</span>
+        <span class="v" [class.negative]="person.resteAVivre < 0">{{ person.resteAVivre | number: '1.2-2' }}&nbsp;€</span>
+      </div>
+    </div>
+  }
+  <button type="button" class="add-person" (click)="addLine('SALAIRE')">+ Ajouter une personne</button>
+</section>
+
+<div class="summary">
+  <span>Frais <b>{{ r.fraisTotal | number: '1.2-2' }}&nbsp;€</b></span>
+  <span aria-hidden="true">−</span>
+  <span>Aides <b>{{ r.aidesTotal | number: '1.2-2' }}&nbsp;€</b></span>
+  <span aria-hidden="true">=</span>
+  <span>À répartir <b>{{ r.netFrais | number: '1.2-2' }}&nbsp;€</b></span>
+</div>
+
+<div class="columns">
+  <section class="card" aria-labelledby="frais-title">
+    <h2 id="frais-title">Frais du mois</h2>
+    <ul class="lines">
+      @for (item of recurringFrais(); track item.id) {
+        <ng-container [ngTemplateOutlet]="recurringRow" [ngTemplateOutletContext]="{ $implicit: item }"></ng-container>
+      }
+      @for (line of manualFrais(); track line.id) {
+        <ng-container [ngTemplateOutlet]="manualRow" [ngTemplateOutletContext]="{ $implicit: line }"></ng-container>
+      }
+    </ul>
+    <div class="card-foot">
+      <button type="button" class="link-button" (click)="addLine('FRAIS')">+ Ajouter une ligne</button>
+      <span>Total <b>{{ r.fraisTotal | number: '1.2-2' }}&nbsp;€</b></span>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="aides-title">
+    <h2 id="aides-title">Aides</h2>
+    <p class="card-hint">Déduites des frais avant la répartition.</p>
+    <ul class="lines">
+      @for (item of recurringAides(); track item.id) {
+        <ng-container [ngTemplateOutlet]="recurringRow" [ngTemplateOutletContext]="{ $implicit: item }"></ng-container>
+      }
+      @for (line of manualAides(); track line.id) {
+        <ng-container [ngTemplateOutlet]="manualRow" [ngTemplateOutletContext]="{ $implicit: line }"></ng-container>
+      }
+    </ul>
+    <div class="card-foot">
+      <button type="button" class="link-button" (click)="addLine('AIDE')">+ Ajouter une aide</button>
+      <span>Total <b>{{ r.aidesTotal | number: '1.2-2' }}&nbsp;€</b></span>
+    </div>
+  </section>
+</div>
+
+<ng-template #recurringRow let-item>
+  <li class="line">
+    <span class="label">
+      {{ item.label }}
+      <span class="tag" title="Transaction récurrente">récurrente · {{ item.categoryName }}</span>
+    </span>
+    <span class="money-input compact" [class.changed]="isOverridden(item)">
+      <input
+        type="number"
+        min="0"
+        step="0.01"
+        [attr.aria-label]="'Montant ' + item.label"
+        [value]="amountOf(item)"
+        (input)="overrideAmount(item, $any($event.target).value)"
+      />
+      <span aria-hidden="true">€</span>
+    </span>
+    @if (isOverridden(item)) {
+      <button type="button" class="icon-button" title="Revenir au montant récurrent" aria-label="Revenir au montant récurrent" (click)="resetAmount(item)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="1 4 1 10 7 10"></polyline>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+        </svg>
+      </button>
+    } @else {
+      <span class="icon-spacer"></span>
+    }
+  </li>
+</ng-template>
+
+<ng-template #manualRow let-line>
+  <li class="line">
+    <input
+      class="label-input"
+      type="text"
+      aria-label="Libellé"
+      [value]="line.label"
+      (input)="editLine(line, { label: $any($event.target).value })"
+      (change)="saveLine(line.id)"
+    />
+    <span class="money-input compact">
+      <input
+        type="number"
+        min="0"
+        step="0.01"
+        [attr.aria-label]="'Montant ' + line.label"
+        [value]="line.amount"
+        (input)="editLine(line, { amount: parse($any($event.target).value) })"
+        (change)="saveLine(line.id)"
+      />
+      <span aria-hidden="true">€</span>
+    </span>
+    <button type="button" class="icon-button" title="Supprimer la ligne" aria-label="Supprimer la ligne" (click)="deleteLine(line.id)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </li>
+</ng-template>

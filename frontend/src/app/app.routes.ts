@@ -6,6 +6,7 @@ import { CategoriesComponent } from './features/categories/categories.component'
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { ImportComponent } from './features/import/import.component';
 import { ProvisionsComponent } from './features/provisions/provisions.component';
+import { RepartitionComponent } from './features/repartition/repartition.component';
 import { TransactionsComponent } from './features/transactions/transactions.component';
 
 export const routes: Routes = [
@@ -16,6 +17,7 @@ export const routes: Routes = [
   { path: 'categories', component: CategoriesComponent },
   { path: 'budgets', component: BudgetsComponent },
   { path: 'provisions', component: ProvisionsComponent },
+  { path: 'repartition', component: RepartitionComponent },
   { path: 'analysis', component: AnalysisComponent },
   { path: 'import', component: ImportComponent },
 ];
