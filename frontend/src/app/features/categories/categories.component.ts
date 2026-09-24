@@ -45,6 +45,8 @@ export class CategoriesComponent {
   protected readonly editingId = signal<number | null>(null);
   protected readonly pendingDeleteId = signal<number | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
+  /** Shown right under the row whose deletion the server refused, so the reason stays in view. */
+  protected readonly deleteError = signal<{ id: number; message: string } | null>(null);
 
   protected readonly tree = computed(() => buildCategoryTree(this.categories()));
   protected readonly parentOptions = computed(() => {
@@ -148,6 +150,7 @@ export class CategoriesComponent {
 
   protected requestDelete(categoryId: number): void {
     this.editingId.set(null);
+    this.deleteError.set(null);
     this.pendingDeleteId.set(categoryId);
   }
 
@@ -164,7 +167,7 @@ export class CategoriesComponent {
       },
       error: (err: HttpErrorResponse) => {
         this.pendingDeleteId.set(null);
-        this.errorMessage.set(this.extractMessage(err));
+        this.deleteError.set({ id: categoryId, message: this.extractMessage(err) });
       },
     });
   }

@@ -81,7 +81,11 @@ public class CategoryService {
     public void delete(Long id) {
         Category category = findById(id);
         if (categoryRepository.existsByParentId(category.getId())) {
-            throw new CategoryHasChildrenException(id);
+            throw new CategoryHasChildrenException(category.getName());
+        }
+        CategoryRepository.CategoryUsage usage = categoryRepository.countUsages(category.getId());
+        if (CategoryInUseException.isUsed(usage)) {
+            throw new CategoryInUseException(category.getName(), usage);
         }
         categoryRepository.delete(category);
     }

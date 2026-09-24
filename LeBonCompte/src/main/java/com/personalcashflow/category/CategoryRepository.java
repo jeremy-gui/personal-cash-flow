@@ -10,6 +10,25 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
 
     boolean existsByParentId(Long parentId);
 
+    interface CategoryUsage {
+        long getTransactions();
+
+        long getBudgets();
+
+        long getProvisions();
+
+        long getRecurrings();
+    }
+
+    /** Every row still pointing at a category (all FK references to category.id), counted per table. */
+    @Query(value = """
+            SELECT (SELECT COUNT(*) FROM transaction WHERE category_id = :id) AS transactions,
+                   (SELECT COUNT(*) FROM budget WHERE category_id = :id) AS budgets,
+                   (SELECT COUNT(*) FROM provision WHERE category_id = :id) AS provisions,
+                   (SELECT COUNT(*) FROM recurring_transaction WHERE category_id = :id) AS recurrings
+            """, nativeQuery = true)
+    CategoryUsage countUsages(@Param("id") Long id);
+
     List<Category> findByParentId(Long parentId);
 
     /** Diversity is spread across root categories only - children inherit their root's color, so counting them too would waste hue spacing. */

@@ -193,3 +193,11 @@
   border-color: var(--border);
   color: var(--ink);
 }
+
+.delete-error-row td {
+  padding-top: 0;
+}
+
+.delete-error-row .error {
+  margin: 0;
+}

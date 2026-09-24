@@ -3,6 +3,7 @@ package com.personalcashflow.category;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -203,10 +204,34 @@ class CategoryServiceTest {
         Category category = categoryWithId(1L, "Loisirs", null);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(categoryRepository.existsByParentId(1L)).thenReturn(false);
+        when(categoryRepository.countUsages(1L)).thenReturn(usage(0, 0, 0, 0));
 
         categoryService.delete(1L);
 
         verify(categoryRepository).delete(category);
+    }
+
+    @Test
+    void delete_whenCategoryIsStillUsed_shouldExplainWhatUsesIt() {
+        Category category = categoryWithId(1L, "Loisirs", null);
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(categoryRepository.existsByParentId(1L)).thenReturn(false);
+        when(categoryRepository.countUsages(1L)).thenReturn(usage(12, 1, 0, 2));
+
+        assertThatThrownBy(() -> categoryService.delete(1L))
+                .isInstanceOf(CategoryInUseException.class)
+                .hasMessage("Impossible de supprimer « Loisirs » : elle est encore utilisée par 12 transactions, "
+                        + "1 budget et 2 transactions récurrentes. Change leur catégorie ou supprime-les d'abord.");
+        verify(categoryRepository, never()).delete(category);
+    }
+
+    private static CategoryRepository.CategoryUsage usage(long transactions, long budgets, long provisions, long recurrings) {
+        return new CategoryRepository.CategoryUsage() {
+            public long getTransactions() { return transactions; }
+            public long getBudgets() { return budgets; }
+            public long getProvisions() { return provisions; }
+            public long getRecurrings() { return recurrings; }
+        };
     }
 
     /** Sets the generated id (and a placeholder color) via reflection: the entity has no public
