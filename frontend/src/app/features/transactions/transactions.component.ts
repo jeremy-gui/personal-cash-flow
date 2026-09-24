@@ -164,7 +164,10 @@ export class TransactionsComponent {
     return new Date(year, month - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   });
 
-  /** The real bank balance (initial + pointées): the filtered account's, or the sum of all when "Tous" is selected. */
+  /**
+   * The real bank balance (initial + pointées) at the end of the selected month: the filtered
+   * account's, or the sum of all when "Tous" is selected.
+   */
   protected readonly bankBalance = computed(() => {
     const id = this.filterAccountId();
     const accounts = this.accounts();
@@ -396,8 +399,9 @@ export class TransactionsComponent {
         this.accountPrevisionnelTotal.set(previsionnelles.reduce((total, t) => total + t.amount, 0)),
       );
     this.budgetService.listForMonth(this.month()).subscribe((budgets) => this.budgets.set(budgets));
-    // Re-fetch balances too, so the badge stays live as transactions are added/edited/deleted/matched.
-    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
+    // Re-fetch balances too (as of the selected month's end), so the badge follows the month and
+    // stays live as transactions are added/edited/deleted/matched.
+    this.accountService.list(this.month()).subscribe((accounts) => this.accounts.set(accounts));
     // The suggested-categories/labels counts are about to change under them - don't leave a stale confirm prompt open.
     this.pendingConfirmAllCategories.set(false);
     this.pendingConfirmAllLabels.set(false);

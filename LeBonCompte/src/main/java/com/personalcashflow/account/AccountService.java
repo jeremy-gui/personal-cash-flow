@@ -4,6 +4,7 @@ import com.personalcashflow.account.dto.AccountRequest;
 import com.personalcashflow.transaction.TransactionRepository;
 import com.personalcashflow.transaction.TransactionStatus;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,13 @@ public class AccountService {
     public BigDecimal balance(Account account) {
         return account.getInitialBalance()
                 .add(transactionRepository.sumByStatus(TransactionStatus.POINTEE, account.getId()));
+    }
+
+    /** The real balance as it stood on {@code date}: initial balance plus the pointées dated up to it. */
+    @Transactional(readOnly = true)
+    public BigDecimal balanceAt(Account account, LocalDate date) {
+        return account.getInitialBalance()
+                .add(transactionRepository.sumByStatusUpToDate(TransactionStatus.POINTEE, account.getId(), date));
     }
 
     public Account create(AccountRequest request) {

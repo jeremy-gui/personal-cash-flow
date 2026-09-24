@@ -9,8 +9,9 @@ export class AccountService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/accounts`;
 
-  list(): Observable<Account[]> {
-    return this.http.get<Account[]>(this.baseUrl);
+  /** With {@code month} (yyyy-MM), balances are as of the end of that month instead of today. */
+  list(month?: string): Observable<Account[]> {
+    return this.http.get<Account[]>(this.baseUrl, month ? { params: { month } } : {});
   }
 
   create(request: AccountRequest): Observable<Account> {

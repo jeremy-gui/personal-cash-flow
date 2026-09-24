@@ -3,6 +3,7 @@ package com.personalcashflow.account;
 import com.personalcashflow.account.dto.AccountRequest;
 import com.personalcashflow.account.dto.AccountResponse;
 import jakarta.validation.Valid;
+import java.time.YearMonth;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,10 +28,13 @@ public class AccountController {
         this.accountService = accountService;
     }
 
+    /** {@code month} (yyyy-MM), when given, returns each balance as of the end of that month. */
     @GetMapping
-    public List<AccountResponse> findAll() {
+    public List<AccountResponse> findAll(@RequestParam(required = false) String month) {
         return accountService.findAll().stream()
-                .map(account -> AccountResponse.from(account, accountService.balance(account)))
+                .map(account -> AccountResponse.from(account, month == null
+                        ? accountService.balance(account)
+                        : accountService.balanceAt(account, YearMonth.parse(month).atEndOfMonth())))
                 .toList();
     }
 

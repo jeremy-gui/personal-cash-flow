@@ -11,6 +11,7 @@ import com.personalcashflow.transaction.TransactionRepository;
 import com.personalcashflow.transaction.TransactionStatus;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,17 @@ class AccountServiceTest {
         BigDecimal balance = accountService.balance(account);
 
         assertThat(balance).isEqualByComparingTo(BigDecimal.valueOf(857.70));
+    }
+
+    @Test
+    void balanceAt_shouldOnlyCountPointeesUpToTheDate() {
+        Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.valueOf(1000), null);
+        setId(account, 1L);
+        LocalDate endOfAugust = LocalDate.of(2026, 8, 31);
+        when(transactionRepository.sumByStatusUpToDate(TransactionStatus.POINTEE, 1L, endOfAugust))
+                .thenReturn(BigDecimal.valueOf(250));
+
+        assertThat(accountService.balanceAt(account, endOfAugust)).isEqualByComparingTo(BigDecimal.valueOf(1250));
     }
 
     @Test
