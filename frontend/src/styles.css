@@ -327,3 +327,70 @@ button.confirm-delete:hover:not(:disabled) {
   background: var(--red);
   color: #ffffff;
 }
+
+/* ---------- create/edit modal (every page: top "Nouveau …" button + "Modifier" open the same dialog) ---------- */
+.new-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+
+.new-button:hover:not(:disabled) {
+  background: var(--blue-dark);
+  border-color: var(--blue-dark);
+}
+
+.new-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.form-dialog {
+  width: min(760px, calc(100vw - 32px));
+  margin: auto;
+  color: inherit;
+}
+
+.form-dialog::backdrop {
+  background: rgb(15 23 42 / 0.45);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.dialog-head h2 {
+  margin: 0;
+}
+
+.dialog-close {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.dialog-close svg {
+  width: 14px;
+  height: 14px;
+}
+
+.dialog-close:hover:not(:disabled) {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--ink);
+}

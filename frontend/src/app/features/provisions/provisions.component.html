@@ -1,10 +1,13 @@
 <div class="page-header">
   <h1>Provisions</h1>
+  <button type="button" class="new-button" (click)="openAdd()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    Nouvelle provision
+  </button>
 </div>
-
-@if (errorMessage()) {
-  <p class="error">{{ errorMessage() }}</p>
-}
 
 <div class="provisions-list">
   @for (provision of provisions(); track provision.id) {
@@ -97,13 +100,25 @@
   }
 </div>
 
-<div class="card">
-  <h2>{{ editingId() ? 'Modifier la provision' : 'Ajouter une provision' }}</h2>
+<dialog class="card form-dialog" #formDialog aria-labelledby="provision-form-title" (click)="onDialogClick($event)">
+  <div class="dialog-head">
+    <h2 id="provision-form-title">{{ editingId() ? 'Modifier la provision' : 'Nouvelle provision' }}</h2>
+    <button type="button" class="dialog-close" title="Fermer" aria-label="Fermer" (click)="closeForm()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="error">{{ errorMessage() }}</p>
+  }
 
   <form [formGroup]="form" (ngSubmit)="submit()" class="provision-form">
     <label>
       Nom
-      <input type="text" formControlName="name" />
+      <input type="text" formControlName="name" autofocus />
     </label>
 
     <label>
@@ -147,9 +162,7 @@
       <button type="submit" [disabled]="form.invalid">
         {{ editingId() ? 'Enregistrer' : 'Ajouter' }}
       </button>
-      @if (editingId()) {
-        <button type="button" (click)="cancelEdit()">Annuler</button>
-      }
+      <button type="button" (click)="closeForm()">Annuler</button>
     </div>
   </form>
-</div>
+</dialog>

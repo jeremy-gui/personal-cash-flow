@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Account } from '../../core/models/account.model';
 import { buildCategoryTree, Category } from '../../core/models/category.model';
@@ -32,6 +32,7 @@ export class ProvisionsComponent {
   protected readonly editingId = signal<number | null>(null);
   protected readonly pendingDeleteId = signal<number | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
+  private readonly formDialog = viewChild.required<ElementRef<HTMLDialogElement>>('formDialog');
 
   protected readonly expandedId = signal<number | null>(null);
   protected readonly contributions = signal<ProvisionContribution[]>([]);
@@ -62,11 +63,12 @@ export class ProvisionsComponent {
     this.provisionService.list().subscribe((provisions) => this.provisions.set(provisions));
   }
 
+  protected openAdd(): void {
+    this.open(null, { name: '', targetAmount: 0, targetDate: null, categoryId: null, accountId: null, active: true });
+  }
+
   protected edit(provision: Provision): void {
-    this.pendingDeleteId.set(null);
-    this.editingId.set(provision.id);
-    this.errorMessage.set(null);
-    this.form.setValue({
+    this.open(provision.id, {
       name: provision.name,
       targetAmount: provision.targetAmount,
       targetDate: provision.targetDate,
@@ -76,9 +78,25 @@ export class ProvisionsComponent {
     });
   }
 
-  protected cancelEdit(): void {
-    this.editingId.set(null);
-    this.form.reset({ name: '', targetAmount: 0, targetDate: null, categoryId: null, accountId: null, active: true });
+  /** The form is (re)filled on every opening - never on the dialog's close event, unreliable after Escape. */
+  private open(id: number | null, value: ReturnType<typeof this.form.getRawValue>): void {
+    this.pendingDeleteId.set(null);
+    this.errorMessage.set(null);
+    this.editingId.set(id);
+    this.form.reset(value);
+    this.formDialog().nativeElement.showModal();
+  }
+
+  protected closeForm(): void {
+    this.formDialog().nativeElement.close();
+  }
+
+  /** Closes on a backdrop click. Must return void: a handler evaluating to `false` makes Angular
+   *  preventDefault() every click inside the dialog, which breaks its submit button. */
+  protected onDialogClick(event: MouseEvent): void {
+    if (event.target === this.formDialog().nativeElement) {
+      this.closeForm();
+    }
   }
 
   protected submit(): void {
@@ -92,7 +110,7 @@ export class ProvisionsComponent {
 
     request$.subscribe({
       next: () => {
-        this.cancelEdit();
+        this.closeForm();
         this.reload();
       },
       error: (err: HttpErrorResponse) => this.errorMessage.set(err.error?.message ?? 'Une erreur est survenue.'),
@@ -100,7 +118,6 @@ export class ProvisionsComponent {
   }
 
   protected requestDelete(provisionId: number): void {
-    this.editingId.set(null);
     this.pendingDeleteId.set(provisionId);
   }
 
