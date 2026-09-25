@@ -21,6 +21,7 @@ import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionRepository;
 import com.personalcashflow.transaction.TransactionStatus;
 import com.personalcashflow.transaction.TransactionType;
+import com.personalcashflow.transaction.TypeNotAllowedException;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -171,6 +172,40 @@ class RecurringTransactionServiceTest {
 
         assertThat(response.amount()).isEqualByComparingTo("2420");
         assertThat(instance.getAmount()).isEqualByComparingTo("2420");
+    }
+
+    @Test
+    void update_shouldEditTheDefinitionAndCarryItToFutureUnpointedInstances() {
+        RecurringTransaction recurring = recurringWithId(
+                1L, "EDF", BigDecimal.valueOf(98.75), TransactionType.DEPENSE, LocalDate.of(2026, 7, 1));
+        Category energie = categoryWithId(9L, "Énergie");
+        Transaction instance = Transaction.recurring(LocalDate.of(2026, 10, 1), "EDF",
+                BigDecimal.valueOf(-98.75), accountWithId(2L), null, TransactionType.DEPENSE, recurring);
+        when(recurringTransactionRepository.findById(1L)).thenReturn(Optional.of(recurring));
+        when(categoryRepository.findById(9L)).thenReturn(Optional.of(energie));
+        when(transactionRepository.findByRecurringTransactionIdAndStatusAndDateGreaterThanEqual(
+                        eq(1L), eq(TransactionStatus.PREVISIONNELLE), eq(YearMonth.now().atDay(1))))
+                .thenReturn(List.of(instance));
+
+        var response = recurringTransactionService.update(
+                1L, new RecurringTransactionRequest("EDF (mensualité)", BigDecimal.valueOf(110), TransactionType.DEPENSE, 9L));
+
+        assertThat(response.label()).isEqualTo("EDF (mensualité)");
+        assertThat(response.categoryName()).isEqualTo("Énergie");
+        assertThat(instance.getLabel()).isEqualTo("EDF (mensualité)");
+        assertThat(instance.getAmount()).isEqualByComparingTo("-110");
+        assertThat(instance.getCategory()).isEqualTo(energie);
+    }
+
+    @Test
+    void create_withATypeTheCategoryDoesNotAllow_shouldBeRefused() {
+        Category logement = categoryWithId(9L, "Logement");
+        logement.changeAllowedTypes(List.of(TransactionType.DEPENSE));
+        when(categoryRepository.findById(9L)).thenReturn(Optional.of(logement));
+
+        assertThatThrownBy(() -> recurringTransactionService.create(
+                        new RecurringTransactionRequest("loyer", BigDecimal.valueOf(800), TransactionType.REVENU, 9L)))
+                .isInstanceOf(TypeNotAllowedException.class);
     }
 
     private static RecurringTransaction recurringWithId(

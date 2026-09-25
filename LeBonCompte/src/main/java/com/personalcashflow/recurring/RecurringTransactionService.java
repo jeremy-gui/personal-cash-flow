@@ -12,6 +12,7 @@ import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionRepository;
 import com.personalcashflow.transaction.TransactionStatus;
 import com.personalcashflow.transaction.TransactionType;
+import com.personalcashflow.transaction.TypeNotAllowedException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -51,6 +52,7 @@ public class RecurringTransactionService {
 
     public RecurringTransactionResponse create(RecurringTransactionRequest request) {
         Category category = resolveCategory(request.categoryId());
+        TypeNotAllowedException.check(request.type(), category);
         RecurringTransaction recurring = new RecurringTransaction(
                 request.label(), request.amount(), request.type(), category, YearMonth.now().atDay(1));
         recurringTransactionRepository.save(recurring);
@@ -71,6 +73,24 @@ public class RecurringTransactionService {
                 .findByRecurringTransactionIdAndStatusAndDateGreaterThanEqual(
                         id, TransactionStatus.PREVISIONNELLE, YearMonth.now().atDay(1))
                 .forEach(instance -> instance.changeAmount(signed));
+        return RecurringTransactionResponse.of(recurring);
+    }
+
+    /**
+     * Edits the whole definition (libellé, montant, type, catégorie) and, like {@link #updateAmount},
+     * carries it over to every instance already generated from the current month on that is still
+     * a prévisionnelle. Pointées and past months are left as they are.
+     */
+    public RecurringTransactionResponse update(Long id, RecurringTransactionRequest request) {
+        RecurringTransaction recurring = findById(id);
+        Category category = resolveCategory(request.categoryId());
+        TypeNotAllowedException.check(request.type(), category);
+        recurring.update(request.label(), request.amount(), request.type(), category);
+        BigDecimal signed = signedAmount(recurring);
+        transactionRepository
+                .findByRecurringTransactionIdAndStatusAndDateGreaterThanEqual(
+                        id, TransactionStatus.PREVISIONNELLE, YearMonth.now().atDay(1))
+                .forEach(instance -> instance.followRecurring(recurring.getLabel(), signed, category, recurring.getType()));
         return RecurringTransactionResponse.of(recurring);
     }
 

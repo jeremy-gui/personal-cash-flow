@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Budget, BudgetRequest } from '../../core/models/budget.model';
 import { allowedTypesFor, buildCategoryTree, Category } from '../../core/models/category.model';
@@ -59,6 +59,8 @@ export class BudgetsComponent {
   protected readonly typeLabels = TRANSACTION_TYPE_LABELS;
   protected readonly types = Object.keys(TRANSACTION_TYPE_LABELS) as TransactionType[];
 
+  private readonly recurringDialog = viewChild.required<ElementRef<HTMLDialogElement>>('recurringDialog');
+  protected readonly editingRecurringId = signal<number | null>(null);
   private readonly recurringCategoryId = signal<number | null>(null);
   protected readonly recurringTypes = computed(() => allowedTypesFor(this.categories(), this.recurringCategoryId()));
 
@@ -148,6 +150,42 @@ export class BudgetsComponent {
     this.recurringTransactionService.list().subscribe((recurring) => this.recurringTransactions.set(recurring));
   }
 
+  /** The form is (re)filled on every opening - never on the dialog's close event, unreliable after Escape. */
+  protected openAddRecurring(): void {
+    this.openRecurring(null, { label: '', categoryId: null, amount: 0, type: 'DEPENSE' });
+  }
+
+  protected editRecurring(recurring: RecurringTransaction): void {
+    this.openRecurring(recurring.id, {
+      label: recurring.label,
+      categoryId: recurring.categoryId,
+      amount: Math.abs(recurring.amount),
+      type: recurring.type,
+    });
+  }
+
+  private openRecurring(id: number | null, value: ReturnType<typeof this.recurringForm.getRawValue>): void {
+    this.pendingDeleteRecurringId.set(null);
+    this.recurringErrorMessage.set(null);
+    this.editingRecurringId.set(id);
+    // emitEvent: false - the category's valueChanges handler would replace the recurring's own type.
+    this.recurringCategoryId.set(value.categoryId);
+    this.recurringForm.reset(value, { emitEvent: false });
+    this.recurringDialog().nativeElement.showModal();
+  }
+
+  protected closeRecurring(): void {
+    this.recurringDialog().nativeElement.close();
+  }
+
+  /** Closes on a backdrop click. Must return void: a handler evaluating to `false` makes Angular
+   *  preventDefault() every click inside the dialog, which breaks its submit button. */
+  protected onRecurringDialogClick(event: MouseEvent): void {
+    if (event.target === this.recurringDialog().nativeElement) {
+      this.closeRecurring();
+    }
+  }
+
   protected submitRecurring(): void {
     if (this.recurringForm.invalid) {
       return;
@@ -160,10 +198,12 @@ export class BudgetsComponent {
       amount: raw.amount,
       type: raw.type,
     };
+    const id = this.editingRecurringId();
+    const request$ = id ? this.recurringTransactionService.update(id, request) : this.recurringTransactionService.create(request);
 
-    this.recurringTransactionService.create(request).subscribe({
+    request$.subscribe({
       next: () => {
-        this.recurringForm.reset({ label: '', categoryId: null, amount: 0, type: 'DEPENSE' });
+        this.closeRecurring();
         this.reloadRecurring();
       },
       error: (err: HttpErrorResponse) => this.recurringErrorMessage.set(err.error?.message ?? 'Une erreur est survenue.'),

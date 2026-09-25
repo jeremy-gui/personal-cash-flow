@@ -38,6 +38,12 @@ public class RecurringTransactionController {
         return recurringTransactionService.create(request);
     }
 
+    @PutMapping("/{id}")
+    public RecurringTransactionResponse update(
+            @PathVariable Long id, @Valid @RequestBody RecurringTransactionRequest request) {
+        return recurringTransactionService.update(id, request);
+    }
+
     @PutMapping("/{id}/amount")
     public RecurringTransactionResponse updateAmount(
             @PathVariable Long id, @Valid @RequestBody RecurringAmountRequest request) {

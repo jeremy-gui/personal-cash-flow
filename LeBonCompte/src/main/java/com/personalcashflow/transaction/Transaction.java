@@ -380,12 +380,20 @@ public class Transaction {
         this.labelConfirmed = true;
     }
 
-    /** Points this row at its counterpart on the other side of a transfer. */
     /** Only for a prévisionnelle following its recurring definition - a pointée's amount is the bank's. */
     public void changeAmount(BigDecimal amount) {
         this.amount = amount;
     }
 
+    /** Only for a prévisionnelle following its edited recurring definition; date and account stay as generated. */
+    public void followRecurring(String label, BigDecimal amount, Category category, TransactionType type) {
+        this.label = label;
+        this.amount = amount;
+        this.category = category;
+        this.type = type;
+    }
+
+    /** Points this row at its counterpart on the other side of a transfer. */
     public void linkTo(Transaction linkedTransaction) {
         this.linkedTransaction = linkedTransaction;
     }

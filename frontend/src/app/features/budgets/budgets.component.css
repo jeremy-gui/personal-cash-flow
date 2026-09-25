@@ -133,3 +133,68 @@
   background: var(--bg);
   color: var(--ink);
 }
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.section-head h2 {
+  margin: 0;
+}
+
+.new-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+}
+
+.new-button:hover:not(:disabled) {
+  background: var(--blue-dark);
+  border-color: var(--blue-dark);
+}
+
+.new-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.form-dialog {
+  width: min(760px, calc(100vw - 32px));
+  margin: auto;
+  color: inherit;
+}
+
+.form-dialog::backdrop {
+  background: rgb(15 23 42 / 0.45);
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.dialog-head h2 {
+  margin: 0;
+}
+
+.dialog-head .icon-button {
+  border-color: transparent;
+  background: transparent;
+}
+
+.form-hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}

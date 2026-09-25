@@ -90,4 +90,12 @@ public class RecurringTransaction {
     public void changeAmount(BigDecimal amount) {
         this.amount = amount;
     }
+
+    /** Everything but the start month, which stays as created. */
+    public void update(String label, BigDecimal amount, TransactionType type, Category category) {
+        this.label = label;
+        this.amount = amount;
+        this.type = type;
+        this.category = category;
+    }
 }
