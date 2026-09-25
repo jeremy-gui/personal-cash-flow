@@ -1,6 +1,7 @@
 package com.personalcashflow.reconciliation;
 
 import com.personalcashflow.category.Category;
+import com.personalcashflow.recurring.RecurringTransaction;
 import com.personalcashflow.recurring.RecurringTransactionService;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionNotFoundException;
@@ -102,11 +103,16 @@ public class ReconciliationService {
         pointee.assignCategoryIfMissing(category);
         pointee.markMatched();
         for (Transaction previsionnelle : previsionnelles) {
-            // A recurring instance absorbed by its bank line must not be regenerated for that month
-            // (which would count it twice) - the same skip a manual delete records.
-            if (previsionnelle.getRecurringTransaction() != null) {
-                recurringTransactionService.recordSkip(
-                        previsionnelle.getRecurringTransaction().getId(), previsionnelle.getDate());
+            RecurringTransaction recurring = previsionnelle.getRecurringTransaction();
+            if (recurring != null) {
+                // A recurring instance absorbed by its bank line must not be regenerated for that
+                // month (which would count it twice) - the same skip a manual delete records.
+                recurringTransactionService.recordSkip(recurring.getId(), previsionnelle.getDate());
+                // One bank line for one instance: its amount is that instance's real amount (a line
+                // covering several prévisionnelles can't be split between them).
+                if (previsionnelles.size() == 1) {
+                    recurringTransactionService.followRealAmount(recurring, pointee.getAmount(), previsionnelle.getDate());
+                }
             }
             transactionRepository.delete(previsionnelle);
         }

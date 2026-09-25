@@ -199,6 +199,34 @@ class RecurringTransactionServiceTest {
     }
 
     @Test
+    void followRealAmount_ofAVariableRecurring_shouldTakeTheBankAmountForTheFollowingMonths() {
+        RecurringTransaction edf = recurringWithId(
+                1L, "EDF", BigDecimal.valueOf(98.75), TransactionType.DEPENSE, LocalDate.of(2026, 7, 1));
+        edf.changeVariableAmount(true);
+        Transaction november = Transaction.recurring(LocalDate.of(2026, 11, 1), "EDF",
+                BigDecimal.valueOf(-98.75), accountWithId(2L), null, TransactionType.DEPENSE, edf);
+        when(transactionRepository.findByRecurringTransactionIdAndStatusAndDateGreaterThanEqual(
+                        1L, TransactionStatus.PREVISIONNELLE, LocalDate.of(2026, 11, 1)))
+                .thenReturn(List.of(november));
+
+        recurringTransactionService.followRealAmount(edf, BigDecimal.valueOf(-112.40), LocalDate.of(2026, 10, 1));
+
+        assertThat(edf.getAmount()).isEqualByComparingTo("112.40");
+        assertThat(november.getAmount()).isEqualByComparingTo("-112.40");
+    }
+
+    @Test
+    void followRealAmount_ofAFixedRecurring_shouldChangeNothing() {
+        RecurringTransaction pret = recurringWithId(
+                1L, "prêt immo", BigDecimal.valueOf(1103.33), TransactionType.DEPENSE, LocalDate.of(2026, 7, 1));
+
+        recurringTransactionService.followRealAmount(pret, BigDecimal.valueOf(-1100), LocalDate.of(2026, 10, 1));
+
+        assertThat(pret.getAmount()).isEqualByComparingTo("1103.33");
+        verify(transactionRepository, never()).findByRecurringTransactionIdAndStatusAndDateGreaterThanEqual(any(), any(), any());
+    }
+
+    @Test
     void create_withATypeTheCategoryDoesNotAllow_shouldBeRefused() {
         Category logement = categoryWithId(9L, "Logement");
         logement.changeAllowedTypes(List.of(TransactionType.DEPENSE));

@@ -163,6 +163,7 @@ class ReconciliationServiceTest {
         match(1L, 2L);
 
         verify(recurringTransactionService).recordSkip(23L, LocalDate.of(2026, 10, 1));
+        verify(recurringTransactionService).followRealAmount(edf, pointee.getAmount(), LocalDate.of(2026, 10, 1));
         verify(transactionRepository).delete(previsionnelle);
     }
 

@@ -78,6 +78,25 @@ public class RecurringTransactionService {
     }
 
     /**
+     * A variable-amount recurring follows the last real amount: once one of its instances was
+     * matched to a bank line paying {@code realAmount}, that becomes its amount, carried over to the
+     * prévisionnelles of the following months. No-op for a fixed-amount recurring.
+     */
+    // ponytail: last match wins - reconciling an older month after a newer one reapplies the older
+    // amount; track the date of the last applied amount if that ever matters.
+    public void followRealAmount(RecurringTransaction recurring, BigDecimal realAmount, LocalDate matchedDate) {
+        if (!recurring.isVariableAmount()) {
+            return;
+        }
+        recurring.changeAmount(realAmount.abs());
+        BigDecimal signed = signedAmount(recurring);
+        transactionRepository
+                .findByRecurringTransactionIdAndStatusAndDateGreaterThanEqual(
+                        recurring.getId(), TransactionStatus.PREVISIONNELLE, YearMonth.from(matchedDate).plusMonths(1).atDay(1))
+                .forEach(instance -> instance.changeAmount(signed));
+    }
+
+    /**
      * Edits the whole definition (libellé, montant, type, catégorie) and, like {@link #updateAmount},
      * carries it over to every instance already generated from the current month on that is still
      * a prévisionnelle. Pointées and past months are left as they are.
