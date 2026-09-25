@@ -1,6 +1,7 @@
 package com.personalcashflow.category;
 
 import com.personalcashflow.account.Account;
+import com.personalcashflow.transaction.TransactionType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -10,6 +11,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "category")
@@ -36,6 +41,15 @@ public class Category {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "default_transfer_account_id")
     private Account defaultTransferAccount;
+
+    /**
+     * Types a hand-entered transaction of this category (and its sub-categories) may take, stored
+     * comma-separated in DEPENSE, REVENU, TRANSFERT order (e.g. "REVENU,TRANSFERT"); null = any.
+     * Only set on a root category; enforced by TransactionService. Never applied to imported rows,
+     * whose type always comes from the bank amount's sign.
+     */
+    @Column(name = "allowed_types", length = 60)
+    private String allowedTypes;
 
     protected Category() {
     }
@@ -70,6 +84,21 @@ public class Category {
 
     public Account getDefaultTransferAccount() {
         return defaultTransferAccount;
+    }
+
+    /** Empty when every type is allowed. */
+    public List<TransactionType> getAllowedTypes() {
+        return allowedTypes == null
+                ? List.of()
+                : Arrays.stream(allowedTypes.split(",")).map(TransactionType::valueOf).toList();
+    }
+
+    /** Null or empty means any type; always stored in DEPENSE, REVENU, TRANSFERT order. */
+    public void changeAllowedTypes(Collection<TransactionType> types) {
+        this.allowedTypes = types == null || types.isEmpty()
+                ? null
+                : Arrays.stream(TransactionType.values()).filter(types::contains).map(Enum::name)
+                        .collect(Collectors.joining(","));
     }
 
     public void update(String name, Category parent, Account defaultTransferAccount, String color) {

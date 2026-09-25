@@ -201,3 +201,54 @@
 .delete-error-row .error {
   margin: 0;
 }
+
+.type-badge {
+  margin-right: var(--space-2);
+  color: var(--red);
+  background: var(--red-soft);
+  border-radius: var(--radius-pill);
+  padding: 2px var(--space-2);
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.type-badge.transfert {
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+}
+
+.type-badge.revenu {
+  color: var(--green);
+  background: var(--green-soft);
+}
+
+.types-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.types-field legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.type-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.types-field .color-hint {
+  flex-basis: 100%;
+}

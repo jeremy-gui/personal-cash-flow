@@ -145,7 +145,7 @@
       <label>
         Type
         <select formControlName="type">
-          @for (type of types; track type) {
+          @for (type of addTypes(); track type) {
             <option [value]="type">{{ typeLabels[type] }}</option>
           }
         </select>
@@ -307,7 +307,7 @@
         <div class="edit-type">
           <span class="edit-label">Type</span>
           <div class="type-toggle-row">
-            @for (type of types; track type) {
+            @for (type of editTypes(); track type) {
               <button type="button" class="type-button" [class.active]="editForm.controls.type.value === type" [attr.aria-pressed]="editForm.controls.type.value === type" (click)="setEditType(type)">{{ typeLabels[type] }}</button>
             }
           </div>

@@ -11,6 +11,7 @@ import com.personalcashflow.account.Account;
 import com.personalcashflow.account.AccountRepository;
 import com.personalcashflow.account.AccountType;
 import com.personalcashflow.category.dto.CategoryRequest;
+import com.personalcashflow.transaction.TransactionType;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.List;
@@ -35,7 +36,7 @@ class CategoryServiceTest {
 
     @Test
     void create_withoutParent_shouldSaveRootCategory() {
-        CategoryRequest request = new CategoryRequest("Loisirs", null, null, null);
+        CategoryRequest request = new CategoryRequest("Loisirs", null, null, null, null);
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Category created = categoryService.create(request);
@@ -49,7 +50,7 @@ class CategoryServiceTest {
         when(categoryRepository.countByParentIdIsNull()).thenReturn(3L);
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Category created = categoryService.create(new CategoryRequest("Loisirs", null, null, null));
+        Category created = categoryService.create(new CategoryRequest("Loisirs", null, null, null, null));
 
         assertThat(created.getColor()).isEqualTo(CategoryColors.next(3L));
     }
@@ -58,7 +59,7 @@ class CategoryServiceTest {
     void create_withExplicitColor_shouldUseItInsteadOfAutoAssigning() {
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Category created = categoryService.create(new CategoryRequest("Loisirs", null, null, "#123456"));
+        Category created = categoryService.create(new CategoryRequest("Loisirs", null, null, "#123456", null));
 
         assertThat(created.getColor()).isEqualTo("#123456");
     }
@@ -69,7 +70,7 @@ class CategoryServiceTest {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(parent));
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Category created = categoryService.create(new CategoryRequest("Électricité", 1L, null, null));
+        Category created = categoryService.create(new CategoryRequest("Électricité", 1L, null, null, null));
 
         assertThat(created.getParent()).isEqualTo(parent);
     }
@@ -80,7 +81,7 @@ class CategoryServiceTest {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(parent));
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Category created = categoryService.create(new CategoryRequest("Électricité", 1L, null, "#abcdef"));
+        Category created = categoryService.create(new CategoryRequest("Électricité", 1L, null, "#abcdef", null));
 
         assertThat(created.getColor()).isEqualTo("#111111");
     }
@@ -92,7 +93,7 @@ class CategoryServiceTest {
         when(accountRepository.findById(7L)).thenReturn(Optional.of(account));
         when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Category created = categoryService.create(new CategoryRequest("Provision", null, 7L, null));
+        Category created = categoryService.create(new CategoryRequest("Provision", null, 7L, null, null));
 
         assertThat(created.getDefaultTransferAccount()).isEqualTo(account);
     }
@@ -105,7 +106,7 @@ class CategoryServiceTest {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         when(accountRepository.findById(7L)).thenReturn(Optional.of(account));
 
-        Category updated = categoryService.update(1L, new CategoryRequest("Provision", null, 7L, null));
+        Category updated = categoryService.update(1L, new CategoryRequest("Provision", null, 7L, null, null));
 
         assertThat(updated.getDefaultTransferAccount()).isEqualTo(account);
     }
@@ -116,7 +117,7 @@ class CategoryServiceTest {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
         String originalColor = category.getColor();
 
-        Category updated = categoryService.update(1L, new CategoryRequest("Provision", null, null, null));
+        Category updated = categoryService.update(1L, new CategoryRequest("Provision", null, null, null, null));
 
         assertThat(updated.getColor()).isEqualTo(originalColor);
     }
@@ -126,7 +127,7 @@ class CategoryServiceTest {
         Category category = categoryWithId(1L, "Provision", null);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
 
-        Category updated = categoryService.update(1L, new CategoryRequest("Provision", null, null, "#abcdef"));
+        Category updated = categoryService.update(1L, new CategoryRequest("Provision", null, null, "#abcdef", null));
 
         assertThat(updated.getColor()).isEqualTo("#abcdef");
     }
@@ -141,7 +142,7 @@ class CategoryServiceTest {
         when(categoryRepository.findByParentId(2L)).thenReturn(List.of(grandchild));
         when(categoryRepository.findByParentId(3L)).thenReturn(List.of());
 
-        categoryService.update(1L, new CategoryRequest("Logement", null, null, "#abcdef"));
+        categoryService.update(1L, new CategoryRequest("Logement", null, null, "#abcdef", null));
 
         assertThat(child.getColor()).isEqualTo("#abcdef");
         assertThat(grandchild.getColor()).isEqualTo("#abcdef");
@@ -156,7 +157,7 @@ class CategoryServiceTest {
         when(categoryRepository.findById(3L)).thenReturn(Optional.of(newParent));
         when(categoryRepository.findByParentId(2L)).thenReturn(List.of());
 
-        Category updated = categoryService.update(2L, new CategoryRequest("Sous-Logement", 3L, null, null));
+        Category updated = categoryService.update(2L, new CategoryRequest("Sous-Logement", 3L, null, null, null));
 
         assertThat(updated.getColor()).isEqualTo("#abcdef");
     }
@@ -176,7 +177,7 @@ class CategoryServiceTest {
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(root));
         when(categoryRepository.findById(2L)).thenReturn(Optional.of(child));
 
-        assertThatThrownBy(() -> categoryService.update(1L, new CategoryRequest("Logement", 2L, null, null)))
+        assertThatThrownBy(() -> categoryService.update(1L, new CategoryRequest("Logement", 2L, null, null, null)))
                 .isInstanceOf(CategoryCycleException.class);
     }
 
@@ -185,8 +186,30 @@ class CategoryServiceTest {
         Category category = categoryWithId(1L, "Logement", null);
         when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
 
-        assertThatThrownBy(() -> categoryService.update(1L, new CategoryRequest("Logement", 1L, null, null)))
+        assertThatThrownBy(() -> categoryService.update(1L, new CategoryRequest("Logement", 1L, null, null, null)))
                 .isInstanceOf(CategoryCycleException.class);
+    }
+
+    @Test
+    void create_shouldStoreTheAllowedTypesInCanonicalOrder() {
+        when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Category created = categoryService.create(new CategoryRequest(
+                "Crédit", null, null, "#123456", List.of(TransactionType.TRANSFERT, TransactionType.REVENU)));
+
+        assertThat(created.getAllowedTypes()).containsExactly(TransactionType.REVENU, TransactionType.TRANSFERT);
+    }
+
+    @Test
+    void create_subCategory_shouldIgnoreItsOwnAllowedTypesAndInheritTheRoots() {
+        Category parent = categoryWithId(1L, "Crédit", null);
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(parent));
+        when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Category created = categoryService.create(
+                new CategoryRequest("Salaire", 1L, null, null, List.of(TransactionType.DEPENSE)));
+
+        assertThat(created.getAllowedTypes()).isEmpty();
     }
 
     @Test

@@ -131,7 +131,7 @@
   <label>
     Type
     <select formControlName="type">
-      @for (type of types; track type) {
+      @for (type of recurringTypes(); track type) {
         <option [value]="type">{{ typeLabels[type] }}</option>
       }
     </select>

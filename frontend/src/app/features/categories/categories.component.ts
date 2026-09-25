@@ -3,9 +3,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Account } from '../../core/models/account.model';
+import { TRANSACTION_TYPE_LABELS, TransactionType } from '../../core/models/transaction.model';
 import {
   Category,
   buildCategoryTree,
+  ALL_TRANSACTION_TYPES,
+  allowedTypesFor,
   excludeSubtree,
 } from '../../core/models/category.model';
 import { AccountService } from '../accounts/account.service';
@@ -60,12 +63,18 @@ export class CategoriesComponent {
     parentId: this.fb.control<number | null>(null),
     defaultTransferAccountId: this.fb.control<number | null>(null),
     color: this.fb.control<string | null>(null),
+    allowedTypes: this.fb.nonNullable.control<TransactionType[]>([]),
   });
 
   /** Mirrors the form's parentId control as a signal so the template can reactively hide the
    *  color picker for subcategories (their color always follows their root, never editable). */
   protected readonly formParentId = signal<number | null>(null);
   protected readonly formColor = signal<string | null>(null);
+  protected readonly allTypes = ALL_TRANSACTION_TYPES;
+  protected readonly typeLabels = TRANSACTION_TYPE_LABELS;
+  protected readonly formAllowedTypes = signal<TransactionType[]>([]);
+  /** A sub-category has no list of its own: it shows the one it inherits from its root. */
+  protected readonly parentAllowedTypes = computed(() => allowedTypesFor(this.categories(), this.formParentId()));
 
   /** Preset swatches, plus the current color when it isn't one of them (e.g. picked as custom). */
   protected readonly swatches = computed(() => {
@@ -78,6 +87,14 @@ export class CategoriesComponent {
     this.accountService.list().subscribe((accounts) => this.accounts.set(accounts));
     this.form.controls.parentId.valueChanges.subscribe((parentId) => this.formParentId.set(parentId));
     this.form.controls.color.valueChanges.subscribe((color) => this.formColor.set(color));
+    this.form.controls.allowedTypes.valueChanges.subscribe((types) => this.formAllowedTypes.set(types));
+  }
+
+  protected readonly labelOf = (type: TransactionType) => TRANSACTION_TYPE_LABELS[type];
+
+  protected toggleAllowedType(type: TransactionType, checked: boolean): void {
+    const current = this.form.controls.allowedTypes.value;
+    this.form.controls.allowedTypes.setValue(checked ? [...current, type] : current.filter((t) => t !== type));
   }
 
   protected pickColor(color: string): void {
@@ -97,6 +114,7 @@ export class CategoriesComponent {
       parentId: null,
       defaultTransferAccountId: null,
       color: goldenColor(this.categories().filter((c) => c.parentId === null).length),
+      allowedTypes: [],
     });
     this.formDialog().nativeElement.showModal();
   }
@@ -110,6 +128,7 @@ export class CategoriesComponent {
       parentId: category.parentId,
       defaultTransferAccountId: category.defaultTransferAccountId,
       color: category.color,
+      allowedTypes: category.allowedTypes,
     });
     this.formDialog().nativeElement.showModal();
   }

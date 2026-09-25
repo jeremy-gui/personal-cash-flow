@@ -31,11 +31,13 @@ public class CategoryService {
                 .orElseThrow(() -> new CategoryNotFoundException(id));
     }
 
+    /** Allowed types are only kept on a root category: its sub-categories always inherit them (like the color). */
     public Category create(CategoryRequest request) {
         Category parent = resolveParent(request.parentId());
         Account defaultTransferAccount = resolveAccount(request.defaultTransferAccountId());
         String color = resolveColor(parent, request.color(), null);
         Category category = new Category(request.name(), parent, defaultTransferAccount, color);
+        category.changeAllowedTypes(parent == null ? request.allowedTypes() : null);
         return categoryRepository.save(category);
     }
 
@@ -49,6 +51,7 @@ public class CategoryService {
         String previousColor = category.getColor();
         String color = resolveColor(parent, request.color(), previousColor);
         category.update(request.name(), parent, defaultTransferAccount, color);
+        category.changeAllowedTypes(parent == null ? request.allowedTypes() : null);
         if (!color.equals(previousColor)) {
             cascadeColorToDescendants(category, color);
         }

@@ -4,7 +4,7 @@ import { Component, computed, DestroyRef, ElementRef, inject, signal, viewChild 
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Account } from '../../core/models/account.model';
 import { Budget } from '../../core/models/budget.model';
-import { buildCategoryTree, Category } from '../../core/models/category.model';
+import { allowedTypesFor, buildCategoryTree, Category } from '../../core/models/category.model';
 import {
   TRANSACTION_TYPE_LABELS,
   Transaction,
@@ -375,21 +375,52 @@ export class TransactionsComponent {
     const onWidthChange = (event: MediaQueryListEvent) => this.wideScreen.set(event.matches);
     wide.addEventListener('change', onWidthChange);
     inject(DestroyRef).onDestroy(() => wide.removeEventListener('change', onWidthChange));
-    // Picking a category that has a configured default transfer account pre-fills type/compte
-    // cible - a suggestion only, the user can still change either field afterward.
-    this.form.controls.categoryId.valueChanges.subscribe((categoryId) =>
-      this.applyDefaultTransferAccount(this.form, categoryId),
-    );
-    this.editForm.controls.categoryId.valueChanges.subscribe((categoryId) =>
-      this.applyDefaultTransferAccount(this.editForm, categoryId),
-    );
+    // Picking a category pre-fills the type (and compte cible) from the category's defaults.
+    this.form.controls.categoryId.valueChanges.subscribe((categoryId) => {
+      this.addCategoryId.set(categoryId);
+      this.applyCategoryDefaults(this.form, categoryId);
+    });
+    this.editForm.controls.categoryId.valueChanges.subscribe((categoryId) => {
+      this.editCategoryId.set(categoryId);
+      this.applyCategoryDefaults(this.editForm, categoryId, this.editedPointee());
+    });
   }
 
-  private applyDefaultTransferAccount(form: typeof this.form, categoryId: number | null): void {
+  /** Category of each form, as signals, so the type choices follow the picked category. */
+  private readonly addCategoryId = signal<number | null>(null);
+  private readonly editCategoryId = signal<number | null>(null);
+  /** Only the types the category allows (its root's list) are offered. */
+  protected readonly addTypes = computed(() => allowedTypesFor(this.categories(), this.addCategoryId()));
+  protected readonly editTypes = computed(() => {
+    const allowed = allowedTypesFor(this.categories(), this.editCategoryId());
+    // A pointée keeps its bank type on screen even when the category wouldn't allow it.
+    const pointee = this.editedPointee();
+    return pointee && !allowed.includes(pointee.type) ? [pointee.type, ...allowed] : allowed;
+  });
+
+  /**
+   * Picking a category moves the type into what it allows: TRANSFERT + its compte cible when the
+   * category has one and allows transfers, else the current type if still allowed (edit) or the
+   * first allowed one (add form, so a previous pick never leaks in). On a pointée the type drives
+   * the sign of a real bank amount, so only the transfer default applies, keeping its direction.
+   */
+  private applyCategoryDefaults(form: typeof this.form, categoryId: number | null, pointee?: Transaction): void {
+    const allowed = allowedTypesFor(this.categories(), categoryId);
     const account = this.categories().find((c) => c.id === categoryId)?.defaultTransferAccountId;
-    if (account != null) {
-      form.patchValue({ type: 'TRANSFERT', transferAccountId: account });
+    if (account != null && allowed.includes('TRANSFERT')) {
+      form.patchValue({ type: 'TRANSFERT', transferAccountId: account, ...(pointee && { outgoing: pointee.amount < 0 }) });
+      return;
     }
+    if (pointee) {
+      return;
+    }
+    const current = form.controls.type.value;
+    form.patchValue({ type: form !== this.form && allowed.includes(current) ? current : allowed[0] });
+  }
+
+  private editedPointee(): Transaction | undefined {
+    const edited = this.transactions().find((t) => t.id === this.editingId());
+    return edited?.status === 'POINTEE' ? edited : undefined;
   }
 
   private today(): string {
@@ -481,6 +512,7 @@ export class TransactionsComponent {
     // emitEvent: false - loading an existing (possibly TRANSFERT) transaction must not trigger
     // the category valueChanges handler and clobber its real transferAccountId/type with a
     // category's default.
+    this.editCategoryId.set(transaction.categoryId);
     this.editForm.setValue(
       {
         date: transaction.date,
@@ -522,7 +554,8 @@ export class TransactionsComponent {
           amount: 0,
           accountId: this.defaultAccountId,
           categoryId: raw.categoryId,
-          type: 'DEPENSE',
+          // The kept category's first allowed type, like when it was picked (emitEvent is off here).
+          type: allowedTypesFor(this.categories(), raw.categoryId)[0],
           transferAccountId: null,
           outgoing: true,
         },

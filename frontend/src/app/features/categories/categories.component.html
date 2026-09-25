@@ -30,6 +30,9 @@
           <span class="category-badge" [style.background]="category.color">{{ category.name }}</span>
         </td>
         <td>
+          @for (type of category.allowedTypes; track type) {
+            <span class="type-badge" [class.revenu]="type === 'REVENU'" [class.transfert]="type === 'TRANSFERT'">{{ typeLabels[type] }}</span>
+          }
           @if (category.defaultTransferAccountName) {
             <span class="transfer-badge">→ {{ category.defaultTransferAccountName }}</span>
           }
@@ -91,6 +94,23 @@
       }
     </select>
   </label>
+
+  @if (formParentId() === null) {
+    <fieldset class="types-field">
+      <legend>Types autorisés</legend>
+      @for (type of allTypes; track type) {
+        <label class="type-check">
+          <input type="checkbox" [checked]="formAllowedTypes().includes(type)" (change)="toggleAllowedType(type, $any($event.target).checked)" />
+          {{ typeLabels[type] }}
+        </label>
+      }
+      <p class="color-hint">Aucun coché&nbsp;: tous les types. Le premier coché est proposé par défaut.</p>
+    </fieldset>
+  } @else {
+    <p class="color-hint">
+      Types autorisés&nbsp;: ceux de la catégorie parente ({{ parentAllowedTypes().map(labelOf).join(', ') }}).
+    </p>
+  }
 
   <label>
     Compte cible par défaut (virements)

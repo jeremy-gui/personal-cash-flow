@@ -1,3 +1,5 @@
+import { TransactionType } from './transaction.model';
+
 export interface Category {
   id: number;
   name: string;
@@ -6,6 +8,8 @@ export interface Category {
   /** Pre-fills a transaction's target account when this category is picked and TRANSFERT is chosen. */
   defaultTransferAccountId: number | null;
   defaultTransferAccountName: string | null;
+  /** Types a hand-entered transaction may take - set on roots only, inherited (see allowedTypesFor); [] = any. */
+  allowedTypes: TransactionType[];
 }
 
 export interface CategoryRequest {
@@ -14,6 +18,21 @@ export interface CategoryRequest {
   defaultTransferAccountId: number | null;
   /** Omit (null) to let the server auto-assign a diverse color. */
   color: string | null;
+  /** [] = any type; ignored by the server on a sub-category. */
+  allowedTypes: TransactionType[];
+}
+
+/** Every type, in the order forms list them - the first allowed one is the pre-selected default. */
+export const ALL_TRANSACTION_TYPES: TransactionType[] = ['DEPENSE', 'REVENU', 'TRANSFERT'];
+
+/** The types allowed in a category: its root's list (sub-categories inherit it), or every type. */
+export function allowedTypesFor(categories: Category[], categoryId: number | null): TransactionType[] {
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  let root = categoryId !== null ? byId.get(categoryId) : undefined;
+  while (root?.parentId != null && byId.has(root.parentId)) {
+    root = byId.get(root.parentId);
+  }
+  return root?.allowedTypes.length ? ALL_TRANSACTION_TYPES.filter((t) => root!.allowedTypes.includes(t)) : ALL_TRANSACTION_TYPES;
 }
 
 const FALLBACK_CATEGORY_COLOR = '#94a3b8';

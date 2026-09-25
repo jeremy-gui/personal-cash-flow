@@ -74,6 +74,7 @@ public class TransactionService {
     public Transaction create(TransactionRequest request) {
         Account account = resolveAccount(request.accountId());
         Category category = resolveCategory(request.categoryId());
+        checkAllowedType(request.type(), category);
         Account transferAccount = resolveTransferAccount(request);
         Transaction transaction = Transaction.manual(
                 request.date(),
@@ -92,6 +93,9 @@ public class TransactionService {
         Transaction transaction = findById(id);
         Account account = resolveAccount(request.accountId());
         Category category = resolveCategory(request.categoryId());
+        if (transaction.getStatus() != TransactionStatus.POINTEE) {
+            checkAllowedType(request.type(), category);
+        }
         Account transferAccount = resolveTransferAccount(request);
         transaction.update(
                 request.date(),
@@ -103,6 +107,21 @@ public class TransactionService {
                 transferAccount);
         syncTransferMirror(transaction);
         return transaction;
+    }
+
+    /**
+     * A transaction entered by hand must use one of its category's allowed types (the root's list,
+     * inherited by sub-categories; empty = any). A pointée is exempt: its type comes from the real
+     * bank amount's sign, and it must stay categorizable anywhere.
+     */
+    private static void checkAllowedType(TransactionType type, Category category) {
+        Category root = category;
+        while (root != null && root.getParent() != null) {
+            root = root.getParent();
+        }
+        if (root != null && !root.getAllowedTypes().isEmpty() && !root.getAllowedTypes().contains(type)) {
+            throw new TypeNotAllowedException(type, root);
+        }
     }
 
     /**

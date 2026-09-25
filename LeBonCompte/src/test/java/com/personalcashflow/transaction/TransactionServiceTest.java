@@ -19,6 +19,7 @@ import com.personalcashflow.transaction.dto.TransactionResponse;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -110,6 +111,60 @@ class TransactionServiceTest {
 
         assertThatThrownBy(() -> transactionService.create(request))
                 .isInstanceOf(CategoryNotFoundException.class);
+    }
+
+    @Test
+    void create_withATypeTheRootAllows_shouldBeAccepted() {
+        Account source = accountWithId(1L, "Compte courant");
+        Account ldds = accountWithId(7L, "LDDS");
+        Category credit = new Category("Crédit", null);
+        credit.changeAllowedTypes(List.of(TransactionType.REVENU, TransactionType.TRANSFERT));
+        Category creditImpot = new Category("Crédit d'impôt", credit, ldds, null);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(source));
+        when(accountRepository.findById(7L)).thenReturn(Optional.of(ldds));
+        when(categoryRepository.findById(55L)).thenReturn(Optional.of(creditImpot));
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Transaction created = transactionService.create(new TransactionRequest(
+                LocalDate.of(2026, 10, 1), "crédit d'impôt", BigDecimal.valueOf(100), 1L, 55L,
+                TransactionType.TRANSFERT, 7L, false));
+
+        assertThat(created.getType()).isEqualTo(TransactionType.TRANSFERT);
+    }
+
+    @Test
+    void create_withATypeTheRootDoesNotAllow_shouldBeRefused() {
+        Account account = accountWithId(1L, "Compte courant");
+        Category credit = new Category("Crédit", null);
+        credit.changeAllowedTypes(List.of(TransactionType.REVENU, TransactionType.TRANSFERT));
+        Category salaire = new Category("Salaire", credit);
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(categoryRepository.findById(44L)).thenReturn(Optional.of(salaire));
+
+        assertThatThrownBy(() -> transactionService.create(new TransactionRequest(
+                        LocalDate.of(2026, 9, 5), "alimentation Alex", BigDecimal.valueOf(1600), 1L, 44L,
+                        TransactionType.DEPENSE, null, false)))
+                .isInstanceOf(TypeNotAllowedException.class)
+                .hasMessageContaining("Crédit");
+    }
+
+    @Test
+    void update_ofAPointee_shouldAcceptItsBankTypeEvenIfTheCategoryDoesNotAllowIt() {
+        Account account = accountWithId(1L, "Compte courant");
+        Category credit = new Category("Crédit", null);
+        credit.changeAllowedTypes(List.of(TransactionType.REVENU, TransactionType.TRANSFERT));
+        Transaction pointee = Transaction.imported(
+                LocalDate.of(2026, 9, 3), "CB CARREFOUR", BigDecimal.valueOf(-42), account, TransactionType.DEPENSE, "fitid", "raw");
+        when(transactionRepository.findById(10L)).thenReturn(Optional.of(pointee));
+        when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        when(categoryRepository.findById(43L)).thenReturn(Optional.of(credit));
+
+        transactionService.update(10L, new TransactionRequest(
+                LocalDate.of(2026, 9, 3), "courses", BigDecimal.valueOf(42), 1L, 43L,
+                TransactionType.DEPENSE, null, false));
+
+        assertThat(pointee.getType()).isEqualTo(TransactionType.DEPENSE);
+        assertThat(pointee.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(-42));
     }
 
     @Test

@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Budget, BudgetRequest } from '../../core/models/budget.model';
-import { buildCategoryTree, Category } from '../../core/models/category.model';
+import { allowedTypesFor, buildCategoryTree, Category } from '../../core/models/category.model';
 import { RecurringTransaction, RecurringTransactionRequest } from '../../core/models/recurring-transaction.model';
 import { TRANSACTION_TYPE_LABELS, TransactionType } from '../../core/models/transaction.model';
 import { CategoryService } from '../categories/category.service';
@@ -59,6 +59,9 @@ export class BudgetsComponent {
   protected readonly typeLabels = TRANSACTION_TYPE_LABELS;
   protected readonly types = Object.keys(TRANSACTION_TYPE_LABELS) as TransactionType[];
 
+  private readonly recurringCategoryId = signal<number | null>(null);
+  protected readonly recurringTypes = computed(() => allowedTypesFor(this.categories(), this.recurringCategoryId()));
+
   protected readonly recurringForm = this.fb.nonNullable.group({
     label: ['', Validators.required],
     categoryId: this.fb.control<number | null>(null, Validators.required),
@@ -70,6 +73,11 @@ export class BudgetsComponent {
     this.categoryService.list().subscribe((categories) => this.categories.set(categories));
     this.reload();
     this.reloadRecurring();
+    // A recurring transaction is entered by hand too: only its category's allowed types, first one pre-selected.
+    this.recurringForm.controls.categoryId.valueChanges.subscribe((categoryId) => {
+      this.recurringCategoryId.set(categoryId);
+      this.recurringForm.controls.type.setValue(allowedTypesFor(this.categories(), categoryId)[0]);
+    });
   }
 
   private reload(): void {
