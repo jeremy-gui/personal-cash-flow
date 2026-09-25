@@ -51,6 +51,9 @@ export class RepartitionComponent {
   protected readonly recurringFrais = computed(() =>
     this.recurring().filter((r) => r.type === 'DEPENSE' || r.type === 'TRANSFERT'),
   );
+  /** Variable-amount recurrings (EDF, courses…) are listed apart, at the bottom: their amount is an estimate. */
+  protected readonly fixedRecurringFrais = computed(() => this.recurringFrais().filter((r) => !r.variableAmount));
+  protected readonly variableRecurringFrais = computed(() => this.recurringFrais().filter((r) => r.variableAmount));
   protected readonly recurringAides = computed(() =>
     this.recurring().filter((r) => r.type === 'REVENU' && r.categoryName !== SALARY_CATEGORY),
   );

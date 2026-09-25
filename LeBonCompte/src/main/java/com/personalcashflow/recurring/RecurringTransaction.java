@@ -46,6 +46,13 @@ public class RecurringTransaction {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    /**
+     * The amount changes month to month (EDF, courses...): {@code amount} is only an estimate. Shown
+     * apart on the salary split; a matched instance already takes the bank's real amount.
+     */
+    @Column(name = "variable_amount", nullable = false)
+    private boolean variableAmount;
+
     protected RecurringTransaction() {
     }
 
@@ -84,6 +91,14 @@ public class RecurringTransaction {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isVariableAmount() {
+        return variableAmount;
+    }
+
+    public void changeVariableAmount(boolean variableAmount) {
+        this.variableAmount = variableAmount;
     }
 
     /** Positive magnitude, like the constructor's; the sign still comes from {@code type}. */

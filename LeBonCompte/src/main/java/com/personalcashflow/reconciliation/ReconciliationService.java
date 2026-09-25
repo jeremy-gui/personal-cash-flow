@@ -1,6 +1,7 @@
 package com.personalcashflow.reconciliation;
 
 import com.personalcashflow.category.Category;
+import com.personalcashflow.recurring.RecurringTransactionService;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionNotFoundException;
 import com.personalcashflow.transaction.TransactionRepository;
@@ -30,9 +31,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReconciliationService {
 
     private final TransactionRepository transactionRepository;
+    private final RecurringTransactionService recurringTransactionService;
 
-    public ReconciliationService(TransactionRepository transactionRepository) {
+    public ReconciliationService(
+            TransactionRepository transactionRepository, RecurringTransactionService recurringTransactionService) {
         this.transactionRepository = transactionRepository;
+        this.recurringTransactionService = recurringTransactionService;
     }
 
     public TransactionResponse match(Long id, List<Long> matchWithIds) {
@@ -97,7 +101,15 @@ public class ReconciliationService {
         pointee.assignLabel(label);
         pointee.assignCategoryIfMissing(category);
         pointee.markMatched();
-        previsionnelles.forEach(transactionRepository::delete);
+        for (Transaction previsionnelle : previsionnelles) {
+            // A recurring instance absorbed by its bank line must not be regenerated for that month
+            // (which would count it twice) - the same skip a manual delete records.
+            if (previsionnelle.getRecurringTransaction() != null) {
+                recurringTransactionService.recordSkip(
+                        previsionnelle.getRecurringTransaction().getId(), previsionnelle.getDate());
+            }
+            transactionRepository.delete(previsionnelle);
+        }
         return TransactionResponse.from(pointee);
     }
 

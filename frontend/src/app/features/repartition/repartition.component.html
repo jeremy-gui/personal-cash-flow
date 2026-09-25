@@ -100,13 +100,21 @@
   <section class="card" aria-labelledby="frais-title">
     <h2 id="frais-title">Frais du mois</h2>
     <ul class="lines">
-      @for (item of recurringFrais(); track item.id) {
+      @for (item of fixedRecurringFrais(); track item.id) {
         <ng-container [ngTemplateOutlet]="recurringRow" [ngTemplateOutletContext]="{ $implicit: item }"></ng-container>
       }
       @for (line of manualFrais(); track line.id) {
         <ng-container [ngTemplateOutlet]="manualRow" [ngTemplateOutletContext]="{ $implicit: line }"></ng-container>
       }
     </ul>
+    @if (variableRecurringFrais().length) {
+      <h3 class="lines-subtitle">Montants variables <span>(estimations)</span></h3>
+      <ul class="lines">
+        @for (item of variableRecurringFrais(); track item.id) {
+          <ng-container [ngTemplateOutlet]="recurringRow" [ngTemplateOutletContext]="{ $implicit: item }"></ng-container>
+        }
+      </ul>
+    }
     <div class="card-foot">
       <button type="button" class="link-button" (click)="addLine('FRAIS')">+ Ajouter une ligne</button>
       <span>Total <b>{{ r.fraisTotal | number: '1.2-2' }}&nbsp;€</b></span>

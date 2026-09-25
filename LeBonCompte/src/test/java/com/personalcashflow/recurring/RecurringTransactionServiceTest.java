@@ -143,7 +143,7 @@ class RecurringTransactionServiceTest {
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
         RecurringTransactionRequest request =
-                new RecurringTransactionRequest("Loyer", BigDecimal.valueOf(1200), TransactionType.DEPENSE, 99L);
+                new RecurringTransactionRequest("Loyer", BigDecimal.valueOf(1200), TransactionType.DEPENSE, 99L, false);
 
         assertThatThrownBy(() -> recurringTransactionService.create(request))
                 .isInstanceOf(CategoryNotFoundException.class);
@@ -188,10 +188,11 @@ class RecurringTransactionServiceTest {
                 .thenReturn(List.of(instance));
 
         var response = recurringTransactionService.update(
-                1L, new RecurringTransactionRequest("EDF (mensualité)", BigDecimal.valueOf(110), TransactionType.DEPENSE, 9L));
+                1L, new RecurringTransactionRequest("EDF (mensualité)", BigDecimal.valueOf(110), TransactionType.DEPENSE, 9L, true));
 
         assertThat(response.label()).isEqualTo("EDF (mensualité)");
         assertThat(response.categoryName()).isEqualTo("Énergie");
+        assertThat(response.variableAmount()).isTrue();
         assertThat(instance.getLabel()).isEqualTo("EDF (mensualité)");
         assertThat(instance.getAmount()).isEqualByComparingTo("-110");
         assertThat(instance.getCategory()).isEqualTo(energie);
@@ -204,7 +205,7 @@ class RecurringTransactionServiceTest {
         when(categoryRepository.findById(9L)).thenReturn(Optional.of(logement));
 
         assertThatThrownBy(() -> recurringTransactionService.create(
-                        new RecurringTransactionRequest("loyer", BigDecimal.valueOf(800), TransactionType.REVENU, 9L)))
+                        new RecurringTransactionRequest("loyer", BigDecimal.valueOf(800), TransactionType.REVENU, 9L, false)))
                 .isInstanceOf(TypeNotAllowedException.class);
     }
 

@@ -55,6 +55,7 @@ public class RecurringTransactionService {
         TypeNotAllowedException.check(request.type(), category);
         RecurringTransaction recurring = new RecurringTransaction(
                 request.label(), request.amount(), request.type(), category, YearMonth.now().atDay(1));
+        recurring.changeVariableAmount(request.variableAmount());
         recurringTransactionRepository.save(recurring);
         ensureGeneratedForMonth(YearMonth.now().toString());
         return RecurringTransactionResponse.of(recurring);
@@ -86,6 +87,7 @@ public class RecurringTransactionService {
         Category category = resolveCategory(request.categoryId());
         TypeNotAllowedException.check(request.type(), category);
         recurring.update(request.label(), request.amount(), request.type(), category);
+        recurring.changeVariableAmount(request.variableAmount());
         BigDecimal signed = signedAmount(recurring);
         transactionRepository
                 .findByRecurringTransactionIdAndStatusAndDateGreaterThanEqual(

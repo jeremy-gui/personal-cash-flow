@@ -11,5 +11,7 @@ public record RecurringTransactionRequest(
         @NotBlank String label,
         @NotNull @Positive BigDecimal amount,
         @NotNull TransactionType type,
-        @NotNull Long categoryId) {
+        @NotNull Long categoryId,
+        /** True when the amount varies month to month (EDF, courses...) - it is then only an estimate. */
+        boolean variableAmount) {
 }

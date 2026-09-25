@@ -11,7 +11,8 @@ public record RecurringTransactionResponse(
         TransactionType type,
         Long categoryId,
         String categoryName,
-        String startMonth) {
+        String startMonth,
+        boolean variableAmount) {
 
     public static RecurringTransactionResponse of(RecurringTransaction recurring) {
         return new RecurringTransactionResponse(
@@ -21,6 +22,7 @@ public record RecurringTransactionResponse(
                 recurring.getType(),
                 recurring.getCategory().getId(),
                 recurring.getCategory().getName(),
-                recurring.getStartMonth().toString().substring(0, 7));
+                recurring.getStartMonth().toString().substring(0, 7),
+                recurring.isVariableAmount());
     }
 }

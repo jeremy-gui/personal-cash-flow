@@ -69,6 +69,7 @@ export class BudgetsComponent {
     categoryId: this.fb.control<number | null>(null, Validators.required),
     amount: [0, [Validators.required, Validators.min(0.01)]],
     type: this.fb.nonNullable.control<TransactionType>('DEPENSE'),
+    variableAmount: this.fb.nonNullable.control(false),
   });
 
   constructor() {
@@ -171,7 +172,7 @@ export class BudgetsComponent {
 
   /** The form is (re)filled on every opening - never on the dialog's close event, unreliable after Escape. */
   protected openAddRecurring(): void {
-    this.openRecurring(null, { label: '', categoryId: null, amount: 0, type: 'DEPENSE' });
+    this.openRecurring(null, { label: '', categoryId: null, amount: 0, type: 'DEPENSE', variableAmount: false });
   }
 
   protected editRecurring(recurring: RecurringTransaction): void {
@@ -180,6 +181,7 @@ export class BudgetsComponent {
       categoryId: recurring.categoryId,
       amount: Math.abs(recurring.amount),
       type: recurring.type,
+      variableAmount: recurring.variableAmount,
     });
   }
 
@@ -216,6 +218,7 @@ export class BudgetsComponent {
       categoryId: raw.categoryId!,
       amount: raw.amount,
       type: raw.type,
+      variableAmount: raw.variableAmount,
     };
     const id = this.editingRecurringId();
     const request$ = id ? this.recurringTransactionService.update(id, request) : this.recurringTransactionService.create(request);

@@ -193,6 +193,21 @@
   padding: 0;
 }
 
+.lines-subtitle {
+  margin: var(--space-4) 0 var(--space-1);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.lines-subtitle span {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .line {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 8.5em 28px;

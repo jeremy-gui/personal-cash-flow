@@ -9,6 +9,8 @@ import static org.mockito.Mockito.when;
 import com.personalcashflow.account.Account;
 import com.personalcashflow.account.AccountType;
 import com.personalcashflow.category.Category;
+import com.personalcashflow.recurring.RecurringTransaction;
+import com.personalcashflow.recurring.RecurringTransactionService;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionNotFoundException;
 import com.personalcashflow.transaction.TransactionRepository;
@@ -31,6 +33,9 @@ class ReconciliationServiceTest {
 
     @Mock
     private TransactionRepository transactionRepository;
+
+    @Mock
+    private RecurringTransactionService recurringTransactionService;
 
     @InjectMocks
     private ReconciliationService reconciliationService;
@@ -140,6 +145,25 @@ class ReconciliationServiceTest {
         match(1L, 2L);
 
         assertThat(pointee.isMatched()).isTrue();
+    }
+
+    @Test
+    void match_ofARecurringInstance_shouldRecordASkipSoTheMonthIsNotRegenerated() {
+        Account account = accountWithId(10L, "Compte courant");
+        RecurringTransaction edf = new RecurringTransaction(
+                "EDF", BigDecimal.valueOf(98.75), TransactionType.DEPENSE, null, LocalDate.of(2026, 9, 1));
+        setId(edf, RecurringTransaction.class, 23L);
+        Transaction previsionnelle = Transaction.recurring(
+                LocalDate.of(2026, 10, 1), "EDF", BigDecimal.valueOf(-98.75), account, null, TransactionType.DEPENSE, edf);
+        setId(previsionnelle, Transaction.class, 1L);
+        Transaction pointee = transaction(2L, account, null, TransactionStatus.POINTEE);
+        when(transactionRepository.findById(1L)).thenReturn(Optional.of(previsionnelle));
+        when(transactionRepository.findById(2L)).thenReturn(Optional.of(pointee));
+
+        match(1L, 2L);
+
+        verify(recurringTransactionService).recordSkip(23L, LocalDate.of(2026, 10, 1));
+        verify(transactionRepository).delete(previsionnelle);
     }
 
     @Test
