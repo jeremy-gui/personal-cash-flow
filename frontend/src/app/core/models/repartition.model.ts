@@ -10,6 +10,14 @@ export interface RepartitionLine {
 
 export type RepartitionLineRequest = Omit<RepartitionLine, 'id'>;
 
+/** Real average monthly net frais over this year's complete months (from/to: yyyy-MM). */
+export interface AverageFrais {
+  months: number;
+  from: string;
+  to: string;
+  average: number;
+}
+
 export interface PersonShare {
   name: string;
   salary: number;

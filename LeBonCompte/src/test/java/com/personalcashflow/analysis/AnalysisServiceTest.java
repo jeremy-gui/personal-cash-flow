@@ -42,6 +42,7 @@ class AnalysisServiceTest {
         when(transactionRepository.sumByTypeAndDateRangeAllAccounts(eq(TransactionType.DEPENSE), any(), any()))
                 .thenReturn(BigDecimal.valueOf(-3500));
         when(transactionRepository.sumSavingsContributions(any(), any())).thenReturn(BigDecimal.valueOf(1000));
+        when(transactionRepository.sumSavingsWithdrawals(any(), any())).thenReturn(BigDecimal.valueOf(-50));
         stubEmptyBreakdowns();
         when(budgetService.findAllForMonth(YearMonth.of(PAST_YEAR, 12).toString())).thenReturn(List.of());
 
@@ -52,6 +53,8 @@ class AnalysisServiceTest {
         assertThat(response.totalDepenses()).isEqualByComparingTo(BigDecimal.valueOf(42000));
         assertThat(response.totalResultat()).isEqualByComparingTo(BigDecimal.valueOf(12000));
         assertThat(response.totalEpargne()).isEqualByComparingTo(BigDecimal.valueOf(12000));
+        assertThat(response.monthlyResults().get(0).epargneUtilisee()).isEqualByComparingTo(BigDecimal.valueOf(50));
+        assertThat(response.totalEpargneUtilisee()).isEqualByComparingTo(BigDecimal.valueOf(600));
         assertThat(response.savingsRate()).isEqualByComparingTo(BigDecimal.valueOf(22.2));
     }
 
@@ -62,6 +65,7 @@ class AnalysisServiceTest {
         when(transactionRepository.sumByTypeAndDateRangeAllAccounts(eq(TransactionType.DEPENSE), any(), any()))
                 .thenReturn(BigDecimal.valueOf(-4500));
         when(transactionRepository.sumSavingsContributions(any(), any())).thenReturn(BigDecimal.valueOf(200));
+        when(transactionRepository.sumSavingsWithdrawals(any(), any())).thenReturn(BigDecimal.ZERO);
         stubEmptyBreakdowns();
         when(budgetService.findAllForMonth(YearMonth.of(PAST_YEAR, 12).toString())).thenReturn(List.of());
 
@@ -75,6 +79,7 @@ class AnalysisServiceTest {
     void getYearlyAnalysis_shouldCompareCategoryAgainstLatestElapsedMonthBudget() {
         when(transactionRepository.sumByTypeAndDateRangeAllAccounts(any(), any(), any())).thenReturn(BigDecimal.ZERO);
         when(transactionRepository.sumSavingsContributions(any(), any())).thenReturn(BigDecimal.ZERO);
+        when(transactionRepository.sumSavingsWithdrawals(any(), any())).thenReturn(BigDecimal.ZERO);
         when(transactionRepository.sumDepenseGroupedByCategoryAllAccounts(
                         LocalDate.of(PAST_YEAR, 1, 1), LocalDate.of(PAST_YEAR, 12, 31)))
                 .thenReturn(List.of(categorySpending(1L, "Courses", BigDecimal.valueOf(-600))));

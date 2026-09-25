@@ -4,6 +4,8 @@ export interface MonthlyResult {
   depenses: number;
   resultat: number;
   epargne: number;
+  /** Money taken back out of the livrets that month (Provision excluded), positive. */
+  epargneUtilisee: number;
 }
 
 export interface CategoryYearSummary {
@@ -36,6 +38,8 @@ export interface YearlyAnalysis {
   totalDepenses: number;
   totalResultat: number;
   totalEpargne: number;
+  /** Money taken back out of the livrets (Provision excluded), positive. */
+  totalEpargneUtilisee: number;
   savingsRate: number;
   categoryBreakdown: CategoryYearSummary[];
   evolutionParCategorie: MonthlyCategoryAmount[];

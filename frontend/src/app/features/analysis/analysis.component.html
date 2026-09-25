@@ -40,6 +40,10 @@
       <span class="kpi-label">Épargne constituée</span>
       <span class="kpi-value positive">{{ data.totalEpargne | number: '1.2-2' }} €</span>
     </div>
+    <div class="kpi-card" title="Argent retiré des livrets (transferts sortants et dépenses payées depuis un livret), hors catégorie Provision">
+      <span class="kpi-label">Épargne utilisée</span>
+      <span class="kpi-value negative">{{ data.totalEpargneUtilisee | number: '1.2-2' }} €</span>
+    </div>
     <div class="kpi-card">
       <span class="kpi-label">Taux d'épargne</span>
       <span class="kpi-value">{{ data.savingsRate | number: '1.1-1' }} %</span>
@@ -57,6 +61,7 @@
             <th>Dépenses</th>
             <th>Résultat</th>
             <th>Épargne</th>
+            <th>Épargne utilisée</th>
           </tr>
         </thead>
         <tbody>
@@ -69,13 +74,28 @@
                 {{ result.resultat | number: '1.2-2' }} €
               </td>
               <td>{{ result.epargne | number: '1.2-2' }} €</td>
+              <td>{{ result.epargneUtilisee | number: '1.2-2' }} €</td>
             </tr>
           } @empty {
             <tr>
-              <td colspan="5">Aucune donnée pour cette année.</td>
+              <td colspan="6">Aucune donnée pour cette année.</td>
             </tr>
           }
         </tbody>
+        @if (monthlyResultsWithLabel().length) {
+          <tfoot>
+            <tr class="total-row">
+              <th scope="row">Total</th>
+              <td>{{ data.totalRevenus | number: '1.2-2' }} €</td>
+              <td>{{ data.totalDepenses | number: '1.2-2' }} €</td>
+              <td [class.negative]="data.totalResultat < 0" [class.positive]="data.totalResultat >= 0">
+                {{ data.totalResultat | number: '1.2-2' }} €
+              </td>
+              <td>{{ data.totalEpargne | number: '1.2-2' }} €</td>
+              <td>{{ data.totalEpargneUtilisee | number: '1.2-2' }} €</td>
+            </tr>
+          </tfoot>
+        }
       </table>
     </div>
   </div>

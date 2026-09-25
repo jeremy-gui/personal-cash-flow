@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { RepartitionLine, RepartitionLineRequest } from '../../core/models/repartition.model';
+import { AverageFrais, RepartitionLine, RepartitionLineRequest } from '../../core/models/repartition.model';
 
 @Injectable({ providedIn: 'root' })
 export class RepartitionService {
@@ -23,5 +23,10 @@ export class RepartitionService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
+
+  /** Null (204) in January, when the year has no complete month yet. */
+  averageFrais(): Observable<AverageFrais | null> {
+    return this.http.get<AverageFrais | null>(`${this.baseUrl}/average-frais`);
   }
 }

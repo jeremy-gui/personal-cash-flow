@@ -1,9 +1,10 @@
-import { DecimalPipe, NgTemplateOutlet, PercentPipe } from '@angular/common';
+import { DecimalPipe, NgTemplateOutlet, PercentPipe, formatDate } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { RecurringTransaction } from '../../core/models/recurring-transaction.model';
 import {
+  AverageFrais,
   PersonShare,
   RepartitionLine,
   RepartitionLineKind,
@@ -31,6 +32,17 @@ export class RepartitionComponent {
   protected readonly overrides = signal<Record<number, number>>({});
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly abs = Math.abs;
+  /** What the frais really came to on average this year, to sanity-check the planned ones. */
+  protected readonly averageFrais = signal<AverageFrais | null>(null);
+  protected readonly averagePeriod = computed(() => {
+    const average = this.averageFrais();
+    if (!average) {
+      return '';
+    }
+    const label = (month: string) => formatDate(`${month}-01`, 'MMM', 'fr-FR');
+    const year = average.to.slice(0, 4);
+    return average.months === 1 ? `${label(average.to)} ${year}` : `${label(average.from)}–${label(average.to)} ${year}`;
+  });
 
   protected readonly salaries = computed(() => this.lines().filter((l) => l.kind === 'SALAIRE'));
   protected readonly manualFrais = computed(() => this.lines().filter((l) => l.kind === 'FRAIS'));
@@ -69,6 +81,7 @@ export class RepartitionComponent {
   constructor() {
     this.repartitionService.list().subscribe((lines) => this.lines.set(lines));
     this.recurringService.list().subscribe((recurring) => this.recurring.set(recurring));
+    this.repartitionService.averageFrais().subscribe((average) => this.averageFrais.set(average));
   }
 
   protected applyToRecurring(): void {

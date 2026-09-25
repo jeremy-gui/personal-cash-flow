@@ -42,6 +42,7 @@ public class AnalysisService {
         BigDecimal totalRevenus = BigDecimal.ZERO;
         BigDecimal totalDepenses = BigDecimal.ZERO;
         BigDecimal totalEpargne = BigDecimal.ZERO;
+        BigDecimal totalEpargneUtilisee = BigDecimal.ZERO;
 
         for (int month = 1; month <= monthsElapsed; month++) {
             YearMonth yearMonth = YearMonth.of(year, month);
@@ -54,12 +55,14 @@ public class AnalysisService {
                     TransactionType.DEPENSE, monthFrom, monthTo);
             BigDecimal depenses = depensesSigned.negate();
             BigDecimal epargne = transactionRepository.sumSavingsContributions(monthFrom, monthTo);
+            BigDecimal epargneUtilisee = transactionRepository.sumSavingsWithdrawals(monthFrom, monthTo).negate();
             BigDecimal resultat = revenus.add(depensesSigned);
 
-            monthlyResults.add(new MonthlyResultResponse(month, revenus, depenses, resultat, epargne));
+            monthlyResults.add(new MonthlyResultResponse(month, revenus, depenses, resultat, epargne, epargneUtilisee));
             totalRevenus = totalRevenus.add(revenus);
             totalDepenses = totalDepenses.add(depenses);
             totalEpargne = totalEpargne.add(epargne);
+            totalEpargneUtilisee = totalEpargneUtilisee.add(epargneUtilisee);
         }
 
         BigDecimal totalResultat = totalRevenus.subtract(totalDepenses);
@@ -104,6 +107,7 @@ public class AnalysisService {
                 totalDepenses,
                 totalResultat,
                 totalEpargne,
+                totalEpargneUtilisee,
                 savingsRate,
                 categoryBreakdown,
                 evolutionParCategorie,

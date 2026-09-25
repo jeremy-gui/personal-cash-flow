@@ -226,3 +226,17 @@
   color: var(--ink-soft);
   margin: 0;
 }
+
+.total-row th,
+.total-row td {
+  font-weight: 700;
+  border-top: 2px solid var(--border);
+}
+
+.total-row th {
+  text-align: left;
+  font-size: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink);
+}

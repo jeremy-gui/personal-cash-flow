@@ -206,7 +206,7 @@
         <span class="card-amount" [class.in]="card.totals.net > 0">{{ card.totals.net > 0 ? '+' : '' }}{{ abs(card.totals.net) | number: '1.2-2' }}&nbsp;€</span>
       </header>
 
-      @if (card.budget !== null && !card.showSectionTitles) {
+      @if (card.budget !== null && card.showCardMeter) {
         <ng-container [ngTemplateOutlet]="meter" [ngTemplateOutletContext]="{ $implicit: card.budgetTotals, budget: card.budget }"></ng-container>
       }
 

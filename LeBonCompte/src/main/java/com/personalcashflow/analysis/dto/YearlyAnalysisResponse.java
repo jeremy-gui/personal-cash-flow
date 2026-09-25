@@ -18,6 +18,8 @@ public record YearlyAnalysisResponse(
         BigDecimal totalDepenses,
         BigDecimal totalResultat,
         BigDecimal totalEpargne,
+        /** Money taken back out of the livrets (Provision excluded), as a positive amount. */
+        BigDecimal totalEpargneUtilisee,
         BigDecimal savingsRate,
         List<CategoryYearSummaryResponse> categoryBreakdown,
         List<MonthlyCategoryAmountResponse> evolutionParCategorie,

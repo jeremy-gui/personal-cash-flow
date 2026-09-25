@@ -1,8 +1,10 @@
 package com.personalcashflow.repartition;
 
+import com.personalcashflow.repartition.dto.AverageFraisResponse;
 import com.personalcashflow.repartition.dto.RepartitionLineRequest;
 import com.personalcashflow.repartition.dto.RepartitionLineResponse;
 import jakarta.validation.Valid;
+import java.time.YearMonth;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,12 @@ public class RepartitionLineController {
     @GetMapping
     public List<RepartitionLineResponse> findAll() {
         return service.findAll();
+    }
+
+    @GetMapping("/average-frais")
+    public ResponseEntity<AverageFraisResponse> averageFrais() {
+        AverageFraisResponse average = service.averageFrais(YearMonth.now());
+        return average == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(average);
     }
 
     @PostMapping

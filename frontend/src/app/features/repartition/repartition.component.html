@@ -86,6 +86,14 @@
   <span>Aides <b>{{ r.aidesTotal | number: '1.2-2' }}&nbsp;€</b></span>
   <span aria-hidden="true">=</span>
   <span>À répartir <b>{{ r.netFrais | number: '1.2-2' }}&nbsp;€</b></span>
+  @if (averageFrais(); as average) {
+    <span
+      class="reference"
+      title="Moyenne des mois complets de l'année, sur les lignes pointées du Compte courant : toutes les sorties (dépenses, épargne, provisions) moins les rentrées autres que salaires, aides et renflouages (remboursements, argent revenu des livrets…)."
+    >
+      Frais réels {{ averagePeriod() }}&nbsp;: <b>{{ average.average | number: '1.0-0' }}&nbsp;€/mois</b>
+    </span>
+  }
 </div>
 
 <div class="columns">

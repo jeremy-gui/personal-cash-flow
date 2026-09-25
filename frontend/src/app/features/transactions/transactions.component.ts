@@ -110,9 +110,14 @@ export interface CategoryCard {
   color: string;
   addCategoryId: number | null;
   totals: Totals;
-  /** Totals of the budgeted sections only - what the card-level budget meter measures. */
+  /**
+   * What the card-level budget meter measures: every dépense of the card when the root category
+   * itself has a budget (it covers its sub-categories), else the budgeted sections only.
+   */
   budgetTotals: Totals;
   budget: number | null;
+  /** A root budget always shows at card level; summed section budgets only when there are no section headings. */
+  showCardMeter: boolean;
   sections: CardSection[];
   /** Section headings only help when the card mixes several (sub)categories. */
   showSectionTitles: boolean;
@@ -269,12 +274,16 @@ export class TransactionsComponent {
 
     const sort = this.rowSort();
     const cards = [...groups.values()].map(({ root, sections }) => {
+      // ponytail: only a root's budget spans its sub-categories here; a budget on a mid-level
+      // category still only covers its own section (no such budget exists today).
+      const rootBudget = root ? budgetByCategory.get(root.id) ?? null : null;
       const sectionList: CardSection[] = [...sections.values()]
         .map(({ category, transactions }) => ({
           key: String(category?.id ?? 0),
           title: category === null ? 'Non catégorisées' : category.id === root?.id ? `${category.name} (direct)` : category.name,
           totals: totalsOf(transactions),
-          budget: category ? sumBudgets([category.id]) : null,
+          // The root's budget is shown once, on the whole card - not on its "(direct)" section.
+          budget: category && !(rootBudget !== null && category.id === root?.id) ? sumBudgets([category.id]) : null,
           transactions: sortRows(transactions, sort),
         }))
         .sort((a, b) => Math.abs(b.totals.net) - Math.abs(a.totals.net));
@@ -284,16 +293,20 @@ export class TransactionsComponent {
       const budgeted = sectionList.filter((s) => s.budget !== null).flatMap((s) => s.transactions);
       const revenue = all.filter((t) => t.type === 'REVENU').reduce((sum, t) => sum + t.amount, 0);
       const spending = all.filter((t) => t.type === 'DEPENSE').reduce((sum, t) => sum + t.amount, 0);
+      const showSectionTitles = sectionList.length > 1 || (root !== null && sectionList[0].key !== String(root.id));
+      const sectionsBudget = sumBudgets(sectionList.map((s) => Number(s.key)).filter((id) => id !== 0));
       return {
         key: String(root?.id ?? 0),
         title: root?.name ?? 'Non catégorisées',
         color: root?.color ?? UNCATEGORIZED_COLOR,
         addCategoryId: root?.id ?? null,
         totals: totalsOf(all),
-        budgetTotals: totalsOf(budgeted),
-        budget: sumBudgets(sectionList.map((s) => Number(s.key)).filter((id) => id !== 0)),
+        // Dépenses only, like the backend's budget "spent".
+        budgetTotals: rootBudget !== null ? totalsOf(all.filter((t) => t.type === 'DEPENSE')) : totalsOf(budgeted),
+        budget: rootBudget ?? sectionsBudget,
+        showCardMeter: rootBudget !== null || (sectionsBudget !== null && !showSectionTitles),
         sections: sectionList,
-        showSectionTitles: sectionList.length > 1 || (root !== null && sectionList[0].key !== String(root.id)),
+        showSectionTitles,
         rank: root === null ? 0 : revenue > 0 && revenue >= Math.abs(spending) ? 1 : 2,
       };
     });

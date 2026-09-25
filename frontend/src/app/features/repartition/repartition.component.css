@@ -164,6 +164,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+.summary .reference {
+  margin-left: auto;
+  cursor: help;
+}
+
 /* ---------- frais & aides ---------- */
 .columns {
   display: grid;
