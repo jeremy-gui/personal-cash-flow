@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, formatDate } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -94,21 +94,40 @@ export class BudgetsComponent {
 
   protected onMonthChange(value: string): void {
     this.month.set(value);
-    this.cancelEdit();
     this.pendingDeleteId.set(null);
     this.reload();
   }
 
-  protected edit(budget: Budget): void {
-    this.pendingDeleteId.set(null);
-    this.editingId.set(budget.id);
-    this.errorMessage.set(null);
-    this.form.setValue({ categoryId: budget.categoryId, amount: budget.amount });
+  private readonly budgetDialog = viewChild.required<ElementRef<HTMLDialogElement>>('budgetDialog');
+  protected readonly monthLabel = computed(() => formatDate(`${this.month()}-01`, 'MMMM y', 'fr-FR'));
+
+  /** The form is (re)filled on every opening - never on the dialog's close event, unreliable after Escape. */
+  protected openAdd(): void {
+    this.openBudget(null, { categoryId: null, amount: 0 });
   }
 
-  protected cancelEdit(): void {
-    this.editingId.set(null);
-    this.form.reset({ categoryId: null, amount: 0 });
+  protected edit(budget: Budget): void {
+    this.openBudget(budget.id, { categoryId: budget.categoryId, amount: budget.amount });
+  }
+
+  private openBudget(id: number | null, value: { categoryId: number | null; amount: number }): void {
+    this.pendingDeleteId.set(null);
+    this.errorMessage.set(null);
+    this.editingId.set(id);
+    this.form.reset(value);
+    this.budgetDialog().nativeElement.showModal();
+  }
+
+  protected closeBudget(): void {
+    this.budgetDialog().nativeElement.close();
+  }
+
+  /** Closes on a backdrop click. Must return void: a handler evaluating to `false` makes Angular
+   *  preventDefault() every click inside the dialog, which breaks its submit button. */
+  protected onBudgetDialogClick(event: MouseEvent): void {
+    if (event.target === this.budgetDialog().nativeElement) {
+      this.closeBudget();
+    }
   }
 
   protected submit(): void {
@@ -123,7 +142,7 @@ export class BudgetsComponent {
 
     request$.subscribe({
       next: () => {
-        this.cancelEdit();
+        this.closeBudget();
         this.reload();
       },
       error: (err: HttpErrorResponse) => this.errorMessage.set(err.error?.message ?? 'Une erreur est survenue.'),

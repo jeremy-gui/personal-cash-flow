@@ -1,5 +1,6 @@
 <div class="page-header">
   <h1>Budgets</h1>
+  <div class="header-actions">
   <label class="month-picker">
     Mois
     <div class="month-nav">
@@ -16,11 +17,15 @@
       </button>
     </div>
   </label>
+  <button type="button" class="new-button" (click)="openAdd()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    Nouveau budget
+  </button>
+  </div>
 </div>
-
-@if (errorMessage()) {
-  <p class="error">{{ errorMessage() }}</p>
-}
 
 <div class="budgets-list">
   @for (budget of budgets(); track budget.id) {
@@ -59,8 +64,20 @@
   }
 </div>
 
-<div class="card">
-<h2>{{ editingId() ? 'Modifier le budget' : 'Ajouter un budget' }}</h2>
+<dialog class="card form-dialog" #budgetDialog aria-labelledby="budget-title" (click)="onBudgetDialogClick($event)">
+<div class="dialog-head">
+  <h2 id="budget-title">{{ editingId() ? 'Modifier le budget' : 'Nouveau budget' }} <span class="dialog-sub">· {{ monthLabel() }}</span></h2>
+  <button type="button" class="icon-button" title="Fermer" aria-label="Fermer" (click)="closeBudget()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+</div>
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
 
 <form [formGroup]="form" (ngSubmit)="submit()" class="budget-form">
   <label>
@@ -82,12 +99,10 @@
     <button type="submit" [disabled]="form.invalid">
       {{ editingId() ? 'Enregistrer' : 'Ajouter' }}
     </button>
-    @if (editingId()) {
-      <button type="button" (click)="cancelEdit()">Annuler</button>
-    }
+    <button type="button" (click)="closeBudget()">Annuler</button>
   </div>
 </form>
-</div>
+</dialog>
 
 <div class="card">
 <div class="section-head">
