@@ -121,13 +121,17 @@
     <div class="card budget-card">
       <div class="budget-header">
         <span class="category-name">{{ recurring.label }}</span>
-        <span class="amounts" [class.negative]="recurring.type === 'DEPENSE'">
-          {{ recurring.type === 'DEPENSE' ? '-' : '+' }}{{ recurring.amount | number: '1.2-2' }} €
+        @let leaves = recurring.type === 'DEPENSE' || (recurring.type === 'TRANSFERT' && recurring.outgoing);
+        <span class="amounts" [class.negative]="leaves">
+          {{ leaves ? '-' : '+' }}{{ recurring.amount | number: '1.2-2' }} €
         </span>
       </div>
       <div class="budget-footer">
         <span>
           {{ recurring.categoryName }}
+          @if (recurring.transferAccountName) {
+            <span class="variable-tag">{{ recurring.outgoing ? '→' : '←' }} {{ recurring.transferAccountName }}</span>
+          }
           @if (recurring.variableAmount) {
             <span class="variable-tag" title="Montant variable : le montant est une estimation">variable</span>
           }
@@ -193,6 +197,25 @@
     Montant mensuel
     <input type="number" step="0.01" min="0.01" formControlName="amount" />
   </label>
+
+  @if (recurringType() === 'TRANSFERT') {
+    <label>
+      Compte cible
+      <select formControlName="transferAccountId">
+        <option [ngValue]="null">Sélectionner…</option>
+        @for (account of accounts(); track account.id) {
+          <option [ngValue]="account.id">{{ account.name }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      Sens
+      <select formControlName="outgoing">
+        <option [ngValue]="true">Sortant (quitte le compte courant)</option>
+        <option [ngValue]="false">Entrant (arrive sur le compte courant)</option>
+      </select>
+    </label>
+  }
 
   <label class="checkbox-label">
     <input type="checkbox" formControlName="variableAmount" />

@@ -13,5 +13,9 @@ public record RecurringTransactionRequest(
         @NotNull TransactionType type,
         @NotNull Long categoryId,
         /** True when the amount varies month to month (EDF, courses...) - it is then only an estimate. */
-        boolean variableAmount) {
+        boolean variableAmount,
+        /** TRANSFERT only: the other account (defaults to the category's compte cible). */
+        Long transferAccountId,
+        /** TRANSFERT only: true (default) = leaves the default account, false = arrives on it. */
+        Boolean outgoing) {
 }

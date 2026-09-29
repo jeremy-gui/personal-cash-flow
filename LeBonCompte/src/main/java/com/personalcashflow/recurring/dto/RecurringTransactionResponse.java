@@ -12,7 +12,10 @@ public record RecurringTransactionResponse(
         Long categoryId,
         String categoryName,
         String startMonth,
-        boolean variableAmount) {
+        boolean variableAmount,
+        Long transferAccountId,
+        String transferAccountName,
+        boolean outgoing) {
 
     public static RecurringTransactionResponse of(RecurringTransaction recurring) {
         return new RecurringTransactionResponse(
@@ -23,6 +26,9 @@ public record RecurringTransactionResponse(
                 recurring.getCategory().getId(),
                 recurring.getCategory().getName(),
                 recurring.getStartMonth().toString().substring(0, 7),
-                recurring.isVariableAmount());
+                recurring.isVariableAmount(),
+                recurring.getTransferAccount() != null ? recurring.getTransferAccount().getId() : null,
+                recurring.getTransferAccount() != null ? recurring.getTransferAccount().getName() : null,
+                recurring.isOutgoing());
     }
 }

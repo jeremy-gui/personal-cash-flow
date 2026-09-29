@@ -19,6 +19,7 @@ import com.personalcashflow.dashboard.NoDefaultAccountException;
 import com.personalcashflow.recurring.dto.RecurringTransactionRequest;
 import com.personalcashflow.transaction.Transaction;
 import com.personalcashflow.transaction.TransactionRepository;
+import com.personalcashflow.transaction.TransactionService;
 import com.personalcashflow.transaction.TransactionStatus;
 import com.personalcashflow.transaction.TransactionType;
 import com.personalcashflow.transaction.TypeNotAllowedException;
@@ -51,6 +52,9 @@ class RecurringTransactionServiceTest {
     private CategoryRepository categoryRepository;
 
     @Mock
+    private TransactionService transactionService;
+
+    @Mock
     private AccountRepository accountRepository;
 
     @InjectMocks
@@ -72,6 +76,47 @@ class RecurringTransactionServiceTest {
         assertThat(captor.getAllValues().stream().map(Transaction::getDate)).containsExactly(
                 LocalDate.of(2026, 7, 1), LocalDate.of(2026, 8, 1), LocalDate.of(2026, 9, 1));
         assertThat(captor.getAllValues()).allSatisfy(t -> assertThat(t.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(-1200)));
+    }
+
+    @Test
+    void ensureGeneratedForMonth_ofAnOutgoingTransfer_shouldGenerateARealTransferWithItsMirror() {
+        Account ldds = accountWithId(7L);
+        RecurringTransaction provision = recurringWithId(
+                1L, "provision charges copro", BigDecimal.valueOf(150), TransactionType.TRANSFERT, LocalDate.of(2026, 10, 1));
+        provision.changeTransfer(ldds, true);
+        when(recurringTransactionRepository.findAll()).thenReturn(List.of(provision));
+        when(accountRepository.findByIsDefaultTrue()).thenReturn(Optional.of(accountWithId(1L)));
+        when(transactionRepository.existsByRecurringTransactionIdAndDate(eq(1L), any())).thenReturn(false);
+        when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        recurringTransactionService.ensureGeneratedForMonth("2026-10");
+
+        ArgumentCaptor<Transaction> captor = ArgumentCaptor.forClass(Transaction.class);
+        verify(transactionRepository).save(captor.capture());
+        Transaction instance = captor.getValue();
+        assertThat(instance.getAmount()).isEqualByComparingTo("-150");
+        assertThat(instance.getTransferAccount()).isEqualTo(ldds);
+        verify(transactionService).syncTransferMirror(instance);
+    }
+
+    @Test
+    void create_ofATransferWithoutAnyCompteCible_shouldBeRefused() {
+        when(categoryRepository.findById(9L)).thenReturn(Optional.of(categoryWithId(9L, "Épargne")));
+
+        assertThatThrownBy(() -> recurringTransactionService.create(new RecurringTransactionRequest(
+                        "épargne", BigDecimal.valueOf(100), TransactionType.TRANSFERT, 9L, false, null, null)))
+                .isInstanceOf(MissingTransferAccountException.class);
+    }
+
+    @Test
+    void ensureGeneratedForMonth_shouldTakeTheGenerationLockBeforeCheckingWhatExists() {
+        when(recurringTransactionRepository.findAll()).thenReturn(List.of());
+
+        recurringTransactionService.ensureGeneratedForMonth("2026-09");
+
+        var order = org.mockito.Mockito.inOrder(recurringTransactionRepository);
+        order.verify(recurringTransactionRepository).lockGeneration();
+        order.verify(recurringTransactionRepository).findAll();
     }
 
     @Test
@@ -143,7 +188,7 @@ class RecurringTransactionServiceTest {
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
         RecurringTransactionRequest request =
-                new RecurringTransactionRequest("Loyer", BigDecimal.valueOf(1200), TransactionType.DEPENSE, 99L, false);
+                new RecurringTransactionRequest("Loyer", BigDecimal.valueOf(1200), TransactionType.DEPENSE, 99L, false, null, null);
 
         assertThatThrownBy(() -> recurringTransactionService.create(request))
                 .isInstanceOf(CategoryNotFoundException.class);
@@ -188,7 +233,7 @@ class RecurringTransactionServiceTest {
                 .thenReturn(List.of(instance));
 
         var response = recurringTransactionService.update(
-                1L, new RecurringTransactionRequest("EDF (mensualité)", BigDecimal.valueOf(110), TransactionType.DEPENSE, 9L, true));
+                1L, new RecurringTransactionRequest("EDF (mensualité)", BigDecimal.valueOf(110), TransactionType.DEPENSE, 9L, true, null, null));
 
         assertThat(response.label()).isEqualTo("EDF (mensualité)");
         assertThat(response.categoryName()).isEqualTo("Énergie");
@@ -233,7 +278,7 @@ class RecurringTransactionServiceTest {
         when(categoryRepository.findById(9L)).thenReturn(Optional.of(logement));
 
         assertThatThrownBy(() -> recurringTransactionService.create(
-                        new RecurringTransactionRequest("loyer", BigDecimal.valueOf(800), TransactionType.REVENU, 9L, false)))
+                        new RecurringTransactionRequest("loyer", BigDecimal.valueOf(800), TransactionType.REVENU, 9L, false, null, null)))
                 .isInstanceOf(TypeNotAllowedException.class);
     }
 

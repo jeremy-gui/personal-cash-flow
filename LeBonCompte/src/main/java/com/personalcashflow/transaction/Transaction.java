@@ -214,6 +214,21 @@ public class Transaction {
         return transaction;
     }
 
+    /** Same as the other overload, for a TRANSFERT recurrence: {@code transferAccount} is the other leg's account. */
+    public static Transaction recurring(
+            LocalDate date,
+            String label,
+            BigDecimal amount,
+            Account account,
+            Category category,
+            TransactionType type,
+            RecurringTransaction recurringTransaction,
+            Account transferAccount) {
+        Transaction transaction = recurring(date, label, amount, account, category, type, recurringTransaction);
+        transaction.transferAccount = transferAccount;
+        return transaction;
+    }
+
     public Long getId() {
         return id;
     }
@@ -386,11 +401,13 @@ public class Transaction {
     }
 
     /** Only for a prévisionnelle following its edited recurring definition; date and account stay as generated. */
-    public void followRecurring(String label, BigDecimal amount, Category category, TransactionType type) {
+    public void followRecurring(
+            String label, BigDecimal amount, Category category, TransactionType type, Account transferAccount) {
         this.label = label;
         this.amount = amount;
         this.category = category;
         this.type = type;
+        this.transferAccount = transferAccount;
     }
 
     /** Points this row at its counterpart on the other side of a transfer. */

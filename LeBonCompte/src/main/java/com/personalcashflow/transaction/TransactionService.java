@@ -118,7 +118,7 @@ public class TransactionService {
      * dropped. Already has one -> keep it in sync (also handles the target account changing: the
      * old mirror belongs to the wrong account, so it's dropped and rebuilt against the new one).
      */
-    private void syncTransferMirror(Transaction transaction) {
+    public void syncTransferMirror(Transaction transaction) {
         if (transaction.getType() != TransactionType.TRANSFERT || transaction.getTransferAccount() == null) {
             removeMirrorIfPresent(transaction);
             return;

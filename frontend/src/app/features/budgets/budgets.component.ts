@@ -2,10 +2,12 @@ import { CommonModule, formatDate } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Account } from '../../core/models/account.model';
 import { Budget, BudgetRequest } from '../../core/models/budget.model';
 import { allowedTypesFor, buildCategoryTree, Category } from '../../core/models/category.model';
 import { RecurringTransaction, RecurringTransactionRequest } from '../../core/models/recurring-transaction.model';
 import { TRANSACTION_TYPE_LABELS, TransactionType } from '../../core/models/transaction.model';
+import { AccountService } from '../accounts/account.service';
 import { CategoryService } from '../categories/category.service';
 import { BudgetService } from './budget.service';
 import { RecurringTransactionService } from './recurring-transaction.service';
@@ -24,6 +26,7 @@ function currentMonth(): string {
 export class BudgetsComponent {
   private readonly budgetService = inject(BudgetService);
   private readonly categoryService = inject(CategoryService);
+  private readonly accountService = inject(AccountService);
   private readonly recurringTransactionService = inject(RecurringTransactionService);
   private readonly fb = inject(FormBuilder);
 
@@ -70,16 +73,29 @@ export class BudgetsComponent {
     amount: [0, [Validators.required, Validators.min(0.01)]],
     type: this.fb.nonNullable.control<TransactionType>('DEPENSE'),
     variableAmount: this.fb.nonNullable.control(false),
+    transferAccountId: this.fb.control<number | null>(null),
+    outgoing: this.fb.nonNullable.control(true),
   });
+  protected readonly accounts = signal<Account[]>([]);
+  /** Mirrors the type control so the template shows the transfer fields only for a TRANSFERT. */
+  protected readonly recurringType = signal<TransactionType>('DEPENSE');
 
   constructor() {
     this.categoryService.list().subscribe((categories) => this.categories.set(categories));
+    this.accountService.list().subscribe((accounts) => this.accounts.set(accounts.filter((a) => !a.isDefault)));
+    this.recurringForm.controls.type.valueChanges.subscribe((type) => this.recurringType.set(type));
     this.reload();
     this.reloadRecurring();
     // A recurring transaction is entered by hand too: only its category's allowed types, first one pre-selected.
     this.recurringForm.controls.categoryId.valueChanges.subscribe((categoryId) => {
       this.recurringCategoryId.set(categoryId);
-      this.recurringForm.controls.type.setValue(allowedTypesFor(this.categories(), categoryId)[0]);
+      // A category with a compte cible is a transfer category: pre-fill it like the transaction form does.
+      const account = this.categories().find((c) => c.id === categoryId)?.defaultTransferAccountId ?? null;
+      const allowed = allowedTypesFor(this.categories(), categoryId);
+      this.recurringForm.patchValue({
+        type: account !== null && allowed.includes('TRANSFERT') ? 'TRANSFERT' : allowed[0],
+        transferAccountId: account,
+      });
     });
   }
 
@@ -172,7 +188,15 @@ export class BudgetsComponent {
 
   /** The form is (re)filled on every opening - never on the dialog's close event, unreliable after Escape. */
   protected openAddRecurring(): void {
-    this.openRecurring(null, { label: '', categoryId: null, amount: 0, type: 'DEPENSE', variableAmount: false });
+    this.openRecurring(null, {
+      label: '',
+      categoryId: null,
+      amount: 0,
+      type: 'DEPENSE',
+      variableAmount: false,
+      transferAccountId: null,
+      outgoing: true,
+    });
   }
 
   protected editRecurring(recurring: RecurringTransaction): void {
@@ -182,6 +206,8 @@ export class BudgetsComponent {
       amount: Math.abs(recurring.amount),
       type: recurring.type,
       variableAmount: recurring.variableAmount,
+      transferAccountId: recurring.transferAccountId,
+      outgoing: recurring.outgoing,
     });
   }
 
@@ -191,6 +217,7 @@ export class BudgetsComponent {
     this.editingRecurringId.set(id);
     // emitEvent: false - the category's valueChanges handler would replace the recurring's own type.
     this.recurringCategoryId.set(value.categoryId);
+    this.recurringType.set(value.type);
     this.recurringForm.reset(value, { emitEvent: false });
     this.recurringDialog().nativeElement.showModal();
   }
@@ -219,6 +246,8 @@ export class BudgetsComponent {
       amount: raw.amount,
       type: raw.type,
       variableAmount: raw.variableAmount,
+      transferAccountId: raw.type === 'TRANSFERT' ? raw.transferAccountId : null,
+      outgoing: raw.outgoing,
     };
     const id = this.editingRecurringId();
     const request$ = id ? this.recurringTransactionService.update(id, request) : this.recurringTransactionService.create(request);

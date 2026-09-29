@@ -1,5 +1,6 @@
 package com.personalcashflow.recurring;
 
+import com.personalcashflow.account.Account;
 import com.personalcashflow.category.Category;
 import com.personalcashflow.transaction.TransactionType;
 import jakarta.persistence.Column;
@@ -53,6 +54,14 @@ public class RecurringTransaction {
     @Column(name = "variable_amount", nullable = false)
     private boolean variableAmount;
 
+    /** TRANSFERT only: the other account, and whether the money leaves the default account (true) or arrives on it. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transfer_account_id")
+    private Account transferAccount;
+
+    @Column(nullable = false)
+    private boolean outgoing = true;
+
     protected RecurringTransaction() {
     }
 
@@ -99,6 +108,20 @@ public class RecurringTransaction {
 
     public void changeVariableAmount(boolean variableAmount) {
         this.variableAmount = variableAmount;
+    }
+
+    public Account getTransferAccount() {
+        return transferAccount;
+    }
+
+    public boolean isOutgoing() {
+        return outgoing;
+    }
+
+    /** Null account (and outgoing ignored) unless the type is TRANSFERT. */
+    public void changeTransfer(Account transferAccount, boolean outgoing) {
+        this.transferAccount = type == TransactionType.TRANSFERT ? transferAccount : null;
+        this.outgoing = outgoing;
     }
 
     /** Positive magnitude, like the constructor's; the sign still comes from {@code type}. */
