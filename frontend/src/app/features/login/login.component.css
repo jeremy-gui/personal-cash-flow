@@ -23,12 +23,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, var(--blue), #60a5fa);
-  color: #fff;
-  font-size: 1rem;
+  font-size: 1.6rem;
+  line-height: 1;
 }
 
 form {
