@@ -24,3 +24,6 @@ ofx_to_import.ofx
 
 # Claude Code local machine/session settings — not meant to be shared.
 .claude/settings.local.json
+
+# Production secrets, only on the Pi.
+raspberry-pi/.env

@@ -52,6 +52,38 @@ passe, un aléatoire est affiché une fois dans les logs. En prod, définir
 aussi `APP_REMEMBER_ME_KEY` (signe le cookie « Rester connecté », 30 jours).
 Le front doit être servi sur la même origine que `/api` (reverse proxy).
 
+### Production : Raspberry Pi `raspberry-pi`
+
+- **HTTPS** : https://raspberry-pi.example.ts.net, uniquement depuis les
+  appareils connectés au compte Tailscale. `tailscale serve --bg 80` s'occupe
+  du certificat et de son renouvellement, et fait suivre vers nginx. La
+  configuration survit aux redémarrages (`tailscale serve status` pour la voir).
+- **HTTP en réseau local** : http://raspberry-pi/ (ou http://192.0.2.11/).
+
+Tout est dans `raspberry-pi/` : Docker Compose avec `db` (postgres:16, port non
+exposé), `app` (le jar) et `web` (nginx : front et proxy `/api`, port 80).
+Rien n'est compilé sur le Pi.
+
+- **Déployer** (depuis le PC, en PowerShell ; la clé SSH vient de l'agent
+  1Password) : `.\raspberry-pi\deploy.ps1`. Il construit le jar et le front,
+  copie tout dans `~/leboncompte/` sur le Pi, puis lance `docker compose up -d --build`.
+- **Secrets** : `~/leboncompte/.env` sur le Pi seulement (chmod 600, généré
+  aléatoirement au premier déploiement, voir `.env.example`). Le mot de
+  passe du NAS est dans `/etc/leboncompte/nas.credentials` (root, 600).
+- **Installation initiale du Pi** (root, une seule fois, on peut la relancer) :
+  `ssh -t deploy@raspberry-pi "sudo bash ~/leboncompte/setup-pi.sh"`. Le script
+  installe Docker et monte le NAS en SMB sur `/mnt/nas-backup`, monté à la
+  demande, puis ajoute la tâche de sauvegarde.
+- **Sauvegardes** : `backup.sh` est lancé chaque nuit à 3 h (crontab de
+  `deploy`). Il écrit `pg_dump` en gzip sur le NAS
+  (`//192.0.2.10/raspberry-pi/leboncompte/`) et garde 60 jours. Log :
+  `~/leboncompte/backup.log`.
+- **Restaurer** une sauvegarde (le dump contient `--clean`, il remplace donc le contenu) :
+  `gunzip -c /mnt/nas-backup/leboncompte/<fichier>.sql.gz | docker compose exec -T db psql -U leboncompte leboncompte`
+  (depuis `~/leboncompte`, idéalement après `docker compose stop app`).
+- Depuis la mise en service (05/10/2026), la base de référence est celle du
+  Pi ; la base Docker du PC ne sert plus qu'au développement.
+
 Tests : `./gradlew test` (backend, 130 tests actuellement) et
 `npx ng build` (frontend — pas de vraie suite de tests au-delà d'un
 `app.spec.ts` trivial via Vitest).
