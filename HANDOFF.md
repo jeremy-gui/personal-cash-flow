@@ -40,8 +40,17 @@ premier, ne pas le reformuler ici.
 ```
 docker-compose up -d                    # Postgres sur :5432 (db/user/pwd: leboncompte)
 cd LeBonCompte && ./gradlew bootRun      # backend sur :8080
-cd frontend && npx ng serve              # frontend sur :4200
+cd frontend && npx ng serve              # frontend sur :4200 (proxy /api -> :8080, proxy.conf.json)
 ```
+
+Connexion : session Spring Security (cookie) + CSRF (`XSRF-TOKEN`, renvoyé
+tout seul par Angular). Tous les utilisateurs partagent les mêmes données ;
+le rôle `ADMIN` ne sert qu'à gérer les utilisateurs (page `/users`). Au
+premier démarrage sans utilisateur, un admin est créé depuis
+`APP_ADMIN_USERNAME` (défaut `admin`) / `APP_ADMIN_PASSWORD` ; sans mot de
+passe, un aléatoire est affiché une fois dans les logs. En prod, définir
+aussi `APP_REMEMBER_ME_KEY` (signe le cookie « Rester connecté », 30 jours).
+Le front doit être servi sur la même origine que `/api` (reverse proxy).
 
 Tests : `./gradlew test` (backend, 130 tests actuellement) et
 `npx ng build` (frontend — pas de vraie suite de tests au-delà d'un

@@ -1,3 +1,4 @@
+@if (auth.currentUser(); as user) {
 <header class="topbar">
   <span class="brand"><span class="brand-mark">€</span>LeBonCompte</span>
   <nav>
@@ -10,9 +11,62 @@
     <a routerLink="/provisions" routerLinkActive="active">Provisions</a>
     <a routerLink="/repartition" routerLinkActive="active">Répartition</a>
     <a routerLink="/import" routerLinkActive="active">Import bancaire</a>
+    @if (auth.isAdmin()) {
+      <a routerLink="/users" routerLinkActive="active">Utilisateurs</a>
+    }
   </nav>
+  <div class="user-menu">
+    <button type="button" class="user-name" title="Changer mon mot de passe" (click)="openPasswordDialog()">
+      {{ user.username }}
+    </button>
+    <button type="button" (click)="logout()">Déconnexion</button>
+  </div>
 </header>
+}
 
 <main>
   <router-outlet />
 </main>
+
+<dialog class="card form-dialog password-dialog" #passwordDialog aria-labelledby="password-form-title"
+        (click)="onPasswordDialogClick($event)">
+<div class="dialog-head">
+  <h2 id="password-form-title">Changer mon mot de passe</h2>
+  <button type="button" class="dialog-close" title="Fermer" aria-label="Fermer" (click)="closePasswordDialog()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+</div>
+
+@if (passwordError()) {
+  <p class="error">{{ passwordError() }}</p>
+}
+
+<form [formGroup]="passwordForm" (ngSubmit)="submitPassword()" class="password-form">
+  <label>
+    Mot de passe actuel
+    <input type="password" formControlName="currentPassword" autocomplete="current-password" />
+  </label>
+
+  <label>
+    Nouveau mot de passe (8 caractères min.)
+    <input type="password" formControlName="newPassword" autocomplete="new-password" />
+  </label>
+
+  <label>
+    Confirmer le nouveau mot de passe
+    <input type="password" formControlName="newPasswordConfirm" autocomplete="new-password" />
+  </label>
+
+  @if (passwordForm.hasError('passwordsMismatch') && passwordForm.controls.newPasswordConfirm.dirty) {
+    <p class="mismatch">Les deux mots de passe ne correspondent pas.</p>
+  }
+
+  <div class="form-actions">
+    <button type="submit" [disabled]="passwordForm.invalid">Enregistrer</button>
+    <button type="button" (click)="closePasswordDialog()">Annuler</button>
+  </div>
+</form>
+</dialog>

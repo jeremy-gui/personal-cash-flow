@@ -97,3 +97,55 @@ main {
   margin: 0 auto;
   padding: var(--space-8) var(--space-6);
 }
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.user-menu .user-name {
+  border-color: transparent;
+  background: transparent;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .user-menu {
+    margin-left: 0;
+  }
+}
+
+.password-dialog {
+  width: min(420px, calc(100vw - 32px));
+}
+
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.error {
+  color: var(--red);
+  background: var(--red-soft);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  font-size: 0.85rem;
+  margin-bottom: var(--space-4);
+}
+
+.mismatch {
+  width: 100%;
+  margin: 0;
+  color: var(--red);
+  font-size: 0.85rem;
+}

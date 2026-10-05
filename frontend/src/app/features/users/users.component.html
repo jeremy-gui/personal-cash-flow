@@ -1,0 +1,124 @@
+<div class="page-header">
+  <h1>Utilisateurs</h1>
+  <button type="button" class="new-button" (click)="openAdd()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+    Nouvel utilisateur
+  </button>
+</div>
+
+@if (deleteError()) {
+  <p class="error">{{ deleteError() }}</p>
+}
+
+<div class="card table-card">
+<div class="table-scroll">
+<table class="users-table">
+  <thead>
+    <tr>
+      <th>Identifiant</th>
+      <th>Rôle</th>
+      <th>Créé le</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (user of users(); track user.id) {
+      <tr>
+        <td>
+          {{ user.username }}
+          @if (user.username === auth.currentUser()?.username) {
+            <span class="you">(vous)</span>
+          }
+        </td>
+        <td>{{ roleLabels[user.role] }}</td>
+        <td>{{ user.createdAt | date: 'dd/MM/yyyy' }}</td>
+        <td class="actions">
+          @if (pendingDeleteId() === user.id) {
+            <button type="button" class="confirm-delete" (click)="confirmDelete(user.id)">Confirmer</button>
+            <button type="button" (click)="cancelDelete()">Annuler</button>
+          } @else {
+            <button type="button" (click)="openRename(user)">Renommer</button>
+            <button type="button" (click)="openReset(user)">Mot de passe</button>
+            @if (user.username !== auth.currentUser()?.username) {
+              <button type="button" (click)="requestDelete(user.id)">Supprimer</button>
+            }
+          }
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>
+</div>
+</div>
+
+<dialog class="card form-dialog" #formDialog aria-labelledby="user-form-title" (click)="onDialogClick($event)">
+<div class="dialog-head">
+  <h2 id="user-form-title">
+    @switch (dialogMode()) {
+      @case ('create') { Nouvel utilisateur }
+      @case ('password') { Nouveau mot de passe pour {{ targetUser()?.username }} }
+      @case ('username') { Renommer {{ targetUser()?.username }} }
+    }
+  </h2>
+  <button type="button" class="dialog-close" title="Fermer" aria-label="Fermer" (click)="closeForm()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+</div>
+
+@if (errorMessage()) {
+  <p class="error">{{ errorMessage() }}</p>
+}
+
+<form [formGroup]="form" (ngSubmit)="submit()" class="user-form">
+  @if (dialogMode() !== 'password') {
+    <label>
+      Identifiant
+      <input type="text" formControlName="username" autocomplete="off" autofocus />
+    </label>
+  }
+
+  @if (dialogMode() === 'username' && targetUser()?.username === auth.currentUser()?.username) {
+    <p class="hint">C'est votre compte : il faudra vous reconnecter avec le nouveau nom.</p>
+  }
+
+  @if (dialogMode() === 'create') {
+    <label>
+      Rôle
+      <select formControlName="role">
+        @for (role of roles; track role) {
+          <option [value]="role">{{ roleLabels[role] }}</option>
+        }
+      </select>
+    </label>
+  }
+
+  @if (dialogMode() !== 'username') {
+    <label>
+      Mot de passe (8 caractères min.)
+      <input type="password" formControlName="password" autocomplete="new-password" />
+    </label>
+
+    <label>
+      Confirmer le mot de passe
+      <input type="password" formControlName="passwordConfirm" autocomplete="new-password" />
+    </label>
+
+    @if (form.hasError('passwordsMismatch') && form.controls.passwordConfirm.dirty) {
+      <p class="mismatch">Les deux mots de passe ne correspondent pas.</p>
+    }
+  }
+
+  <div class="form-actions">
+    <button type="submit" [disabled]="form.invalid">
+      {{ dialogMode() === 'create' ? 'Ajouter' : 'Enregistrer' }}
+    </button>
+    <button type="button" (click)="closeForm()">Annuler</button>
+  </div>
+</form>
+</dialog>

@@ -1,0 +1,28 @@
+<div class="login-wrap">
+  <div class="card login-card">
+    <span class="brand"><span class="brand-mark">€</span>LeBonCompte</span>
+
+    @if (errorMessage()) {
+      <p class="error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label>
+        Identifiant
+        <input type="text" formControlName="username" autocomplete="username" autofocus />
+      </label>
+
+      <label>
+        Mot de passe
+        <input type="password" formControlName="password" autocomplete="current-password" />
+      </label>
+
+      <label class="checkbox-label">
+        <input type="checkbox" formControlName="rememberMe" />
+        Rester connecté
+      </label>
+
+      <button type="submit" [disabled]="form.invalid || submitting()">Se connecter</button>
+    </form>
+  </div>
+</div>
