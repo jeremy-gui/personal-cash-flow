@@ -1,6 +1,9 @@
 <div class="login-wrap">
   <div class="card login-card">
-    <span class="brand"><span class="brand-mark" aria-hidden="true">💰</span>Personal Cash Flow</span>
+    <span class="brand-block">
+      <span class="brand"><span class="brand-mark" aria-hidden="true">💰</span>Personal Cash Flow</span>
+      <span class="brand-by">by <img class="brand-signature" src="signature.png" alt="author" /></span>
+    </span>
 
     @if (errorMessage()) {
       <p class="error" role="alert">{{ errorMessage() }}</p>

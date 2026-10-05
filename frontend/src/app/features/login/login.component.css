@@ -8,11 +8,14 @@
   width: min(380px, 100%);
 }
 
+.brand-block {
+  margin-bottom: var(--space-6);
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  margin-bottom: var(--space-6);
   font-weight: 800;
   font-size: 1.25rem;
   letter-spacing: -0.02em;

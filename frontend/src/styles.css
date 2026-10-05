@@ -394,3 +394,26 @@ button.confirm-delete:hover:not(:disabled) {
   border-color: var(--border);
   color: var(--ink);
 }
+
+/* Creator signature under the app name (topbar and login). */
+.brand-block {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.brand-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-style: italic;
+  color: #e50c0e; /* the red of signature.png */
+}
+
+.brand-signature {
+  display: block;
+  height: 20px;
+  width: auto;
+}
