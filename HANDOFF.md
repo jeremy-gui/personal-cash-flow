@@ -83,6 +83,10 @@ Rien n'est compilé sur le Pi.
   (depuis `~/leboncompte`, idéalement après `docker compose stop app`).
 - Depuis la mise en service (05/10/2026), la base de référence est celle du
   Pi ; la base Docker du PC ne sert plus qu'au développement.
+- **Base de dev = copie de la prod** : `.\raspberry-pi\pull-prod-db.ps1` remplace
+  la base locale par une copie fraîche de celle du Pi (sens unique, la prod
+  n'est jamais modifiée). Les comptes de connexion sont donc les mêmes qu'en
+  prod. Ce qu'on teste en local est écrasé à la copie suivante.
 
 Tests : `./gradlew test` (backend, 130 tests actuellement) et
 `npx ng build` (frontend — pas de vraie suite de tests au-delà d'un
