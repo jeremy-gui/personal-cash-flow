@@ -52,41 +52,43 @@ passe, un aléatoire est affiché une fois dans les logs. En prod, définir
 aussi `APP_REMEMBER_ME_KEY` (signe le cookie « Rester connecté », 30 jours).
 Le front doit être servi sur la même origine que `/api` (reverse proxy).
 
-### Production : Raspberry Pi `raspberry-pi`
+### Production : Intel NUC `home-server` (Debian 13)
 
-- **HTTPS** : https://raspberry-pi.example.ts.net, uniquement depuis les
-  appareils connectés au compte Tailscale. `tailscale serve --bg 80` s'occupe
-  du certificat et de son renouvellement, et fait suivre vers nginx. La
-  configuration survit aux redémarrages (`tailscale serve status` pour la voir).
-- **HTTP en réseau local** : http://raspberry-pi/ (ou http://192.0.2.11/).
+Remplace le Pi `raspberry-pi`, mort vers le 7/10/2026 (restauré depuis la
+sauvegarde NAS du 06/10 à 3 h ; ce qui a été saisi après est perdu).
 
-Tout est dans `raspberry-pi/` : Docker Compose avec `db` (postgres:16, port non
-exposé), `app` (le jar) et `web` (nginx : front et proxy `/api`, port 80).
-Rien n'est compilé sur le Pi.
-
-- **Déployer** (depuis le PC, en PowerShell ; la clé SSH vient de l'agent
-  1Password) : `.\raspberry-pi\deploy.ps1`. Il construit le jar et le front,
-  copie tout dans `~/leboncompte/` sur le Pi, puis lance `docker compose up -d --build`.
-- **Secrets** : `~/leboncompte/.env` sur le Pi seulement (chmod 600, généré
-  aléatoirement au premier déploiement, voir `.env.example`). Le mot de
-  passe du NAS est dans `/etc/leboncompte/nas.credentials` (root, 600).
-- **Installation initiale du Pi** (root, une seule fois, on peut la relancer) :
-  `ssh -t deploy@raspberry-pi "sudo bash ~/leboncompte/setup-pi.sh"`. Le script
-  installe Docker et monte le NAS en SMB sur `/mnt/nas-backup`, monté à la
-  demande, puis ajoute la tâche de sauvegarde.
-- **Sauvegardes** : `backup.sh` est lancé chaque nuit à 3 h (crontab de
-  `deploy`). Il écrit `pg_dump` en gzip sur le NAS
-  (`//192.0.2.10/raspberry-pi/leboncompte/`) et garde 60 jours. Log :
-  `~/leboncompte/backup.log`.
-- **Restaurer** une sauvegarde (le dump contient `--clean`, il remplace donc le contenu) :
-  `gunzip -c /mnt/nas-backup/leboncompte/<fichier>.sql.gz | docker compose exec -T db psql -U leboncompte leboncompte`
-  (depuis `~/leboncompte`, idéalement après `docker compose stop app`).
-- Depuis la mise en service (05/10/2026), la base de référence est celle du
-  Pi ; la base Docker du PC ne sert plus qu'au développement.
-- **Base de dev = copie de la prod** : `.\raspberry-pi\pull-prod-db.ps1` remplace
-  la base locale par une copie fraîche de celle du Pi (sens unique, la prod
-  n'est jamais modifiée). Les comptes de connexion sont donc les mêmes qu'en
-  prod. Ce qu'on teste en local est écrasé à la copie suivante.
+- **Accès** : https://home-server.example.ts.net, **uniquement via
+  Tailscale**, même à la maison : nginx n'écoute que sur `127.0.0.1:8080`
+  (un port publié par Docker contournerait le pare-feu) et
+  `tailscale serve --bg 8080` fait l'HTTPS.
+- **Sécurité** : pare-feu nftables (table `inet author`, IPv4 + IPv6 — le NUC
+  a une IPv6 publique) qui refuse tout en entrée sauf `tailscale0` et SSH
+  depuis `192.0.2.0/24`. SSH par clé uniquement (1Password), root interdit,
+  seul `deploy` autorisé. Mises à jour de sécurité automatiques
+  (`unattended-upgrades`). Pas d'utilisateur dédié à l'app : le groupe
+  `docker` équivaut à root, ça n'aurait rien protégé.
+- **Root** : `sudo` demande un mot de passe. `.\home-server\as-root.ps1 <script.sh>`
+  le lit dans 1Password (`op` CLI, entrée « deploy on home-server ») et le
+  passe à `sudo -S` sans l'afficher.
+- **Installation / remise en état** (root, rejouable) :
+  `.\home-server\as-root.ps1 .\home-server\setup-serv.sh -Secrets @{ NAS_PASSWORD = 'op://vault/nas-backup/password' }`.
+  Installe pare-feu, durcissement SSH, Docker (données sur `/srv/docker`,
+  `/var` est petit), Tailscale + serve, montage NAS, cron de sauvegarde. Un
+  serveur neuf a d'abord besoin de `sudo tailscale up --hostname=home-server`.
+- **Déployer** (PowerShell) : `.\home-server\deploy.ps1` — build jar + front
+  sur le PC, copie dans `/srv/personal-cash-flow/`, `docker compose up -d --build`.
+- **Secrets** : `/srv/personal-cash-flow/.env` (chmod 600, généré au premier
+  déploiement) ; mot de passe NAS dans `/etc/personal-cash-flow/nas.credentials`.
+- **Sauvegardes** : `backup.sh` chaque nuit à 3 h (crontab de `deploy`),
+  `pg_dump` gzip sur le NAS `//192.0.2.10/raspberry-pi/leboncompte/`
+  (monté à la demande sur `/mnt/nas-backup`), 60 jours gardés. Log :
+  `/srv/personal-cash-flow/backup.log`.
+- **Restaurer** (le dump contient `--clean`) depuis `/srv/personal-cash-flow` :
+  `docker compose stop app`, puis
+  `gunzip -c /mnt/nas-backup/leboncompte/<fichier>.sql.gz | docker compose exec -T db psql -U leboncompte leboncompte`,
+  puis `docker compose start app`.
+- **Base de dev = copie de la prod** : `.\home-server\pull-prod-db.ps1`
+  (sens unique, la prod n'est jamais modifiée).
 
 Tests : `./gradlew test` (backend, 130 tests actuellement) et
 `npx ng build` (frontend — pas de vraie suite de tests au-delà d'un
