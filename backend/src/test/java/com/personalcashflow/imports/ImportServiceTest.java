@@ -174,20 +174,6 @@ class ImportServiceTest {
     }
 
     @Test
-    void importOfx_withRowBeforeSeptember2026_shouldThrowImportTooOldExceptionAndSaveNothing() {
-        String ofx = ofxDocument(
-                stmttrn("POS", "20260905", "-81.24", "FIT001", "CARREFOUR"),
-                stmttrn("POS", "20260831", "-12.00", "FIT002", "BOULANGERIE"));
-        MockMultipartFile file = new MockMultipartFile(
-                "file", "releve.ofx", "application/x-ofx", ofx.getBytes(StandardCharsets.US_ASCII));
-
-        assertThatThrownBy(() -> service().importOfx(file))
-                .isInstanceOf(ImportTooOldException.class);
-        verify(transactionRepository, never()).saveAll(any());
-        verify(accountRepository, never()).findByAccountNumber(any());
-    }
-
-    @Test
     void importOfx_withRowExactlyOnSeptember2026_shouldNotThrow() {
         Account account = new Account("Compte courant", AccountType.COURANT, BigDecimal.ZERO, "123");
         setId(account, 1L);
@@ -355,16 +341,6 @@ class ImportServiceTest {
         assertThat(summary.createdCount()).isZero();
         assertThat(summary.skippedCount()).isEqualTo(1);
         verify(transactionRepository).saveAll(List.of());
-    }
-
-    @Test
-    void importCsv_withRowBeforeSeptember2026_shouldThrowImportTooOldExceptionAndSaveNothing() {
-        MockMultipartFile file = csvFile(csvDocument("31/08/2026;\"BOULANGERIE\";-12,00"));
-
-        assertThatThrownBy(() -> service().importCsv(1L, file))
-                .isInstanceOf(ImportTooOldException.class);
-        verify(transactionRepository, never()).saveAll(any());
-        verify(accountRepository, never()).findById(any());
     }
 
     @Test

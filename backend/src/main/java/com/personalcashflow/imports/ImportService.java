@@ -41,15 +41,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional
 public class ImportService {
 
-    /**
-     * The Jan-Aug 2026 history is already fully backfilled from the budget spreadsheet and
-     * reconciled against a real bank export (see {@code reconcileOriginalLabels}). A normal import
-     * covering that range again would create duplicate transactions, since most of those rows'
-     * importHash is still a synthetic backfill id rather than a real bank FITID.
-     */
-    private static final LocalDate EARLIEST_IMPORTABLE_DATE = LocalDate.of(2026, 9, 1);
-
-    private final ImportBatchRepository importBatchRepository;
+private final ImportBatchRepository importBatchRepository;
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final OfxBankFormat ofxBankFormat;
@@ -77,7 +69,6 @@ public class ImportService {
         }
 
         OfxBankFormat.ParsedStatement statement = parse(file);
-        rejectIfTooOld(statement.rows());
         Account account = accountRepository.findByAccountNumber(statement.accountNumber())
                 .orElseThrow(() -> new UnmatchedOfxAccountException(statement.accountNumber()));
         return processImport(account, file.getOriginalFilename(), statement.rows());
@@ -100,7 +91,6 @@ public class ImportService {
                 .filter(line -> !line.isBlank())
                 .map(csvBankFormat::parseLine)
                 .toList();
-        rejectIfTooOld(parsedRows);
 
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AccountNotFoundException(accountId));
@@ -322,15 +312,6 @@ public class ImportService {
         return Arrays.stream(normalized.split("[^A-Z0-9]+"))
                 .filter(token -> token.length() > 1)
                 .collect(Collectors.toSet());
-    }
-
-    private static void rejectIfTooOld(List<Optional<ImportedRow>> rows) {
-        boolean hasOldRow = rows.stream()
-                .flatMap(Optional::stream)
-                .anyMatch(row -> row.date().isBefore(EARLIEST_IMPORTABLE_DATE));
-        if (hasOldRow) {
-            throw new ImportTooOldException(EARLIEST_IMPORTABLE_DATE);
-        }
     }
 
     private OfxBankFormat.ParsedStatement parse(MultipartFile file) {
