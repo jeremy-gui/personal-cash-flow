@@ -22,11 +22,8 @@
 }
 
 .topbar .brand-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.3rem;
-  line-height: 1;
+  width: 32px;
+  height: 32px;
 }
 
 .topbar nav {
