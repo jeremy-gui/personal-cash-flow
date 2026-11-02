@@ -28,7 +28,7 @@ Monolithe modulaire Spring Boot (backend) + Angular (frontend) + PostgreSQL, dé
 
 ## Brand Commitments
 
-Nom : "Personal Cash Flow" (anciennement "LeBonCompte", nom encore présent dans le package Java et la base). Logo : maison, famille et pièces (`frontend/public/logo.png`). Pas de charte graphique ni de ton de voix fixés au-delà de la direction visuelle ci-dessous.
+Nom : "Personal Cash Flow" (anciennement "LeBonCompte", nom encore présent dans la base et quelques classes). Logo : maison, famille et pièces (`frontend/public/logo.png`). Pas de charte graphique ni de ton de voix fixés au-delà de la direction visuelle ci-dessous.
 
 Direction visuelle (standing preference, choisie explicitement le 2026-09-14 en remplacement du monde "Cahier de comptes familial") : dashboard fintech standard du genre — cartes arrondies, accent bleu, ombres douces, typographie sans-serif claire — exécuté avec le niveau de finition de Revolut comme référence de qualité. Choix assumé et non ironique : pas de pastiche, pas de clin d'œil, l'app doit ressembler à une app bancaire moderne sérieuse.
 

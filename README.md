@@ -76,7 +76,7 @@ Backups contain all your financial data: store them somewhere safe and keep them
 - OFX imports find the account through its account number, so set it on the account first.
 - CSV import supports one format, La Banque Postale's export (see `DefaultCsvBankFormat`).
 - The salary split page relies on category names: `Salaire`, `Allocations` and `Renflouage` count as funding sources.
-- The code still uses the app's former name, `LeBonCompte`, for the Java package and the database.
+- The code still uses the app's former name, `LeBonCompte`, for the database and a few class names.
 
 ## Develop
 
@@ -96,4 +96,5 @@ See [`ROADMAP.md`](ROADMAP.md).
 
 ## License
 
-[MIT](LICENSE)
+The code is under the [MIT](LICENSE) license. The logo (`logo.png`, `logo-mark.png` and `favicon.png` in
+`frontend/public/`) was generated with ChatGPT and is not covered by it.

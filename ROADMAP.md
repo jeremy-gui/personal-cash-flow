@@ -23,4 +23,4 @@ Planned work, roughly in priority order.
 - [ ] Add frontend tests: only a few exist today, against 182 on the backend
 - [ ] Run the database-backed backend tests on Testcontainers so they need no running database
 - [ ] Remove what's left of the one-off spreadsheet backfill (`/api/imports/reconcile-originals`)
-- [ ] Rename the `leboncompte` Java package and database to match the app's name
+- [ ] Rename the `leboncompte` database and the remaining `LeBonCompte` classes to match the app's name
