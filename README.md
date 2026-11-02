@@ -1,7 +1,8 @@
 # Personal Cash Flow
 
 A self-hosted household budget tracker. Import your bank statements, plan upcoming expenses and income, reconcile
-the plan with what really happened, and follow your budgets by category.
+the plan with what really happened, and follow your budgets by category. Multi-language and multi-currency support is
+coming soon.
 
 **Who it's for:** individuals or couples who want to track their own money on their own server, without connecting
 a bank aggregator or sending their data to a third party. It started as the budget app of my own household.
