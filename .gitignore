@@ -1,29 +1,19 @@
-# Real personal bank exports used locally to validate the bank import format.
-# Contain real names, amounts, and partial bank references — never commit.
-exemple_banque_postale.csv
-exemple.ofx
+# Secrets: only .env.example belongs in git.
+.env
+.env.*
+!.env.example
 
-# Real personal budget history used locally by scripts/import-xlsx-history.js.
-compte_test.xlsx
-
-# Real personal bank export used to reconcile original labels onto the backfilled history.
-ofx_to_import.ofx
-
-# Raw per-table DB dumps of real personal data, appear at the repo root from local tooling
-# (sometimes with a numeric suffix, e.g. transaction_1.sql).
-/account*.sql
-/budget*.sql
-/category*.sql
-/flyway_schema_history*.sql
-/import_batch*.sql
-/recurring_transaction*.sql
-/transaction*.sql
-
-# Full database backups (pg_dump) — contain all real personal financial data.
+# Real bank exports and database dumps never belong in git; samples/ holds made-up data.
+*.ofx
+*.qif
+*.xlsx
+*.sql.gz
+*.dump
+/*.csv
+/*.sql
 /backups/
+!samples/*.ofx
 
-# Claude Code local machine/session settings — not meant to be shared.
+# Local tool state
 .claude/settings.local.json
-
-# Production secrets, only on the Pi.
-raspberry-pi/.env
+.impeccable/
