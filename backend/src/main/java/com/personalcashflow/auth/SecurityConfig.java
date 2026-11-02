@@ -1,6 +1,7 @@
 package com.personalcashflow.auth;
 
 import java.time.Duration;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,7 +36,8 @@ class SecurityConfig {
                         .failureHandler(new AuthenticationEntryPointFailureHandler(unauthorized))
                         .permitAll())
                 .rememberMe(remember -> remember
-                        .key(rememberMeKey)
+                        // No key configured: a random one is safe, it only logs remembered users out on restart.
+                        .key(rememberMeKey.isBlank() ? UUID.randomUUID().toString() : rememberMeKey)
                         .tokenValiditySeconds((int) Duration.ofDays(30).toSeconds()))
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
