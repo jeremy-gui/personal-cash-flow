@@ -1,0 +1,41 @@
+# Self-hosted install: cp .env.example .env, fill it in, then docker compose up -d --build
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: leboncompte
+      POSTGRES_USER: leboncompte
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leboncompte"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+
+  app:
+    build: ./backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/leboncompte
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_ADMIN_USERNAME: ${APP_ADMIN_USERNAME:-admin}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-}
+      APP_REMEMBER_ME_KEY: ${APP_REMEMBER_ME_KEY:?set it in .env}
+      TZ: ${TZ:-Europe/Paris}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    ports:
+      # Loopback by default: put an HTTPS reverse proxy in front before exposing it (see README.md).
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-8080}:80"
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

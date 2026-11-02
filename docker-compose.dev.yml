@@ -1,0 +1,15 @@
+# Local development only: PostgreSQL with a throwaway password. See README.md.
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: leboncompte
+      POSTGRES_USER: leboncompte
+      POSTGRES_PASSWORD: leboncompte
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
