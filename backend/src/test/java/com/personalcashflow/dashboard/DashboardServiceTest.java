@@ -43,8 +43,9 @@ class DashboardServiceTest {
     @InjectMocks
     private DashboardService dashboardService;
 
-    private static final LocalDate FROM = LocalDate.of(2026, 9, 1);
-    private static final LocalDate TO = LocalDate.of(2026, 9, 30);
+    private static final YearMonth MONTH = YearMonth.now();
+    private static final LocalDate FROM = MONTH.atDay(1);
+    private static final LocalDate TO = MONTH.atEndOfMonth();
     private static final Long ACCOUNT_ID = 1L;
 
     private static Account defaultAccount(BigDecimal initialBalance) {
@@ -60,7 +61,7 @@ class DashboardServiceTest {
     }
 
     private void stubCommon(BigDecimal initialBalance) {
-        stubCommon(initialBalance, "2026-09", FROM, TO);
+        stubCommon(initialBalance, MONTH.toString(), FROM, TO);
     }
 
     private void stubCommon(BigDecimal initialBalance, String month, LocalDate from, LocalDate to) {
@@ -88,7 +89,7 @@ class DashboardServiceTest {
         when(transactionRepository.sumByStatusUpToDate(TransactionStatus.POINTEE, ACCOUNT_ID, TO))
                 .thenReturn(BigDecimal.ZERO);
 
-        DashboardResponse response = dashboardService.getDashboard("2026-09");
+        DashboardResponse response = dashboardService.getDashboard(MONTH.toString());
 
         // Transfers count by direction: +150 incoming joins revenus, -500 outgoing joins dépenses.
         assertThat(response.revenus()).isEqualByComparingTo(BigDecimal.valueOf(3000));
@@ -115,7 +116,7 @@ class DashboardServiceTest {
         when(transactionRepository.sumByStatusUpToDate(TransactionStatus.POINTEE, ACCOUNT_ID, TO))
                 .thenReturn(BigDecimal.valueOf(-300));
 
-        DashboardResponse response = dashboardService.getDashboard("2026-09");
+        DashboardResponse response = dashboardService.getDashboard(MONTH.toString());
 
         assertThat(response.soldeActuel()).isEqualByComparingTo(BigDecimal.valueOf(857.70));
         assertThat(response.previsionnelFinDeMois()).isEqualByComparingTo(BigDecimal.valueOf(2857.70));
@@ -173,7 +174,7 @@ class DashboardServiceTest {
     void getDashboard_whenNoDefaultAccount_shouldThrowException() {
         when(accountRepository.findByIsDefaultTrue()).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> dashboardService.getDashboard("2026-09"))
+        assertThatThrownBy(() -> dashboardService.getDashboard(MONTH.toString()))
                 .isInstanceOf(NoDefaultAccountException.class);
     }
 }
